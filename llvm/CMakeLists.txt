@@ -443,6 +443,7 @@ set(LLVM_ALL_TARGETS
   Sparc
   SystemZ
   VE
+  V810
   WebAssembly
   X86
   XCore

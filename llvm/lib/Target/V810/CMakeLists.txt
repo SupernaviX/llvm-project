@@ -1,0 +1,37 @@
+add_llvm_component_group(V810)
+
+set(LLVM_TARGET_DEFINITIONS V810.td)
+
+tablegen(LLVM V810GenAsmMatcher.inc -gen-asm-matcher)
+tablegen(LLVM V810GenAsmWriter.inc -gen-asm-writer)
+tablegen(LLVM V810GenCallingConv.inc -gen-callingconv)
+tablegen(LLVM V810GenDAGISel.inc -gen-dag-isel)
+tablegen(LLVM V810GenDisassemblerTables.inc -gen-disassembler)
+tablegen(LLVM V810GenInstrInfo.inc -gen-instr-info)
+tablegen(LLVM V810GenMCCodeEmitter.inc -gen-emitter)
+tablegen(LLVM V810GenRegisterInfo.inc -gen-register-info)
+tablegen(LLVM V810GenSubtargetInfo.inc -gen-subtarget)
+
+add_public_tablegen_target(V810CommonTableGen)
+
+add_llvm_target(V810CodeGen
+  V810InstrInfo.cpp
+  V810TargetMachine.cpp
+
+  LINK_COMPONENTS
+  AsmPrinter
+  CodeGen
+  CodeGenTypes
+  Core
+  MC
+  SelectionDAG
+  Support
+  Target
+  TargetParser
+  V810Info
+
+  ADD_TO_COMPONENT
+  V810
+)
+
+add_subdirectory(TargetInfo)
