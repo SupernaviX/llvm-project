@@ -13,7 +13,7 @@ class V810InstrInfo : public V810GenInstrInfo {
   const V810RegisterInfo RI;
   virtual void anchor();
 public:
-  const V810RegisterInfo &getRegisterInfo(); const { return RI; }
+  const V810RegisterInfo &getRegisterInfo() const { return RI; }
 };
 
 }

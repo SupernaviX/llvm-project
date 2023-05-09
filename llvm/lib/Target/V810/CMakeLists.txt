@@ -15,7 +15,9 @@ tablegen(LLVM V810GenSubtargetInfo.inc -gen-subtarget)
 add_public_tablegen_target(V810CommonTableGen)
 
 add_llvm_target(V810CodeGen
+  V810FrameLowering.cpp
   V810InstrInfo.cpp
+  V810RegisterInfo.cpp
   V810TargetMachine.cpp
 
   LINK_COMPONENTS
@@ -34,4 +36,5 @@ add_llvm_target(V810CodeGen
   V810
 )
 
+add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)

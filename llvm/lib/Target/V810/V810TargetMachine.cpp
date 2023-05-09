@@ -3,7 +3,7 @@
 #include "llvm/MC/TargetRegistry.h"
 using namespace llvm;
 
-extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSparcTarget() {
+extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810Target() {
   // Register the target.
   RegisterTargetMachine<V810TargetMachine> X(getTheV810Target());
 }
@@ -22,5 +22,6 @@ V810TargetMachine::V810TargetMachine(
         CM.value_or(CodeModel::Small),
         OL
     ) {
-
 }
+
+V810TargetMachine::~V810TargetMachine() {}

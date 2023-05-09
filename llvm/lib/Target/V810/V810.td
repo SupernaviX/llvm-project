@@ -7,6 +7,11 @@ def V810InstrInfo : InstrInfo;
 
 def V810AsmParser : AsmParser;
 
+class Proc<string Name, list<SubtargetFeature> Features>
+ : Processor<Name, NoItineraries, Features>;
+
+def : Proc<"generic", []>;
+
 def V810AsmWriter : AsmWriter {
   string AsmWriterClassName  = "InstrPrinter";
 }
