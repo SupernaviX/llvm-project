@@ -1,4 +1,5 @@
 #include "V810MCTargetDesc.h"
+#include "V810MCAsmInfo.h"
 #include "TargetInfo/V810TargetInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
@@ -18,6 +19,12 @@ using namespace llvm;
 #define GET_REGINFO_MC_DESC
 #include "V810GenRegisterInfo.inc"
 
+static MCAsmInfo *createV810MCAsmInfo(const MCRegisterInfo &MRI,
+                                       const Triple &TT,
+                                       const MCTargetOptions &Options) {
+  MCAsmInfo *MAI = new V810AsmInfo(TT);
+  return MAI;
+}
 
 static MCInstrInfo *createV810MCInstrInfo() {
   MCInstrInfo *X = new MCInstrInfo();
@@ -38,6 +45,9 @@ createV810MCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
 
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810TargetMC() {
+  // Register the MC asm info.
+  RegisterMCAsmInfoFn X(getTheV810Target(), createV810MCAsmInfo);
+
   Target *T = &getTheV810Target();
 
   // Register the MC instruction info.

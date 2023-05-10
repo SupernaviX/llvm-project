@@ -1,5 +1,9 @@
 #include "TargetInfo/V810TargetInfo.h"
+#include "V810.h"
+#include "V810MachineFunctionInfo.h"
 #include "V810TargetMachine.h"
+#include "llvm/CodeGen/Passes.h"
+#include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/MC/TargetRegistry.h"
 using namespace llvm;
 
@@ -22,6 +26,36 @@ V810TargetMachine::V810TargetMachine(
         CM.value_or(CodeModel::Small),
         OL
     ) {
+  initAsmInfo();
+}
+
+MachineFunctionInfo *V810TargetMachine::createMachineFunctionInfo(
+    BumpPtrAllocator &Allocator, const Function &F,
+    const TargetSubtargetInfo *STI) const {
+  return V810MachineFunctionInfo::create<V810MachineFunctionInfo>(Allocator, F, STI);
+}
+
+namespace {
+class V810PassConfig : public TargetPassConfig {
+public:
+  V810PassConfig(V810TargetMachine &TM, PassManagerBase &PM)
+    : TargetPassConfig(TM, PM) {}
+
+  V810TargetMachine &getV810TargetMachine() const {
+    return getTM<V810TargetMachine>();
+  }
+
+  bool addInstSelector() override;
+};
+} // namespace
+
+bool V810PassConfig::addInstSelector() {
+  // TODO: add the dang selector
+  return false;
+}
+
+TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
+  return new V810PassConfig(*this, PM);
 }
 
 V810TargetMachine::~V810TargetMachine() {}

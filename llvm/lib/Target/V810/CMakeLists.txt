@@ -17,6 +17,7 @@ add_public_tablegen_target(V810CommonTableGen)
 add_llvm_target(V810CodeGen
   V810FrameLowering.cpp
   V810InstrInfo.cpp
+  V810MachineFunctionInfo.cpp
   V810RegisterInfo.cpp
   V810TargetMachine.cpp
 

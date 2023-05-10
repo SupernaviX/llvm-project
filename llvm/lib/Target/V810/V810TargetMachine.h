@@ -13,6 +13,12 @@ public:
                     std::optional<CodeModel::Model> CM, CodeGenOpt::Level OL,
                     bool JIT);
   ~V810TargetMachine() override;
+
+  TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
+
+  MachineFunctionInfo *
+  createMachineFunctionInfo(BumpPtrAllocator &Allocator, const Function &F,
+                            const TargetSubtargetInfo *STI) const override;
 };
 
 } // end namespace llvm
