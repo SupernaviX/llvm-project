@@ -6,12 +6,22 @@
 #include <memory>
 
 namespace llvm {
+class MCAsmBackend;
 class MCCodeEmitter;
 class MCContext;
 class MCInstrInfo;
+class MCObjectTargetWriter;
+class MCRegisterInfo;
+class MCSubtargetInfo;
+class MCTargetOptions;
+class Target;
 
 MCCodeEmitter *createV810MCCodeEmitter(const MCInstrInfo &MCII,
-                                  MCContext &Ctx);
+                                       MCContext &Ctx);
+MCAsmBackend *createV810AsmBackend(const Target &T, const MCSubtargetInfo &STI,
+                                   const MCRegisterInfo &MRI,
+                                   const MCTargetOptions &Options);
+std::unique_ptr<MCObjectTargetWriter> createV810ObjectWriter(uint8_t OSABI);
 
 } // End llvm namespace
 

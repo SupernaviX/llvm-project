@@ -61,4 +61,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810TargetMC() {
 
   // Register the MC Code Emitter.
   TargetRegistry::RegisterMCCodeEmitter(*T, createV810MCCodeEmitter);
+
+  // Register the asm backend.
+  TargetRegistry::RegisterMCAsmBackend(*T, createV810AsmBackend);
 }
