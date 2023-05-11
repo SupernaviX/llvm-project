@@ -6,6 +6,12 @@
 #include <memory>
 
 namespace llvm {
+class MCCodeEmitter;
+class MCContext;
+class MCInstrInfo;
+
+MCCodeEmitter *createV810MCCodeEmitter(const MCInstrInfo &MCII,
+                                  MCContext &Ctx);
 
 } // End llvm namespace
 

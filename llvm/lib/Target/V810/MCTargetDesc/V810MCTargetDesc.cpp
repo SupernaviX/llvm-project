@@ -58,4 +58,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810TargetMC() {
 
   // Register the MC subtarget info.
   TargetRegistry::RegisterMCSubtargetInfo(*T, createV810MCSubtargetInfo);
+
+  // Register the MC Code Emitter.
+  TargetRegistry::RegisterMCCodeEmitter(*T, createV810MCCodeEmitter);
 }
