@@ -15,11 +15,13 @@ tablegen(LLVM V810GenSubtargetInfo.inc -gen-subtarget)
 add_public_tablegen_target(V810CommonTableGen)
 
 add_llvm_target(V810CodeGen
+  V810AsmPrinter.cpp
   V810FrameLowering.cpp
   V810InstrInfo.cpp
   V810MachineFunctionInfo.cpp
   V810RegisterInfo.cpp
   V810TargetMachine.cpp
+  V810TargetObjectFile.cpp
 
   LINK_COMPONENTS
   AsmPrinter

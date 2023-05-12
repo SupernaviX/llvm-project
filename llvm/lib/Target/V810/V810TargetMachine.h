@@ -2,10 +2,14 @@
 #define LLVM_LIB_TARGET_V810_V810TARGETMACHINE_H
 
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetMachine.h"
+#include <optional>
 
 namespace llvm {
 
 class V810TargetMachine : public LLVMTargetMachine {
+private:
+  std::unique_ptr<TargetLoweringObjectFile> TLOF;
 public:
   V810TargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                     StringRef FS, const TargetOptions &Options,
@@ -15,6 +19,9 @@ public:
   ~V810TargetMachine() override;
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;
+  TargetLoweringObjectFile *getObjFileLowering() const override {
+    return TLOF.get();
+  }
 
   MachineFunctionInfo *
   createMachineFunctionInfo(BumpPtrAllocator &Allocator, const Function &F,

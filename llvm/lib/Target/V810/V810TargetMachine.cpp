@@ -2,6 +2,7 @@
 #include "V810.h"
 #include "V810MachineFunctionInfo.h"
 #include "V810TargetMachine.h"
+#include "V810TargetObjectFile.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -24,8 +25,8 @@ V810TargetMachine::V810TargetMachine(
         T, computeDataLayout(TT), TT, CPU, FS, Options,
         RM.value_or(Reloc::Static),
         CM.value_or(CodeModel::Small),
-        OL
-    ) {
+        OL),
+      TLOF(std::make_unique<V810TargetObjectFile>()) {
   initAsmInfo();
 }
 
