@@ -30,6 +30,14 @@ V810TargetMachine::V810TargetMachine(
   initAsmInfo();
 }
 
+const V810Subtarget *
+V810TargetMachine::getSubtargetImpl(const Function &F) const {
+  if (!Subtarget) {
+    Subtarget.reset(new V810Subtarget(TargetTriple, TargetCPU, TargetFS, *this));
+  }
+  return Subtarget.get();
+}
+
 MachineFunctionInfo *V810TargetMachine::createMachineFunctionInfo(
     BumpPtrAllocator &Allocator, const Function &F,
     const TargetSubtargetInfo *STI) const {
@@ -50,13 +58,13 @@ public:
 };
 } // namespace
 
+TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
+  return new V810PassConfig(*this, PM);
+}
+
 bool V810PassConfig::addInstSelector() {
   // TODO: add the dang selector
   return false;
-}
-
-TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
-  return new V810PassConfig(*this, PM);
 }
 
 V810TargetMachine::~V810TargetMachine() {}

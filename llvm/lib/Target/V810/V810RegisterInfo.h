@@ -12,6 +12,8 @@ struct V810RegisterInfo : public V810GenRegisterInfo {
 
   /// Code Generation virtual methods...
   const MCPhysReg *getCalleeSavedRegs(const MachineFunction *MF) const override;
+  const uint32_t *getCallPreservedMask(const MachineFunction *MF,
+                                       CallingConv::ID CC) const;
 
   BitVector getReservedRegs(const MachineFunction &MF) const override;
 

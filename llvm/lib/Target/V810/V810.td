@@ -1,6 +1,7 @@
 include "llvm/Target/Target.td"
 
 include "V810RegisterInfo.td"
+include "V810CallingConv.td"
 include "V810InstrInfo.td"
 
 def V810InstrInfo : InstrInfo;
