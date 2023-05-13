@@ -14,7 +14,7 @@ class Proc<string Name, list<SubtargetFeature> Features>
 def : Proc<"generic", []>;
 
 def V810AsmWriter : AsmWriter {
-  string AsmWriterClassName  = "InstrPrinter";
+  string AsmWriterClassName  = "InstPrinter";
 }
 
 def V810 : Target {

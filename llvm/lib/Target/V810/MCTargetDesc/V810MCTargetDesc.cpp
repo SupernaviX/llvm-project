@@ -1,5 +1,7 @@
 #include "V810MCTargetDesc.h"
+#include "V810InstPrinter.h"
 #include "V810MCAsmInfo.h"
+#include "V810TargetStreamer.h"
 #include "TargetInfo/V810TargetInfo.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
@@ -43,6 +45,29 @@ createV810MCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
   return createV810MCSubtargetInfoImpl(TT, CPU, /*TuneCPU*/ CPU, FS);
 }
 
+static MCTargetStreamer *
+createObjectTargetStreamer(MCStreamer &S, const MCSubtargetInfo &STI) {
+  return new V810TargetStreamer(S);
+}
+
+static MCTargetStreamer *createTargetAsmStreamer(MCStreamer &S,
+                                                 formatted_raw_ostream &OS,
+                                                 MCInstPrinter *InstPrint,
+                                                 bool isVerboseAsm) {
+  return new V810TargetStreamer(S);
+}
+
+static MCTargetStreamer *createNullTargetStreamer(MCStreamer &S) {
+  return new V810TargetStreamer(S);
+}
+
+static MCInstPrinter *createV810MCInstPrinter(const Triple &T,
+                                              unsigned SyntaxVariant,
+                                              const MCAsmInfo &MAI,
+                                              const MCInstrInfo &MII,
+                                              const MCRegisterInfo &MRI) {
+  return new V810InstPrinter(MAI, MII, MRI);
+}
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810TargetMC() {
   // Register the MC asm info.
@@ -64,4 +89,17 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810TargetMC() {
 
   // Register the asm backend.
   TargetRegistry::RegisterMCAsmBackend(*T, createV810AsmBackend);
+
+  // Register the object target streamer.
+  TargetRegistry::RegisterObjectTargetStreamer(*T,
+                                                createObjectTargetStreamer);
+
+  // Register the asm streamer.
+  TargetRegistry::RegisterAsmTargetStreamer(*T, createTargetAsmStreamer);
+
+  // Register the null streamer.
+  TargetRegistry::RegisterNullTargetStreamer(*T, createNullTargetStreamer);
+
+  // Register the MCInstPrinter
+  TargetRegistry::RegisterMCInstPrinter(*T, createV810MCInstPrinter);
 }
