@@ -12,6 +12,17 @@ namespace llvm {
     const V810Subtarget *Subtarget;
   public:
     V810TargetLowering(const TargetMachine &TM, const V810Subtarget &STI);
+
+    SDValue
+    LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
+                         const SmallVectorImpl<ISD::InputArg> &Ins,
+                         const SDLoc &DL, SelectionDAG &DAG,
+                         SmallVectorImpl<SDValue> &InVals) const override;
+
+    SDValue LowerReturn(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
+                        const SmallVectorImpl<ISD::OutputArg> &Outs,
+                        const SmallVectorImpl<SDValue> &OutVals,
+                        const SDLoc &DL, SelectionDAG &DAG) const override;
   };
 }
 
