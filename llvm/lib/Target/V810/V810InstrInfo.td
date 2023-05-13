@@ -21,9 +21,16 @@ def ST_W : FormatVI<0b110111,
 
 let isMoveImm = 1 in
 def MOVi : FormatII<0b010000,
-  (outs GenRegs:$r2), (ins i32imm:$r1),
-  "mov $r2, $r1",
-  [(set i32:$r2, simm5:$r1)]
+  (outs GenRegs:$r2), (ins i32imm:$imm),
+  "mov $r2, $imm",
+  [(set i32:$r2, simm5:$imm)]
+>;
+
+let isReturn = 1, isTerminator = 1, r2 = 0 in
+def JMP : FormatI<0b000110,
+  (outs), (ins GenRegs:$r1),
+  "jmp $r1",
+  []
 >;
 
 // Non-instructions

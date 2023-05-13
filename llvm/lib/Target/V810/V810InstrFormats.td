@@ -11,7 +11,8 @@ class InstV810<dag outs, dag ins, string asmstr, list<dag> pattern> : Instructio
   let DecoderNamespace = "V810";
 }
 
-class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
+// register-to-register
+class FormatI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
     : InstV810<outs, ins, asmstr, pattern> {
   let Size = 2;
 
@@ -21,6 +22,19 @@ class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
   let Inst{15-10} = op;
   let Inst{9-5} = r2;
   let Inst{4-0} = r1;
+}
+
+// immediate-to-register
+class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
+    : InstV810<outs, ins, asmstr, pattern> {
+  let Size = 2;
+
+  bits<5> r2;
+  bits<5> imm;
+
+  let Inst{15-10} = op;
+  let Inst{9-5} = r2;
+  let Inst{4-0} = imm;
 }
 
 class FormatVI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
