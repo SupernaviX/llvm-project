@@ -18,6 +18,7 @@ add_llvm_target(V810CodeGen
   V810AsmPrinter.cpp
   V810FrameLowering.cpp
   V810InstrInfo.cpp
+  V810ISelDAGToDAG.cpp
   V810ISelLowering.cpp
   V810MachineFunctionInfo.cpp
   V810RegisterInfo.cpp

@@ -13,6 +13,7 @@ namespace {
     explicit V810AsmPrinter(TargetMachine &TM,
                             std::unique_ptr<MCStreamer> Streamer)
         : AsmPrinter(TM, std::move(Streamer)) {}
+    StringRef getPassName() const override { return "V810 Assembly Printer"; }
   };
 }
 

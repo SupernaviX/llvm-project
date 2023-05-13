@@ -63,7 +63,7 @@ TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 bool V810PassConfig::addInstSelector() {
-  // TODO: add the dang selector
+  addPass(createV810IselDag(getV810TargetMachine()));
   return false;
 }
 
