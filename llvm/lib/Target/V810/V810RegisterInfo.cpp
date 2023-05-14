@@ -31,6 +31,7 @@ V810RegisterInfo::getCallPreservedMask(const MachineFunction *MF,
 BitVector
 V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
+  Reserved.set(V810::R0);
   return Reserved;
 }
 
@@ -38,6 +39,15 @@ bool
 V810RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                            int SPAdj, unsigned FIOperandNum,
                            RegScavenger *RS) const {
+  MachineInstr &MI = *II;
+  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  MachineFunction &MF = *MI.getParent()->getParent();
+  const V810FrameLowering *TFI = getFrameLowering(MF);
+
+  Register FrameReg;
+  TFI->getFrameIndexReference(MF, FrameIndex, FrameReg);
+  MI.getOperand(FIOperandNum).ChangeToRegister(FrameReg, false);
+
   return false;
 }
 

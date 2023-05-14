@@ -36,4 +36,7 @@ def JMP : FormatI<0b000110,
 // Non-instructions
 
 // Zero immediate.
-def : Pat<(i32 0), (COPY (i32 R1))>;
+def : Pat<(i32 0), (COPY (i32 R0))>;
+// Smol immediate.
+def : Pat<(i32 simm5:$val),
+          (MOVi imm:$val)>;

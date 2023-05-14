@@ -33,6 +33,12 @@ INITIALIZE_PASS(V810DAGToDAGISel, DEBUG_TYPE, PASS_NAME, false, false)
 
 bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
                                     SDValue &Base, SDValue &Offset) {
+  if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+    Base = CurDAG->getTargetFrameIndex(
+      FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout()));
+    Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
+    return true;
+  }
   // TODO: this is ignoring the offset, and should probably not be
   Base = Addr;
   Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
