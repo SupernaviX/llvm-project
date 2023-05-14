@@ -31,7 +31,12 @@ V810RegisterInfo::getCallPreservedMask(const MachineFunction *MF,
 BitVector
 V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
-  Reserved.set(V810::R0);
+  Reserved.set(V810::R0); // zero register
+  Reserved.set(V810::R1); // useful for ASM things
+  Reserved.set(V810::R3); // stack pointer
+  Reserved.set(V810::R4); // global pointer
+  Reserved.set(V810::R10); // return value
+  Reserved.set(V810::R31); // return address
   return Reserved;
 }
 

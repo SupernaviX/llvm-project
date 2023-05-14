@@ -39,6 +39,23 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
     Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
     return true;
   }
+  if (Addr.getOpcode() == ISD::ADD) {
+    if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1))) {
+      if (isInt<16>(CN->getSExtValue())) {
+        if (FrameIndexSDNode *FIN =
+                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
+          // Constant offset from frame ref.
+          Base = CurDAG->getTargetFrameIndex(
+              FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout()));
+        } else {
+          Base = Addr.getOperand(0);
+        }
+        Offset = CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr),
+                                           MVT::i32);
+        return true;
+      }
+    }
+  }
   // TODO: this is ignoring the offset, and should probably not be
   Base = Addr;
   Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);

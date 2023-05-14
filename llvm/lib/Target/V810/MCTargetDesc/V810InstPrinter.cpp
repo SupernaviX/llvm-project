@@ -12,7 +12,7 @@ using namespace llvm;
 #include "V810GenAsmWriter.inc"
 
 void V810InstPrinter::printRegName(raw_ostream &OS, MCRegister Reg) const {
-  OS << "%" << StringRef(getRegisterName(Reg));
+  OS << StringRef(getRegisterName(Reg));
 }
 
 void V810InstPrinter::printInst(const MCInst *MI, uint64_t Address,
@@ -40,4 +40,12 @@ void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
 
   assert(MO.isExpr() && "Unknown operand kind in printOperand");
   MO.getExpr()->print(O, &MAI);
+}
+
+void V810InstPrinter::printMemOperand(const MCInst *MI, int opNum,
+                                      raw_ostream &O) {
+  printOperand(MI, opNum + 1, O);
+  O << "[";
+  printOperand(MI, opNum, O);
+  O << "]";
 }

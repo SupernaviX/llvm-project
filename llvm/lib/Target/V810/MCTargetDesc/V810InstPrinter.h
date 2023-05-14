@@ -21,6 +21,7 @@ public:
   static const char *getRegisterName(MCRegister Reg);
   
   void printOperand(const MCInst *MI, int opNum, raw_ostream &OS);
+  void printMemOperand(const MCInst *MI, int opNum, raw_ostream &OS);
 };
 
 }
