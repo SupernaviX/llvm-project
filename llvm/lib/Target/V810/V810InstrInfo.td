@@ -3,16 +3,32 @@ include "V810InstrFormats.td"
 def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
 def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 
-def LO16 : SDNodeXForm<imm, [{
-  return CurDAG->getTargetConstant((unsigned)N->getSExtValue() & 0xffff, SDLoc(N),
-                                   MVT::i32);
+// split a 32-bit immediate into low and high bits
+def IMM32_LO16 : SDNodeXForm<imm, [{
+  unsigned sextValue = (unsigned)N->getSExtValue();
+  return CurDAG->getTargetConstant(sextValue & 0xffff, SDLoc(N), MVT::i32);
 }]>;
+def IMM32_HI16 : SDNodeXForm<imm, [{
+  unsigned sextValue = (unsigned)N->getSExtValue();
+  // it's implementation-dependent whether right-shifting a negative is sext or zext,
+  // but we don't care because we're truncating it anyway.
+  unsigned hiBits = (sextValue >> 16) & 0xffff;
+  if (sextValue & 0x00008000) {
+    // Low bits are sign-extended, high bits are not.
+    // If the low 16 bits would sign-extend negative, compensate by incrementing high.
+    hiBits = (hiBits + 1) & 0xffff;
+  }
+  return CurDAG->getTargetConstant(hiBits, SDLoc(N), MVT::i32);
+}]>;
+
+// grab the high 16 bits from a 32-bit immediate
 def HI16 : SDNodeXForm<imm, [{
   // it's implementation-dependent whether right-shifting a negative is sext or zext,
-  // but we don't care because we're truncating it anyway
+  // but we don't care because we're truncating it anyway.
   return CurDAG->getTargetConstant(((unsigned)N->getSExtValue() >> 16) & 0xffff, SDLoc(N),
                                    MVT::i32);
 }]>;
+
 def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
 }], HI16>;
@@ -97,4 +113,4 @@ def : Pat<(i32 simm16:$val),
           (MOVEA R0, imm:$val)>;
 // Lorg immediate (up to 32 bits).
 def : Pat<(i32 imm:$val),
-          (MOVEA (MOVHI R0, (HI16 imm:$val)), (LO16 imm:$val))>;
+          (MOVEA (MOVHI R0, (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
