@@ -1,4 +1,5 @@
 #include "V810.h"
+#include "V810TargetMachine.h"
 #include "TargetInfo/V810TargetInfo.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/MC/MCStreamer.h"
@@ -14,7 +15,18 @@ namespace {
                             std::unique_ptr<MCStreamer> Streamer)
         : AsmPrinter(TM, std::move(Streamer)) {}
     StringRef getPassName() const override { return "V810 Assembly Printer"; }
+
+    void emitInstruction(const MachineInstr *MI) override;
   };
+} // end of anonymous namespace
+
+void V810AsmPrinter::emitInstruction(const MachineInstr *MI) {
+  V810_MC::verifyInstructionPredicates(MI->getOpcode(),
+                                       getSubtargetInfo().getFeatureBits());
+
+  MCInst TmpInst;
+  LowerV810MachineInstrToMCInst(MI, TmpInst, *this);
+  EmitToStreamer(*OutStreamer, TmpInst);
 }
 
 // Force static initialization.

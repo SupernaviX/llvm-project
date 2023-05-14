@@ -6,11 +6,17 @@
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
+class AsmPrinter;
 class FunctionPass;
+class MachineInstr;
+class MCInst;
 class PassRegistry;
 class V810TargetMachine;
 
 FunctionPass *createV810IselDag(V810TargetMachine &TM);
+
+void LowerV810MachineInstrToMCInst(const MachineInstr *MI, MCInst &OutMI,
+                                   AsmPrinter &AP);
 
 void initializeV810DAGToDAGISelPass(PassRegistry &);
 }

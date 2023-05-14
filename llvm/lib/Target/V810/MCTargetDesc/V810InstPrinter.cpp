@@ -11,6 +11,10 @@ using namespace llvm;
 #define PRINT_ALIAS_INSTR
 #include "V810GenAsmWriter.inc"
 
+void V810InstPrinter::printRegName(raw_ostream &OS, MCRegister Reg) const {
+  OS << "%" << StringRef(getRegisterName(Reg));
+}
+
 void V810InstPrinter::printInst(const MCInst *MI, uint64_t Address,
                                 StringRef Annot, const MCSubtargetInfo &STI,
                                 raw_ostream &O) {
