@@ -14,5 +14,8 @@ void V810InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MCRegister DestReg, MCRegister SrcReg,
                                 bool KillSrc) const {
   assert(V810::GenRegsRegClass.contains(DestReg, SrcReg));
+  if (DestReg == SrcReg) {
+    return;
+  }
   BuildMI(MBB, I, DL, get(V810::MOVr), DestReg).addReg(SrcReg, getKillRegState(KillSrc));
 }
