@@ -79,7 +79,7 @@ let Constraints = "$r2 = $r2_" in
 def ADDrr : FormatI<0b000001,
   (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
   "add $r1, $r2",
-  [(set i32:$r2, (add GenRegs:$r1, GenRegs:$r2_))]
+  [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))]
 >;
 let Constraints = "$r2 = $r1" in
 def ADDri : FormatII<0b010001,
@@ -93,6 +93,12 @@ def ADDI : FormatV<0b101001,
   [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
 >;
 
+let Constraints = "$r2 = $r2_" in
+def SUB : FormatI<0b000010,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "sub $r1, $r2",
+  [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
+>;
 let isReturn = 1, isTerminator = 1, r2 = 0 in
 def JMP : FormatI<0b000110,
   (outs), (ins GenRegs:$r1),
