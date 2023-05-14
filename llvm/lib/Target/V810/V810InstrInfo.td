@@ -1,8 +1,5 @@
 include "V810InstrFormats.td"
 
-def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
-def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
-
 // split a 32-bit immediate into low and high bits
 def IMM32_LO16 : SDNodeXForm<imm, [{
   unsigned sextValue = (unsigned)N->getSExtValue();
@@ -29,6 +26,8 @@ def HI16 : SDNodeXForm<imm, [{
                                    MVT::i32);
 }]>;
 
+def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
+def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
 }], HI16>;
@@ -67,7 +66,7 @@ let isMoveImm = 1, isMoveReg = 1 in {
   def MOVHI : FormatV<0b101111,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
     "movhi $imm, $r1, $r2",
-    [(set i32:$r2, (add GenRegs:$r1, MOVHIimm:$imm))]
+    [] // no pattern matching because this is very situational
   >;
   def MOVEA : FormatV<0b101000,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
