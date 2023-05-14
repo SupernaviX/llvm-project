@@ -26,6 +26,12 @@ def MOVi : FormatII<0b010000,
   "mov $imm, $r2",
   [(set i32:$r2, simm5:$imm)]
 >;
+let isMoveReg = 1 in
+def MOVr : FormatI<0b000000,
+  (outs GenRegs:$r2), (ins GenRegs:$r1),
+  "mov $r1, $r2",
+  [(set i32:$r2, i32:$r1)]
+>;
 
 let Constraints = "$r2 = $r1" in
 def ADDri : FormatII<0b010001,
