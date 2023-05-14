@@ -78,12 +78,12 @@ def JMP : FormatI<0b000110,
 
 // Zero immediate.
 def : Pat<(i32 0), (COPY (i32 R0))>;
-// Smol immediates (up to 5 bits).
+// Smol immediate (up to 5 bits).
 def : Pat<(i32 simm5:$val),
           (MOVi imm:$val)>;
-// Med immediates (up to 16 bits).
+// Med immediate (up to 16 bits).
 def : Pat<(i32 simm16:$val),
           (MOVEA R0, imm:$val)>;
-// Lorg immediates (up to 32 bits).
+// Lorg immediate (up to 32 bits).
 def : Pat<(i32 imm:$val),
           (MOVEA (MOVHI R0, (HI16 imm:$val)), (LO16 imm:$val))>;
