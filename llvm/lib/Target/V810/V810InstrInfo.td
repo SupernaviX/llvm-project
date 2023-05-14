@@ -60,11 +60,22 @@ let isMoveImm = 1, isMoveReg = 1 in {
   >;
 }
 
+let Constraints = "$r2 = $r2_" in
+def ADDrr : FormatI<0b000001,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "add $r1, $r2",
+  [(set i32:$r2, (add GenRegs:$r1, GenRegs:$r2_))]
+>;
 let Constraints = "$r2 = $r1" in
 def ADDri : FormatII<0b010001,
   (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
   "add $imm, $r2",
   [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))]
+>;
+def ADDI : FormatV<0b101001,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "addi $imm, $r1, $r2",
+  [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
 >;
 
 let isReturn = 1, isTerminator = 1, r2 = 0 in
