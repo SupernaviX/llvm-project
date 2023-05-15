@@ -23,7 +23,7 @@ V810RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 }
 
 const uint32_t *
-V810RegisterInfo::getCallPreservedMask(const MachineFunction *MF,
+V810RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const {
   return CSR_RegMask;
 }

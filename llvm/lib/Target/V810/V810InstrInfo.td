@@ -39,6 +39,17 @@ def MEMri : Operand<iPTR> {
   let MIOperandInfo = (ops GenRegs, i16imm);
 }
 
+def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
+def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                            SDNPVariadic]>;
+def tailcall      : SDNode<"V810ISD::TAIL_CALL", SDT_V810Call,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
+                            SDNPVariadic]>;
+def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
+def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+
 def LD_W : FormatVI<0b110011,
   (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
   "ld.w $addr, $r2",
@@ -99,12 +110,24 @@ def SUB : FormatI<0b000010,
   "sub $r1, $r2",
   [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
 >;
-let isReturn = 1, isTerminator = 1, r2 = 0 in
+let isTerminator = 1, r2 = 0 in
 def JMP : FormatI<0b000110,
   (outs), (ins GenRegs:$r1),
   "jmp [$r1]",
   []
 >;
+
+// TODO: call
+let isCodeGenOnly = 1 in {
+  let isReturn = 1, isTerminator = 1, r2 = 0, r1 = 31 in
+  def RET : FormatI<0b000110,
+    (outs), (ins),
+    "jmp [r31]",
+    [(retglue)]
+  >;
+}
+
+
 
 // Non-instructions
 
