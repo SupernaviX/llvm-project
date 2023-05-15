@@ -50,8 +50,11 @@ V810RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const V810FrameLowering *TFI = getFrameLowering(MF);
 
   Register FrameReg;
-  TFI->getFrameIndexReference(MF, FrameIndex, FrameReg);
+  int Offset = TFI->getFrameIndexReference(MF, FrameIndex, FrameReg).getFixed();
+  Offset += MI.getOperand(FIOperandNum + 1).getImm();
+
   MI.getOperand(FIOperandNum).ChangeToRegister(FrameReg, false);
+  MI.getOperand(FIOperandNum + 1).setImm(Offset);
 
   return false;
 }

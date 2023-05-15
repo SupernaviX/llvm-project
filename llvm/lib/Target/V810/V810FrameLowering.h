@@ -17,6 +17,9 @@ public:
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
 
   bool hasFP(const MachineFunction &MF) const override;
+private:
+  void moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
+                        MachineBasicBlock::iterator MBBI, int bytes) const;
 };
 
 } // End llvm namespace
