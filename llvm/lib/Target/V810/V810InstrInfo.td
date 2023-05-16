@@ -32,11 +32,16 @@ def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
 }], HI16>;
 
+def ADDR : ComplexPattern<iPTR, 1, "SelectADDR", [], []>;
 def ADDRri : ComplexPattern<iPTR, 2, "SelectADDRri", [], []>;
 
 def MEMri : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GenRegs, i16imm);
+}
+def calltarget : Operand<iPTR> {
+  let PrintMethod = "printBranchOperand";
+  let OperandType = "OPERAND_PCREL";
 }
 
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
@@ -110,16 +115,39 @@ def SUB : FormatI<0b000010,
   "sub $r1, $r2",
   [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
 >;
-let isTerminator = 1, r2 = 0 in
-def JMP : FormatI<0b000110,
-  (outs), (ins GenRegs:$r1),
-  "jmp [$r1]",
-  []
->;
 
-// TODO: call
+let isTerminator = 1, isBarrier = 1 in {
+  let r2 = 0 in
+  def JMP : FormatI<0b000110,
+    (outs), (ins GenRegs:$r1),
+    "jmp [$r1]",
+    []
+  >;
+
+  def JR : FormatIV<0b101010,
+    (outs), (ins calltarget:$disp),
+    "jr $disp",
+    []
+  >;
+
+  let Defs=[R31] in
+  def JAL : FormatIV<0b101011,
+    (outs), (ins calltarget:$disp),
+    "jal $disp",
+    []
+  >;
+}
+
+
 let isCodeGenOnly = 1 in {
-  let isReturn = 1, isTerminator = 1, r2 = 0, r1 = 31 in
+  let isCall = 1, Defs = [R31] in
+  def CALL : FormatIV<0b101011,
+    (outs), (ins calltarget:$disp),
+    "jal $disp",
+    [(call ADDR:$disp)]
+  >;
+
+  let isReturn = 1, isTerminator = 1, isBarrier = 1, r2 = 0, r1 = 31 in
   def RET : FormatI<0b000110,
     (outs), (ins),
     "jmp [r31]",

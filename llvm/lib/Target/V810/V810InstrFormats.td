@@ -37,6 +37,18 @@ class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
   let Inst{4-0} = imm;
 }
 
+class FormatIV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
+    : InstV810<outs, ins, asmstr, pattern> {
+  field bits<32> Inst;
+  let Size = 4;
+
+  bits<26> disp;
+
+  let Inst{31-16} = disp{15-0};
+  let Inst{15-10} = op;
+  let Inst{9-0} = disp{25-16};
+}
+
 // three-operand
 class FormatV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
     : InstV810<outs, ins, asmstr, pattern> {

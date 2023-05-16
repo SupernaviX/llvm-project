@@ -42,6 +42,13 @@ void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
   MO.getExpr()->print(O, &MAI);
 }
 
+void V810InstPrinter::printBranchOperand(const MCInst *MI, uint64_t Address,
+                                         unsigned opNum, raw_ostream &O) {
+  const MCOperand &MO = MI->getOperand(opNum);
+  assert(MO.isExpr() && "not expr?");
+  MO.getExpr()->print(O, &MAI);
+}
+
 void V810InstPrinter::printMemOperand(const MCInst *MI, int opNum,
                                       raw_ostream &O) {
   printOperand(MI, opNum + 1, O);
