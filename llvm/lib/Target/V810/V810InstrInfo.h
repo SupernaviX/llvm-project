@@ -16,6 +16,18 @@ class V810InstrInfo : public V810GenInstrInfo {
                            MachineBasicBlock::iterator I, const DebugLoc &DL,
                            MCRegister DestReg, MCRegister SrcReg,
                            bool KillSrc) const override;
+  virtual void storeRegToStackSlot(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator HI,
+                                   Register SrcReg, bool isKill, int FrameIndex,
+                                   const TargetRegisterClass *RC,
+                                   const TargetRegisterInfo *TRI,
+                                   Register VReg) const override;
+  virtual void loadRegFromStackSlot(MachineBasicBlock &MBB,
+                                    MachineBasicBlock::iterator MI,
+                                    Register DestReg, int FrameIndex,
+                                    const TargetRegisterClass *RC,
+                                    const TargetRegisterInfo *TRI,
+                                    Register VReg) const override;
 public:
   const V810RegisterInfo &getRegisterInfo() const { return RI; }
 };
