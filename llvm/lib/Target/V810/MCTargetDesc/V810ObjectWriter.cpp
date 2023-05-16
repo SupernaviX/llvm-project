@@ -7,7 +7,7 @@ namespace {
   class V810ObjectWriter : public MCELFObjectTargetWriter {
   public:
     V810ObjectWriter(uint8_t OSABI)
-      : MCELFObjectTargetWriter(false, OSABI, ELF::EM_V800, false) {}
+      : MCELFObjectTargetWriter(false, OSABI, ELF::EM_V810, false) {}
     ~V810ObjectWriter() override = default;
   protected:
     unsigned getRelocType(MCContext &Ctx, const MCValue &Target,
@@ -19,8 +19,7 @@ unsigned V810ObjectWriter::getRelocType(MCContext &Ctx,
                                         const MCValue &Target,
                                         const MCFixup &Fixup,
                                         bool IsPCRel) const {
-  llvm_unreachable("Shouldn't need to relocate, because no fixups");
-  return 0;
+  return ELF::R_V810_DISP26;
 }
 
 std::unique_ptr<MCObjectTargetWriter>

@@ -1,6 +1,8 @@
+#include "V810FixupKinds.h"
 #include "V810MCTargetDesc.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCFixup.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCInstrInfo.h"
@@ -62,7 +64,11 @@ getMachineOpValue(const MCInst &MI, const MCOperand &MO,
     return MO.getImm();
   }
 
-  llvm_unreachable("I am confused!");
+  assert(MO.isExpr());
+
+  const MCExpr *Expr = MO.getExpr();
+  MCFixupKind FixupKind = MCFixupKind(V810::fixup_26_pcrel);
+  Fixups.push_back(MCFixup::create(0, Expr, FixupKind));
   return 0;
 }
 

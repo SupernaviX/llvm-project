@@ -1164,6 +1164,7 @@ const EnumEntry<unsigned> ElfMachineType[] = {
   ENUM_ENT(EM_FR30,          "Fujitsu FR30"),
   ENUM_ENT(EM_D10V,          "Mitsubishi D10V"),
   ENUM_ENT(EM_D30V,          "Mitsubishi D30V"),
+  ENUM_ENT(EM_V810,          "NEC v810"),
   ENUM_ENT(EM_V850,          "NEC v850"),
   ENUM_ENT(EM_M32R,          "Renesas M32R (formerly Mitsubishi M32r)"),
   ENUM_ENT(EM_MN10300,       "Matsushita MN10300"),

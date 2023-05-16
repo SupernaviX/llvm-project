@@ -1,5 +1,8 @@
+#include "MCTargetDesc/V810FixupKinds.h"
 #include "MCTargetDesc/V810MCTargetDesc.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/MCAsmBackend.h"
+#include "llvm/MC/MCFixupKindInfo.h"
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -15,7 +18,35 @@ namespace {
     V810AsmBackend(Triple::OSType OSType) : MCAsmBackend(support::little), OSType(OSType) {}
 
     unsigned getNumFixupKinds() const override {
-      return 0;
+      return V810::NumTargetFixupKinds;
+    }
+
+    std::optional<MCFixupKind> getFixupKind(StringRef Name) const override {
+      unsigned Type;
+      Type = llvm::StringSwitch<unsigned>(Name)
+#define ELF_RELOC(X, Y) .Case(#X, Y)
+#include "llvm/BinaryFormat/ELFRelocs/V810.def"
+#undef ELF_RELOC
+                 .Case("BFD_RELOC_NONE", ELF::R_V810_NONE)
+                 .Default(-1u);
+      if (Type == -1u)
+        return std::nullopt;
+      return static_cast<MCFixupKind>(FirstLiteralRelocationKind + Type);
+    }
+
+    const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
+      const static MCFixupKindInfo Infos[V810::NumTargetFixupKinds] = {
+        // name             offset  bits  flags
+        { "fixup_26_pcrel", 0,      26,   MCFixupKindInfo::FKF_IsPCRel}
+      };
+
+      if (Kind >= FirstLiteralRelocationKind)
+        return MCAsmBackend::getFixupKindInfo(FK_NONE);
+      if (Kind < FirstTargetFixupKind)
+        return MCAsmBackend::getFixupKindInfo(Kind);
+      assert(unsigned(Kind - FirstTargetFixupKind) < getNumFixupKinds() &&
+             "Invalid kind!");
+      return Infos[Kind - FirstTargetFixupKind];
     }
 
     /// fixupNeedsRelaxation - Target specific predicate for whether a given
@@ -24,7 +55,6 @@ namespace {
                               uint64_t Value,
                               const MCRelaxableFragment *DF,
                               const MCAsmLayout &Layout) const override {
-      // no fixups, no problems
       return false;
     }
 
@@ -32,7 +62,31 @@ namespace {
                     const MCValue &Target, MutableArrayRef<char> Data,
                     uint64_t Value, bool IsResolved,
                     const MCSubtargetInfo *STI) const override {
-      // haven't implemented any
+      if (Fixup.getKind() >= FirstLiteralRelocationKind)
+        return;
+      assert((V810::Fixups) Fixup.getKind() == V810::fixup_26_pcrel);
+      Value &= 0x03ff; // bottom 26 bits 
+      if (Value == 0)
+        return;
+      
+      MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
+
+      // The number of bits in the fixup mask
+      auto NumBits = Info.TargetSize + Info.TargetOffset;
+      auto NumBytes = (NumBits / 8) + ((NumBits % 8) == 0 ? 0 : 1);
+
+      // Shift the value into position.
+      Value <<= Info.TargetOffset;
+
+      unsigned Offset = Fixup.getOffset();
+      assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
+
+      // For each byte of the fragment that the fixup touches, mask in the
+      // bits from the fixup value.
+      for (unsigned i = 0; i < NumBytes; ++i) {
+        uint8_t mask = (((Value >> (i * 8)) & 0xff));
+        Data[Offset + i] |= mask;
+      }
     }
 
     bool writeNopData(raw_ostream &OS, uint64_t Count,
