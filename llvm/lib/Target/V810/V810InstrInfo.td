@@ -56,16 +56,71 @@ def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
 def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
                            [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
-def LD_W : FormatVI<0b110011,
-  (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
-  "ld.w $addr, $r2",
-  [(set i32:$r2, (load ADDRri:$addr))]
->;
-def ST_W : FormatVI<0b110111,
-  (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
-  "st.w $r2, $addr",
-  [(store i32:$r2, ADDRri:$addr)]
->;
+let mayLoad = 1 in {
+  def LD_W : FormatVI<0b110011,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "ld.w $addr, $r2",
+    [(set i32:$r2, (load ADDRri:$addr))]
+  >;
+  def IN_W : FormatVI<0b111011,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "in.w $addr, $r2",
+    [(set i32:$r2, (load ADDRri:$addr))]
+  >;
+  def LD_H : FormatVI<0b110001,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "ld.h $addr, $r2",
+    [(set i32:$r2, (sextloadi16 ADDRri:$addr))]
+  >;
+  def IN_H : FormatVI<0b111001,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "in.h $addr, $r2",
+    [(set i32:$r2, (zextloadi16 ADDRri:$addr))]
+  >;
+  def LD_B : FormatVI<0b110000,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "ld.b $addr, $r2",
+    [(set i32:$r2, (sextloadi8 ADDRri:$addr))]
+  >;
+  def IN_B : FormatVI<0b111000,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+    "in.b $addr, $r2",
+    [(set i32:$r2, (zextloadi8 ADDRri:$addr))]
+  >;
+}
+
+let mayStore = 1 in {
+  def ST_W : FormatVI<0b110111,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "st.w $r2, $addr",
+    [(store i32:$r2, ADDRri:$addr)]
+  >;
+  def OUT_W : FormatVI<0b111111,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "out.w $r2, $addr",
+    [(store i32:$r2, ADDRri:$addr)]
+  >;
+  def ST_H : FormatVI<0b110101,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "st.h $r2, $addr",
+    [(truncstorei16 i32:$r2, ADDRri:$addr)]
+  >;
+  def OUT_H : FormatVI<0b111101,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "out.h $r2, $addr",
+    [(truncstorei16 i32:$r2, ADDRri:$addr)]
+  >;
+  def ST_B : FormatVI<0b110100,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "st.b $r2, $addr",
+    [(truncstorei8 i32:$r2, ADDRri:$addr)]
+  >;
+  def OUT_B : FormatVI<0b111100,
+    (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
+    "out.b $r2, $addr",
+    [(truncstorei8 i32:$r2, ADDRri:$addr)]
+  >;
+}
 
 let isMoveImm = 1 in
 def MOVi : FormatII<0b010000,
