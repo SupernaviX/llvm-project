@@ -43,6 +43,7 @@ def calltarget : Operand<iPTR> {
   let PrintMethod = "printBranchOperand";
   let OperandType = "OPERAND_PCREL";
 }
+def brtarget : Operand<OtherVT>;
 
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
 def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
@@ -125,9 +126,9 @@ let isTerminator = 1, isBarrier = 1 in {
   >;
 
   def JR : FormatIV<0b101010,
-    (outs), (ins calltarget:$disp),
+    (outs), (ins brtarget:$disp),
     "jr $disp",
-    []
+    [(br bb:$disp)]
   >;
 
   let Defs=[R31] in

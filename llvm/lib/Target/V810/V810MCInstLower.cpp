@@ -14,6 +14,14 @@ static MCOperand LowerGlobalOperand(const MachineInstr *MI,
   return MCOperand::createExpr(MCSym);
 }
 
+static MCOperand LowerBlockAddress(const MachineInstr *MI,
+                                 const MachineOperand &MO,
+                                 AsmPrinter &AP) {
+  const MCSymbolRefExpr *MCSym = MCSymbolRefExpr::create(MO.getMBB()->getSymbol(),
+                                                         AP.OutContext);
+  return MCOperand::createExpr(MCSym);
+}
+
 static MCOperand LowerOperand(const MachineInstr *MI,
                               const MachineOperand &MO,
                               AsmPrinter &AP) {
@@ -27,6 +35,8 @@ static MCOperand LowerOperand(const MachineInstr *MI,
     return MCOperand::createImm(MO.getImm());
   case MachineOperand::MO_GlobalAddress:
     return LowerGlobalOperand(MI, MO, AP);
+  case MachineOperand::MO_MachineBasicBlock:
+    return LowerBlockAddress(MI, MO, AP);
   case MachineOperand::MO_RegisterMask:
     break;
   }
