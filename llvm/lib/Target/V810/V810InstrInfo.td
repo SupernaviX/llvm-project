@@ -90,6 +90,10 @@ let mayLoad = 1 in {
   >;
 }
 
+// loads that aren't explicitly sign-extended or zero-extended will sign-extend
+def : Pat<(i32 (extloadi16 ADDRri:$addr)), (LD_H ADDRri:$addr)>;
+def : Pat<(i32 (extloadi8 ADDRri:$addr)), (LD_B ADDRri:$addr)>;
+
 let mayStore = 1 in {
   def ST_W : FormatVI<0b110111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),

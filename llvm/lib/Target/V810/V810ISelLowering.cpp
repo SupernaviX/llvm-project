@@ -18,7 +18,10 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Set up the register classes.
   addRegisterClass(MVT::i32, &V810::GenRegsRegClass);
   addRegisterClass(MVT::f32, &V810::GenRegsRegClass);
-  // TODO: this is where we start massaging LLVM concepts into V810 registers/instructions/etc
+
+  // Sign-extend smol types in registers with bitshifts
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
+  setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
 
   computeRegisterProperties(Subtarget->getRegisterInfo());
 }
@@ -55,6 +58,7 @@ SDValue V810TargetLowering::LowerFormalArguments(
       Register VReg = MF.addLiveIn(VA.getLocReg(),
                                    getRegClassFor(VA.getLocVT()));
       SDValue Arg = DAG.getCopyFromReg(Chain, DL, VReg, VA.getLocVT());
+      if (VA.getLocInfo() == CCValAssign::SExt) {}
 
       // If needed, truncate the register down to the argument type
       if (VA.isExtInLoc()) {
