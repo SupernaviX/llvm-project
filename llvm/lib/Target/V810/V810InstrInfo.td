@@ -26,6 +26,7 @@ def HI16 : SDNodeXForm<imm, [{
                                    MVT::i32);
 }]>;
 
+def uimm5 : PatLeaf<(imm), [{ return isInt<5>(N->getZExtValue()); }]>;
 def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
 def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def MOVHIimm : PatLeaf<(imm), [{
@@ -146,6 +147,91 @@ let isMoveImm = 1, isMoveReg = 1 in {
     [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
   >;
 }
+
+// Bit ops
+
+def ANDI : FormatV<0b101101,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "andi $imm, $r1, $r2",
+  [(set i32:$r2, (and GenRegs:$r1, simm16:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def AND : FormatI<0b001101,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "and $r1, $r2",
+  [(set i32:$r2, (and GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+def ORI : FormatV<0b101100,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "ori $imm, $r1, $r2",
+  [(set i32:$r2, (or GenRegs:$r1, simm16:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def OR : FormatI<0b001100,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "or $r1, $r2",
+  [(set i32:$r2, (or GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+def XORI : FormatV<0b101110,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "xori $imm, $r1, $r2",
+  [(set i32:$r2, (xor GenRegs:$r1, simm16:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def XOR : FormatI<0b001110,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "xor $r1, $r2",
+  [(set i32:$r2, (xor GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+def NOT : FormatI<0b001111,
+  (outs GenRegs:$r2), (ins GenRegs:$r1),
+  "not $r1, $r2",
+  [(set i32:$r2, (not GenRegs:$r1))]
+>;
+
+let Constraints = "$r2 = $r1" in
+def SHLi : FormatII<0b010100,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "shl $imm, $r2",
+  [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def SHLr : FormatI<0b000100,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "shl $r1, $r2",
+  [(set i32:$r2, (shl GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+let Constraints = "$r2 = $r1" in
+def SHRi : FormatII<0b010101,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "shr $imm, $r2",
+  [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def SHRr : FormatI<0b000101,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "shr $r1, $r2",
+  [(set i32:$r2, (srl GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+let Constraints = "$r2 = $r1" in
+def SARi : FormatII<0b010111,
+  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+  "sar $imm, $r2",
+  [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))]
+>;
+let Constraints = "$r2 = $r2_" in
+def SARr : FormatI<0b000111,
+  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+  "sar $r1, $r2",
+  [(set i32:$r2, (sra GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+// Maths
 
 let Constraints = "$r2 = $r2_" in
 def ADDrr : FormatI<0b000001,
