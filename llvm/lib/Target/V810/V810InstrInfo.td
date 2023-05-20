@@ -55,6 +55,9 @@ def bcondtarget : Operand<OtherVT> {
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBcondTargetOpValue";
 }
+def condcode : Operand<i32> {
+  let PrintMethod = "printCondOperand";
+}
 
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
@@ -315,8 +318,8 @@ def CMPrr : FormatI<0b000011,
 
 let isTerminator = 1, isBranch = 1 in
 def Bcond : FormatIII<0b100,
-  (outs), (ins i32imm:$cond, bcondtarget:$disp),
-  "Bcond", // special-cased in V180InstPrinter
+  (outs), (ins condcode:$cond, bcondtarget:$disp),
+  "b$cond $disp",
   [(V810Bcond imm:$cond, bb:$disp)]
 >;
 

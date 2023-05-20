@@ -33,14 +33,10 @@ void V810InstPrinter::printBcondInstruction(const MCInst *MI, uint64_t Address,
   assert(MI->getNumOperands() == 2);
   int64_t cond = MI->getOperand(0).getImm();
 
-  O << "\t";
   if (cond == V810CC::ICC_NOP) {
-    printCondOperand(MI, 0, O);
+    O << "\tnop";
   } else {
-    O << "b";
-    printCondOperand(MI, 0, O);
-    O << " ";
-    printBranchOperand(MI, Address, 1, O);
+    printInstruction(MI, Address, O);
   }
 }
 
