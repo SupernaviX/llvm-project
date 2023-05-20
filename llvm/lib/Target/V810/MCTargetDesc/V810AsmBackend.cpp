@@ -10,19 +10,25 @@
 
 using namespace llvm;
 
+// The v810 is little-endian, but stores 32-bit instructions with their high halfword first.
+// We need to exchange halfwords after adjusting fixups to match this.
+static uint64_t xh(uint64_t value) {
+  return (value >> 16) | (value << 16);
+}
+
 static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   switch (Kind) {
   default:
     llvm_unreachable("Unknown fixup kind!");
   case V810::fixup_v810_lo:
-    return Value & 0xff;
+    return xh(Value & 0x0000ffff);
   case V810::fixup_v810_hi:
     // if LO is negative, increment HI to compensate
-    return ((Value >> 16) & 0xffff) + ((Value & 0x8000) != 0);
+    return xh((Value >> 16) & 0x0000ffff) + ((Value & 0x00008000) != 0);
   case V810::fixup_v810_9_pcrel:
-    return Value & 0x000001ff;
+    return Value & 0x01ff;
   case V810::fixup_v810_26_pcrel:
-    return Value & 0x03ffffff;
+    return xh(Value & 0x03ffffff);
   }
 }
 
@@ -53,10 +59,10 @@ namespace {
     const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
       const static MCFixupKindInfo Infos[V810::NumTargetFixupKinds] = {
         // name                  offset bits  flags
-        { "fixup_v810_lo",       0,     16,   0 },
-        { "fixup_v810_hi",       0,     16,   0 },
-        { "fixup_v810_9_pcrel",  0,      9,   MCFixupKindInfo::FKF_IsPCRel },
-        { "fixup_v810_26_pcrel", 0,     26,   MCFixupKindInfo::FKF_IsPCRel }
+        { "fixup_v810_lo",       16,    16,   0 },
+        { "fixup_v810_hi",       16,    16,   0 },
+        { "fixup_v810_9_pcrel",  0,     16,   MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_v810_26_pcrel", 0,     32,   MCFixupKindInfo::FKF_IsPCRel }
       };
 
       if (Kind >= FirstLiteralRelocationKind)

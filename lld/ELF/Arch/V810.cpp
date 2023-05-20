@@ -68,7 +68,7 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
     break;
   case R_V810_9_PCREL:
     checkInt(loc, val, 9, rel);
-    write16le(loc + 2, (read16le(loc + 2) & ~0x01ff) | (val & 0x01ff));
+    write16le(loc, (read16le(loc) & ~0x01ff) | (val & 0x01ff));
     break;
   case R_V810_26_PCREL:
     checkInt(loc, val, 26, rel);
