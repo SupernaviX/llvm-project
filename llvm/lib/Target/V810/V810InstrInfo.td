@@ -43,8 +43,16 @@ def MEMri : Operand<iPTR> {
 def calltarget : Operand<iPTR> {
   let PrintMethod = "printBranchOperand";
   let OperandType = "OPERAND_PCREL";
+  let EncoderMethod = "getBranchTargetOpValue";
 }
-def brtarget : Operand<OtherVT>;
+def brtarget : Operand<OtherVT> {
+  let PrintMethod = "printBranchOperand";
+  let OperandType = "OPERAND_PCREL";
+  let EncoderMethod = "getBranchTargetOpValue";
+}
+
+def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
+def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
 def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
@@ -319,3 +327,7 @@ def : Pat<(i32 MOVHIimm:$val),
 // Lorg immediate (up to 32 bits).
 def : Pat<(i32 imm:$val),
           (MOVEA (MOVHI R0, (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
+
+// Make global addresses work
+def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
+          (MOVEA (MOVHI R0, tglobaladdr:$inhi), tglobaladdr:$inlo)>;

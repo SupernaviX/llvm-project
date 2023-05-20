@@ -10,6 +10,20 @@
 
 using namespace llvm;
 
+static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
+  switch (Kind) {
+  default:
+    llvm_unreachable("Unknown fixup kind!");
+  case V810::fixup_v810_lo:
+    return Value & 0xff;
+  case V810::fixup_v810_hi:
+    // if LO is negative, increment HI to compensate
+    return ((Value >> 16) & 0xffff) + ((Value & 0x8000) != 0);
+  case V810::fixup_v810_26_pcrel:
+    return Value & 0x03ffffff;
+  }
+}
+
 namespace {
   class V810AsmBackend : public MCAsmBackend {
   private:
@@ -36,8 +50,10 @@ namespace {
 
     const MCFixupKindInfo &getFixupKindInfo(MCFixupKind Kind) const override {
       const static MCFixupKindInfo Infos[V810::NumTargetFixupKinds] = {
-        // name             offset  bits  flags
-        { "fixup_26_pcrel", 0,      26,   MCFixupKindInfo::FKF_IsPCRel}
+        // name                  offset bits  flags
+        { "fixup_v810_lo",       0,     16,   0 },
+        { "fixup_v810_hi",       0,     16,   0 },
+        { "fixup_v810_26_pcrel", 0,     26,   MCFixupKindInfo::FKF_IsPCRel }
       };
 
       if (Kind >= FirstLiteralRelocationKind)
@@ -64,10 +80,8 @@ namespace {
                     const MCSubtargetInfo *STI) const override {
       if (Fixup.getKind() >= FirstLiteralRelocationKind)
         return;
-      assert((V810::Fixups) Fixup.getKind() == V810::fixup_26_pcrel);
-      Value &= 0x03ff; // bottom 26 bits 
-      if (Value == 0)
-        return;
+      Value = adjustFixupValue(Fixup.getKind(), Value);
+      if (!Value) return; // Doesn't change encoding
       
       MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
 

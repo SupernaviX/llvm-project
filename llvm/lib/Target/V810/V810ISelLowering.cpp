@@ -1,4 +1,5 @@
 #include "V810ISelLowering.h"
+#include "MCTargetDesc/V810MCExpr.h"
 #include "V810RegisterInfo.h"
 #include "V810Subtarget.h"
 #include "llvm/CodeGen/CallingConvLower.h"
@@ -6,6 +7,7 @@
 #include "llvm/CodeGen/SelectionDAG.h"
 #include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
+#include "llvm/CodeGen/ValueTypes.h"
 
 using namespace llvm;
 
@@ -18,6 +20,9 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Set up the register classes.
   addRegisterClass(MVT::i32, &V810::GenRegsRegClass);
 
+  // Handle global addresses specially to make constants
+  setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
@@ -28,6 +33,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   switch ((V810ISD::NodeType)Opcode) {
   case V810ISD::FIRST_NUMBER: break;
+  case V810ISD::HI:           return "V810ISD::HI";
+  case V810ISD::LO:           return "V810ISD::LO";
   case V810ISD::CALL:         return "V810ISD::CALL";
   case V810ISD::TAIL_CALL:    return "V810ISD::TAIL_CALL";
   case V810ISD::RET_GLUE:     return "V810ISD::RET_GLUE";
@@ -180,8 +187,10 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
     InGlue = Chain.getValue(1);
   }
 
-  // TODO: may need to convert these XYZ to TargetXYZ
+  // convert this into a target type now, so that legalization doesn't mess it up
   SDValue Callee = CLI.Callee;
+  if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee))
+    Callee = DAG.getTargetGlobalAddress(G->getGlobal(), DL, PtrVT, 0, V810MCExpr::VK_V810_26_PCREL);
 
   // Now build the ops for the call
   SmallVector<SDValue, 8> Ops;
@@ -238,4 +247,23 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   }
   
   return Chain;
+}
+
+SDValue V810TargetLowering::
+LowerOperation(SDValue Op, SelectionDAG &DAG) const {
+  assert(Op.getOpcode() == ISD::GlobalAddress);
+
+  // Can we make this more efficient by using GP or something?
+  GlobalAddressSDNode *GN = dyn_cast<GlobalAddressSDNode>(Op);
+  if (!GN) {
+    llvm_unreachable("When is a global address not a global address?");
+  }
+
+  SDLoc DL(Op);
+  SDValue HiTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_HI);
+  SDValue LoTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_LO);
+
+  EVT VT = Op.getValueType();
+  SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
+  return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
 }

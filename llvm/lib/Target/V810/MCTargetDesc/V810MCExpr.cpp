@@ -1,0 +1,55 @@
+#include "V810MCExpr.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCStreamer.h"
+
+using namespace llvm;
+
+#define DEBUG_TYPE "v810mcexpr"
+
+const V810MCExpr*
+V810MCExpr::create(VariantKind Kind, const MCExpr *Expr,
+                     MCContext &Ctx) {
+    return new (Ctx) V810MCExpr(Kind, Expr);
+}
+
+void V810MCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
+  bool parens = printVariantKind(OS, Kind);
+  
+  if (parens) OS << '(';
+  getSubExpr()->print(OS, MAI);
+  if (parens) OS << ')';
+}
+
+bool V810MCExpr::printVariantKind(raw_ostream &OS, VariantKind Kind) {
+  switch (Kind) {
+  case VK_V810_None:      return false;
+  case VK_V810_LO:        OS << "lo"; return true;
+  case VK_V810_HI:        OS << "hi"; return true;
+  case VK_V810_26_PCREL:  return false;
+  }
+  llvm_unreachable("Unhandled V810MCExpr::VariantKind");
+}
+
+V810::Fixups V810MCExpr::getFixupKind(V810MCExpr::VariantKind Kind) {
+  switch (Kind) {
+  default: llvm_unreachable("Unhandled V810MCExpr::VariantKind");
+  case VK_V810_LO:        return V810::fixup_v810_lo;
+  case VK_V810_HI:        return V810::fixup_v810_hi;
+  case VK_V810_26_PCREL:  return V810::fixup_v810_26_pcrel;
+  }
+}
+
+bool
+V810MCExpr::evaluateAsRelocatableImpl(MCValue &Res,
+                                      const MCAsmLayout *Layout,
+                                      const MCFixup *Fixup) const {
+  return getSubExpr()->evaluateAsRelocatable(Res, Layout, Fixup);  
+}
+
+void V810MCExpr::fixELFSymbolsInTLSFixups(MCAssembler &Asm) const {
+  // don't think I need to do anything here
+}
+
+void V810MCExpr::visitUsedExpr(MCStreamer &Streamer) const {
+  Streamer.visitUsedExpr(*getSubExpr());
+}

@@ -31,7 +31,10 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   switch (type) {
   case R_V810_NONE:
     return R_NONE;
-  case R_V810_DISP26:
+  case R_V810_LO:
+  case R_V810_HI:
+    return R_ABS;
+  case R_V810_26_PCREL:
     return R_PC;
   default:
     error(getErrorLocation(loc) + "unknown relocation (" + Twine(type) +
@@ -53,7 +56,16 @@ static void write32vb(uint8_t *loc, uint32_t val) {
 void V810::relocate(uint8_t *loc, const Relocation &rel,
                     uint64_t val) const {
   switch(rel.type) {
-  case R_V810_DISP26:
+  case R_V810_LO:
+    checkInt(loc, val, 32, rel);
+    write16le(loc + 2, val & 0x0000ffff);
+    break;
+  case R_V810_HI:
+    checkInt(loc, val, 32, rel);
+    // add one to HI if LO would be negative
+    write16le(loc + 2, ((val >> 16) & 0x0000ffff) + ((val & 0x8000) != 0));
+    break;
+  case R_V810_26_PCREL:
     checkInt(loc, val, 26, rel);
     write32vb(loc, (read32vb(loc) & ~0x03ffffff) | (val & 0x03ffffff));
     break;
@@ -64,8 +76,10 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
 
 int64_t V810::getImplicitAddend(const uint8_t *buf, RelType type) const {
   switch (type) {
-  case R_V810_DISP26:
+  case R_V810_26_PCREL:
     return SignExtend64<26>(read32vb(buf));
+  case R_V810_LO:
+  case R_V810_HI:
   case R_V810_NONE:
     return 0;
   default:

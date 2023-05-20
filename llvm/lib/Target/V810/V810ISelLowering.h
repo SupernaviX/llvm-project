@@ -10,9 +10,10 @@ namespace llvm {
   namespace V810ISD {
   enum NodeType : unsigned {
     FIRST_NUMBER = ISD::BUILTIN_OP_END,
+    HI,
+    LO,
     CALL,
     RET_GLUE,
-
     TAIL_CALL,
   };
   }
@@ -38,6 +39,8 @@ namespace llvm {
 
     SDValue LowerCall(TargetLowering::CallLoweringInfo &CLI,
                       SmallVectorImpl<SDValue> &InVals) const override;
+
+    SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
   };
 }
 

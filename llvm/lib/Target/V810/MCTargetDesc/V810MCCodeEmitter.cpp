@@ -1,4 +1,5 @@
 #include "V810FixupKinds.h"
+#include "V810MCExpr.h"
 #include "V810MCTargetDesc.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
@@ -8,6 +9,7 @@
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/EndianStream.h"
 #include "llvm/Support/raw_ostream.h"
@@ -40,7 +42,9 @@ public:
   unsigned getMachineOpValue(const MCInst &MI, const MCOperand &MO,
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
-
+  unsigned getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
+                                  SmallVectorImpl<MCFixup> &Fixups,
+                                  const MCSubtargetInfo &STI) const;
 };
 
 } // end anonymous namespace
@@ -65,10 +69,31 @@ getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   }
 
   assert(MO.isExpr());
-
   const MCExpr *Expr = MO.getExpr();
-  MCFixupKind FixupKind = MCFixupKind(V810::fixup_26_pcrel);
-  Fixups.push_back(MCFixup::create(0, Expr, FixupKind));
+  if (const V810MCExpr *VExpr = dyn_cast<V810MCExpr>(Expr)) {
+    MCFixupKind Kind = (MCFixupKind)VExpr->getFixupKind();
+    Fixups.push_back(MCFixup::create(0, Expr, Kind));
+    return 0;
+  }
+
+  int64_t Res;
+  if (Expr->evaluateAsAbsolute(Res))
+    return Res;
+
+  llvm_unreachable("Unhandled expression!");
+  return 0;
+}
+
+unsigned V810MCCodeEmitter::
+getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
+                       SmallVectorImpl<MCFixup> &Fixups,
+                       const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  if (MO.isReg() || MO.isImm())
+    return getMachineOpValue(MI, MO, Fixups, STI);
+  
+  Fixups.push_back(MCFixup::create(0, MO.getExpr(),
+                                   (MCFixupKind)V810::fixup_v810_26_pcrel));
   return 0;
 }
 

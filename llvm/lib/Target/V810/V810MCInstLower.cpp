@@ -1,3 +1,4 @@
+#include "MCTargetDesc/V810MCExpr.h"
 #include "V810.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineInstr.h"
@@ -6,20 +7,31 @@
 
 using namespace llvm;
 
+static MCOperand LowerSymbolOperand(const MachineOperand &MO,
+                                    const MCSymbol *Symbol,
+                                    AsmPrinter &AP) {
+  V810MCExpr::VariantKind Kind =
+    (V810MCExpr::VariantKind)MO.getTargetFlags();
+
+  const MCSymbolRefExpr *MCSym = MCSymbolRefExpr::create(Symbol,
+                                                         AP.OutContext);
+  const V810MCExpr *expr = V810MCExpr::create(Kind, MCSym,
+                                              AP.OutContext);
+  return MCOperand::createExpr(expr);
+}
+
 static MCOperand LowerGlobalOperand(const MachineInstr *MI,
                                     const MachineOperand &MO,
                                     AsmPrinter &AP) {
-  const MCSymbolRefExpr *MCSym = MCSymbolRefExpr::create(AP.getSymbol(MO.getGlobal()),
-                                                         AP.OutContext);
-  return MCOperand::createExpr(MCSym);
+  const MCSymbol *Symbol = AP.getSymbol(MO.getGlobal());
+  return LowerSymbolOperand(MO, Symbol, AP);
 }
 
 static MCOperand LowerBlockAddress(const MachineInstr *MI,
-                                 const MachineOperand &MO,
-                                 AsmPrinter &AP) {
-  const MCSymbolRefExpr *MCSym = MCSymbolRefExpr::create(MO.getMBB()->getSymbol(),
-                                                         AP.OutContext);
-  return MCOperand::createExpr(MCSym);
+                                   const MachineOperand &MO,
+                                   AsmPrinter &AP) {
+  const MCSymbol *Symbol = MO.getMBB()->getSymbol();
+  return LowerSymbolOperand(MO, Symbol, AP);
 }
 
 static MCOperand LowerOperand(const MachineInstr *MI,
