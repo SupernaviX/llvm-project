@@ -17,7 +17,6 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   
   // Set up the register classes.
   addRegisterClass(MVT::i32, &V810::GenRegsRegClass);
-  addRegisterClass(MVT::f32, &V810::GenRegsRegClass);
 
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
