@@ -45,6 +45,9 @@ public:
   unsigned getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
                                   SmallVectorImpl<MCFixup> &Fixups,
                                   const MCSubtargetInfo &STI) const;
+  unsigned getBcondTargetOpValue(const MCInst &MI, unsigned OpNo,
+                                 SmallVectorImpl<MCFixup> &Fixups,
+                                 const MCSubtargetInfo &STI) const;
 };
 
 } // end anonymous namespace
@@ -94,6 +97,19 @@ getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
   
   Fixups.push_back(MCFixup::create(0, MO.getExpr(),
                                    (MCFixupKind)V810::fixup_v810_26_pcrel));
+  return 0;
+}
+
+unsigned V810MCCodeEmitter::
+getBcondTargetOpValue(const MCInst &MI, unsigned OpNo,
+                      SmallVectorImpl<MCFixup> &Fixups,
+                      const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  if (MO.isReg() || MO.isImm())
+    return getMachineOpValue(MI, MO, Fixups, STI);
+  
+  Fixups.push_back(MCFixup::create(0, MO.getExpr(),
+                                   (MCFixupKind)V810::fixup_v810_9_pcrel));
   return 0;
 }
 

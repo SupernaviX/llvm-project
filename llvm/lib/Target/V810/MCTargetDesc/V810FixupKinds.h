@@ -11,6 +11,8 @@ enum Fixups {
   fixup_v810_lo = FirstTargetFixupKind,
   // The high 16 bits of a MOVHI/MOVEA pair
   fixup_v810_hi,
+  // A 9-bit PC-relative fixup.
+  fixup_v810_9_pcrel,
   // A 26-bit PC-relative fixup.
   fixup_v810_26_pcrel,
 

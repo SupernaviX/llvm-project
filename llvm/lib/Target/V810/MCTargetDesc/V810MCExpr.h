@@ -13,6 +13,7 @@ public:
     VK_V810_None,
     VK_V810_LO,
     VK_V810_HI,
+    VK_V810_9_PCREL,
     VK_V810_26_PCREL
   };
 

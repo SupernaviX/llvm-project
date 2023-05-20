@@ -25,17 +25,13 @@ unsigned V810ObjectWriter::getRelocType(MCContext &Ctx,
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
   
-  if (const V810MCExpr *VExpr = dyn_cast<V810MCExpr>(Fixup.getValue())) {
-    if (VExpr->getKind() == V810MCExpr::VK_V810_26_PCREL) {
-      return ELF::R_V810_26_PCREL;
-    }
-  }
   switch(Fixup.getTargetKind()) {
   default:
     llvm_unreachable("Unimplemented fixup -> relocation");
   case FK_NONE:                   return ELF::R_V810_NONE;
   case V810::fixup_v810_lo:       return ELF::R_V810_LO;
   case V810::fixup_v810_hi:       return ELF::R_V810_HI;
+  case V810::fixup_v810_9_pcrel:  return ELF::R_V810_9_PCREL;
   case V810::fixup_v810_26_pcrel: return ELF::R_V810_26_PCREL;
   }
 
