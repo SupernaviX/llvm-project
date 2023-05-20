@@ -22,6 +22,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 
   // Handle global addresses specially to make constants
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+  // Handle branching specially
+  setOperationAction(ISD::BR_CC, MVT::i32, Custom);
 
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
@@ -35,6 +37,8 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::FIRST_NUMBER: break;
   case V810ISD::HI:           return "V810ISD::HI";
   case V810ISD::LO:           return "V810ISD::LO";
+  case V810ISD::CMP:          return "V810ISD::CMP";
+  case V810ISD::BCOND:        return "V810ISD::BCOND";
   case V810ISD::CALL:         return "V810ISD::CALL";
   case V810ISD::TAIL_CALL:    return "V810ISD::TAIL_CALL";
   case V810ISD::RET_GLUE:     return "V810ISD::RET_GLUE";
@@ -249,15 +253,26 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   return Chain;
 }
 
-SDValue V810TargetLowering::
-LowerOperation(SDValue Op, SelectionDAG &DAG) const {
-  assert(Op.getOpcode() == ISD::GlobalAddress);
-
-  // Can we make this more efficient by using GP or something?
-  GlobalAddressSDNode *GN = dyn_cast<GlobalAddressSDNode>(Op);
-  if (!GN) {
-    llvm_unreachable("When is a global address not a global address?");
+static V810CC::CondCodes IntCondCodeToICC(ISD::CondCode CC) {
+  switch (CC) {
+  default: llvm_unreachable("Unknown integer condition code!");
+  case ISD::SETEQ:  return V810CC::ICC_E;
+  case ISD::SETNE:  return V810CC::ICC_NE;
+  case ISD::SETLT:  return V810CC::ICC_LT;
+  case ISD::SETLE:  return V810CC::ICC_LE;
+  case ISD::SETGT:  return V810CC::ICC_GT;
+  case ISD::SETGE:  return V810CC::ICC_GE;
+  case ISD::SETULT: return V810CC::ICC_C;
+  case ISD::SETULE: return V810CC::ICC_NH;
+  case ISD::SETUGT: return V810CC::ICC_H;
+  case ISD::SETUGE: return V810CC::ICC_NC;
   }
+}
+
+// Convert a global address into HI/LO pairs
+static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) {
+  GlobalAddressSDNode *GN = dyn_cast<GlobalAddressSDNode>(Op);
+  assert(GN);
 
   SDLoc DL(Op);
   SDValue HiTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_HI);
@@ -266,4 +281,31 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   EVT VT = Op.getValueType();
   SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
   return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
+}
+
+// Convert a BR_CC into a cmp+bcond pair
+static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
+  SDValue Chain = Op.getOperand(0);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(1))->get();
+  SDValue LHS = Op.getOperand(2);
+  SDValue RHS = Op.getOperand(3);
+  SDValue Dest = Op.getOperand(4);
+
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+
+  SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
+  return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest);
+}
+
+SDValue V810TargetLowering::
+LowerOperation(SDValue Op, SelectionDAG &DAG) const {
+  switch (Op.getOpcode()) {
+  default: llvm_unreachable("Should not custom lower this!");
+
+  case ISD::GlobalAddress:  return LowerGlobalAddress(Op, DAG);
+  case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
+  }
 }

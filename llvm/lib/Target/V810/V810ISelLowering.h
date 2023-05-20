@@ -12,6 +12,8 @@ namespace llvm {
     FIRST_NUMBER = ISD::BUILTIN_OP_END,
     HI,
     LO,
+    BCOND,
+    CMP,
     CALL,
     RET_GLUE,
     TAIL_CALL,

@@ -25,43 +25,43 @@ namespace llvm {
   // Keep these in sync with V810InstrInfo.td
   namespace V810CC {
   enum CondCodes {
-    ICC_BV = 0, // Overflow
-    ICC_BC = 1, // Carry/Lower (unsigned)
-    ICC_BE = 2, // Equal/Zero
-    ICC_BNH = 3, // Not higher (unsigned)
-    ICC_BN = 4, // Negative
+    ICC_V = 0, // Overflow
+    ICC_C = 1, // Carry/Lower (unsigned)
+    ICC_E = 2, // Equal/Zero
+    ICC_NH = 3, // Not higher (unsigned)
+    ICC_N = 4, // Negative
     ICC_BR = 5, // Always (unconditional branch)
-    ICC_BLT = 6, // Less than (signed)
-    ICC_BLE = 7, // Less than or equal (signed)
-    ICC_BNV = 8, // Not overflow
-    ICC_BNC = 9, // Not carry/lower (unsigned)
-    ICC_BNE = 10, // Not equal/zero
-    ICC_BH = 11, // Nigher (unsigned)
-    ICC_BP = 12, // Positive
+    ICC_LT = 6, // Less than (signed)
+    ICC_LE = 7, // Less than or equal (signed)
+    ICC_NV = 8, // Not overflow
+    ICC_NC = 9, // Not carry/lower (unsigned)
+    ICC_NE = 10, // Not equal/zero
+    ICC_H = 11, // Higher (unsigned)
+    ICC_P = 12, // Positive
     ICC_NOP = 13, // Never (nop)
-    ICC_BGE = 14, // Greater than or equal (signed)
-    ICC_BGT = 15, // Greater than
+    ICC_GE = 14, // Greater than or equal (signed)
+    ICC_GT = 15, // Greater than
   };
   }
 
   inline static const char *V810CondCodeToString(V810CC::CondCodes CC) {
     switch (CC) {
-    case V810CC::ICC_BV:  return "v";
-    case V810CC::ICC_BC:  return "c";
-    case V810CC::ICC_BE:  return "e";
-    case V810CC::ICC_BNH: return "nh";
-    case V810CC::ICC_BN:  return "n";
+    case V810CC::ICC_V:  return "v";
+    case V810CC::ICC_C:  return "c";
+    case V810CC::ICC_E:  return "e";
+    case V810CC::ICC_NH: return "nh";
+    case V810CC::ICC_N:  return "n";
     case V810CC::ICC_BR:  return "r";
-    case V810CC::ICC_BLT: return "lt";
-    case V810CC::ICC_BLE: return "le";
-    case V810CC::ICC_BNV: return "nv";
-    case V810CC::ICC_BNC: return "nc";
-    case V810CC::ICC_BNE: return "ne";
-    case V810CC::ICC_BH:  return "h";
-    case V810CC::ICC_BP:  return "p";
+    case V810CC::ICC_LT: return "lt";
+    case V810CC::ICC_LE: return "le";
+    case V810CC::ICC_NV: return "nv";
+    case V810CC::ICC_NC: return "nc";
+    case V810CC::ICC_NE: return "ne";
+    case V810CC::ICC_H:  return "h";
+    case V810CC::ICC_P:  return "p";
     case V810CC::ICC_NOP: return "nop";
-    case V810CC::ICC_BGE: return "ge";
-    case V810CC::ICC_BGT: return "gt";
+    case V810CC::ICC_GE: return "ge";
+    case V810CC::ICC_GT: return "gt";
     }
     llvm_unreachable("Invalid cond code");
   }

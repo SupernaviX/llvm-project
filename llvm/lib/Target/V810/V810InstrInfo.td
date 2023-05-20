@@ -54,6 +54,11 @@ def brtarget : Operand<OtherVT> {
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
+def SDT_V810Cmp   : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
+def V810CMP       : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain]>;
+def SDT_V810Bcond : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
+def V810Bcond     : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
+
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
 def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
                            [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
@@ -68,22 +73,22 @@ def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
 // Conditions
 // Keep this in sync with the values in V810.h
 class ICC_VAL<int N> : PatLeaf<(i32 N)>;
-def ICC_BV  : ICC_VAL<0>; // Overflow
-def ICC_BC  : ICC_VAL<1>; // Carry/Lower (unsigned)
-def ICC_BE  : ICC_VAL<2>; // Equal/Zero
-def ICC_BNH : ICC_VAL<3>; // Not higher (unsigned)
-def ICC_BN  : ICC_VAL<4>; // Negative
+def ICC_V   : ICC_VAL<0>; // Overflow
+def ICC_C   : ICC_VAL<1>; // Carry/Lower (unsigned)
+def ICC_E   : ICC_VAL<2>; // Equal/Zero
+def ICC_NH  : ICC_VAL<3>; // Not higher (unsigned)
+def ICC_N   : ICC_VAL<4>; // Negative
 def ICC_BR  : ICC_VAL<5>; // Always (unconditional branch)
-def ICC_BLT : ICC_VAL<6>; // Less than (signed)
-def ICC_BLE : ICC_VAL<7>; // Less than or equal (signed)
-def ICC_BNV : ICC_VAL<8>; // Not overflow
-def ICC_BNC : ICC_VAL<9>; // Not carry/lower (unsigned)
-def ICC_BNE : ICC_VAL<10>; // Not equal/zero
-def ICC_BH  : ICC_VAL<11>; // Nigher (unsigned)
-def ICC_BP  : ICC_VAL<12>; // Positive
+def ICC_LT  : ICC_VAL<6>; // Less than (signed)
+def ICC_LE  : ICC_VAL<7>; // Less than or equal (signed)
+def ICC_NV  : ICC_VAL<8>; // Not overflow
+def ICC_NC  : ICC_VAL<9>; // Not carry/lower (unsigned)
+def ICC_NE  : ICC_VAL<10>; // Not equal/zero
+def ICC_H   : ICC_VAL<11>; // Nigher (unsigned)
+def ICC_P   : ICC_VAL<12>; // Positive
 def ICC_NOP : ICC_VAL<13>; // Never (nop)
-def ICC_BGE : ICC_VAL<14>; // Greater than or equal (signed)
-def ICC_BGT : ICC_VAL<15>; // Greater than
+def ICC_GE  : ICC_VAL<14>; // Greater than or equal (signed)
+def ICC_GT  : ICC_VAL<15>; // Greater than
 
 let mayLoad = 1 in {
   def LD_W : FormatVI<0b110011,
@@ -290,12 +295,24 @@ def SUB : FormatI<0b000010,
   [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
 >;
 
+def CMPri : FormatII<0b010011,
+  (outs), (ins GenRegs:$r2, i32imm:$imm),
+  "cmp $imm, $r2",
+  [(V810CMP GenRegs:$r2, simm5:$imm)]
+>;
+def CMPrr : FormatI<0b000011,
+  (outs), (ins GenRegs:$r2, GenRegs:$r1),
+  "cmp $r1, $r2",
+  [(V810CMP GenRegs:$r2, GenRegs:$r1)]
+>;
+
 // conditionals
 
+let isTerminator = 1, isBranch = 1 in
 def Bcond : FormatIII<0b100,
-  (outs), (ins i32imm:$cond, i32imm:$disp), // TODO: represent that this depends on PSW?
+  (outs), (ins i32imm:$cond, brtarget:$disp),
   "Bcond", // special-cased in V180InstPrinter
-  []
+  [(V810Bcond imm:$cond, bb:$disp)]
 >;
 
 let isTerminator = 1, isBarrier = 1 in {
