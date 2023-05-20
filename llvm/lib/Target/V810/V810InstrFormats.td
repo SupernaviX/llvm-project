@@ -37,6 +37,21 @@ class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
   let Inst{4-0} = imm;
 }
 
+// conditional branch
+class FormatIII<bits<3> op, dag outs, dag ins, string asmstr, list<dag> pattern>
+    : InstV810<outs, ins, asmstr, pattern> {
+  field bits<16> Inst;
+  let Size = 2;
+
+  bits<4> cond;
+  bits<9> disp;
+
+  let Inst{15-13} = op;
+  let Inst{12-9} = cond;
+  let Inst{8-0} = disp;
+}
+
+// middle-distance jump
 class FormatIV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
     : InstV810<outs, ins, asmstr, pattern> {
   field bits<32> Inst;

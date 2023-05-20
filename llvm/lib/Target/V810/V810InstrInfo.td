@@ -65,6 +65,26 @@ def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
 def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
                            [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
+// Conditions
+// Keep this in sync with the values in V810.h
+class ICC_VAL<int N> : PatLeaf<(i32 N)>;
+def ICC_BV  : ICC_VAL<0>; // Overflow
+def ICC_BC  : ICC_VAL<1>; // Carry/Lower (unsigned)
+def ICC_BE  : ICC_VAL<2>; // Equal/Zero
+def ICC_BNH : ICC_VAL<3>; // Not higher (unsigned)
+def ICC_BN  : ICC_VAL<4>; // Negative
+def ICC_BR  : ICC_VAL<5>; // Always (unconditional branch)
+def ICC_BLT : ICC_VAL<6>; // Less than (signed)
+def ICC_BLE : ICC_VAL<7>; // Less than or equal (signed)
+def ICC_BNV : ICC_VAL<8>; // Not overflow
+def ICC_BNC : ICC_VAL<9>; // Not carry/lower (unsigned)
+def ICC_BNE : ICC_VAL<10>; // Not equal/zero
+def ICC_BH  : ICC_VAL<11>; // Nigher (unsigned)
+def ICC_BP  : ICC_VAL<12>; // Positive
+def ICC_NOP : ICC_VAL<13>; // Never (nop)
+def ICC_BGE : ICC_VAL<14>; // Greater than or equal (signed)
+def ICC_BGT : ICC_VAL<15>; // Greater than
+
 let mayLoad = 1 in {
   def LD_W : FormatVI<0b110011,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
@@ -268,6 +288,14 @@ def SUB : FormatI<0b000010,
   (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
   "sub $r1, $r2",
   [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
+>;
+
+// conditionals
+
+def Bcond : FormatIII<0b100,
+  (outs), (ins i32imm:$cond, i32imm:$disp), // TODO: represent that this depends on PSW?
+  "Bcond", // special-cased in V180InstPrinter
+  []
 >;
 
 let isTerminator = 1, isBarrier = 1 in {

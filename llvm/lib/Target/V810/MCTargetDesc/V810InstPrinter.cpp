@@ -1,4 +1,5 @@
 #include "V810InstPrinter.h"
+#include "V810.h"
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
@@ -19,9 +20,27 @@ void V810InstPrinter::printInst(const MCInst *MI, uint64_t Address,
                                 StringRef Annot, const MCSubtargetInfo &STI,
                                 raw_ostream &O) {
   if (!printAliasInstr(MI, Address, O)) {
-    printInstruction(MI, Address, O);
+    if (MI->getOpcode() == V810::Bcond)
+      printBcondInstruction(MI, Address, O);
+    else
+      printInstruction(MI, Address, O);
   }
   printAnnotation(O, Annot);
+}
+
+void V810InstPrinter::printBcondInstruction(const MCInst *MI, uint64_t Address,
+                                            raw_ostream &O) {
+  assert(MI->getNumOperands() == 2);
+  int64_t cond = MI->getOperand(0).getImm();
+
+  if (cond == V810CC::ICC_NOP) {
+    printCondOperand(MI, 0, O);
+  } else {
+    O << "b";
+    printCondOperand(MI, 0, O);
+    O << ", ";
+    printBranchOperand(MI, Address, 1, O);
+  }
 }
 
 void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
@@ -55,4 +74,10 @@ void V810InstPrinter::printMemOperand(const MCInst *MI, int opNum,
   O << "[";
   printOperand(MI, opNum, O);
   O << "]";
+}
+
+void V810InstPrinter::printCondOperand(const MCInst *MI, int opNum,
+                                       raw_ostream &O) {
+  V810CC::CondCodes Cond = (V810CC::CondCodes)MI->getOperand(opNum).getImm();
+  O << V810CondCodeToString(Cond);
 }

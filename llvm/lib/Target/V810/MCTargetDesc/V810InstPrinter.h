@@ -18,11 +18,13 @@ public:
   std::pair<const char *, uint64_t> getMnemonic(const MCInst *MI) override;
   void printInstruction(const MCInst *MI, uint64_t Address, raw_ostream &O);
   bool printAliasInstr(const MCInst *MI, uint64_t Address, raw_ostream &O);
+  void printBcondInstruction(const MCInst *MI, uint64_t Address, raw_ostream &O);
   static const char *getRegisterName(MCRegister Reg);
   
   void printOperand(const MCInst *MI, int opNum, raw_ostream &OS);
   void printBranchOperand(const MCInst *MI, uint64_t Address, unsigned opNum, raw_ostream &OS);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &OS);
+  void printCondOperand(const MCInst *MI, int opNum, raw_ostream &OS);
 };
 
 }
