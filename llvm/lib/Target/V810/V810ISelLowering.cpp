@@ -26,10 +26,14 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
 
-  // Handle hi+lo operations
+  // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
   setOperationAction(ISD::MULHS, MVT::i32, Expand);
   setOperationAction(ISD::MUL,   MVT::i32, Expand);
+  setOperationAction(ISD::SDIV,  MVT::i32, Expand);
+  setOperationAction(ISD::UDIV,  MVT::i32, Expand);
+  setOperationAction(ISD::SREM,  MVT::i32, Expand);
+  setOperationAction(ISD::UREM,  MVT::i32, Expand);
 
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);

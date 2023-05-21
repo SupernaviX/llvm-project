@@ -20,6 +20,7 @@ public:
   void Select(SDNode *N) override;
 
   void SelectMUL_LOHI(SDNode *N, bool isSigned);
+  void SelectDIVREM(SDNode *N, bool isSigned);
 
   // Complex Pattern Selectors.
   bool SelectADDR(SDValue N, SDValue &Value);
@@ -91,6 +92,24 @@ void V810DAGToDAGISel::SelectMUL_LOHI(SDNode *N, bool isSigned) {
   CurDAG->RemoveDeadNode(N);
 }
 
+void V810DAGToDAGISel::SelectDIVREM(SDNode *N, bool isSigned) {
+  unsigned Opc = isSigned ? V810::DIV : V810::DIVU;
+  SDLoc DL(N);
+  SDValue Ops[] = {N->getOperand(0), N->getOperand(1)};
+  SDNode *Mad = CurDAG->getMachineNode(Opc, DL, N->getVTList(), Ops);
+
+  SDValue Chain = CurDAG->getEntryNode();
+  if (!SDValue(N, 0).use_empty()) {
+    ReplaceUses(SDValue(N, 0), SDValue(Mad, 0));
+  }
+  if (!SDValue(N, 1).use_empty()) {
+    SDValue ValueFromR30 = CurDAG->getCopyFromReg(Chain, DL, V810::R30,
+                                                  SDValue(N, 1).getValueType());
+    ReplaceUses(SDValue(N, 1), ValueFromR30);
+  }
+  CurDAG->RemoveDeadNode(N);
+}
+
 void V810DAGToDAGISel::Select(SDNode *N) {
   if (N->isMachineOpcode()) {
     N->setNodeId(-1);
@@ -105,6 +124,12 @@ void V810DAGToDAGISel::Select(SDNode *N) {
     return;
   case ISD::UMUL_LOHI:
     SelectMUL_LOHI(N, false);
+    return;
+  case ISD::SDIVREM:
+    SelectDIVREM(N, true);
+    return;
+  case ISD::UDIVREM:
+    SelectDIVREM(N, false);
     return;
   }
 

@@ -327,6 +327,18 @@ let Defs = [R30], Constraints = "$r2 = $rlo" in {
     []
   >;
 }
+let Defs = [R30], Constraints = "$r2 = $rquot" in {
+  def DIV : FormatI<0b001001,
+    (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
+    "div $r1, $r2",
+    []
+  >;
+  def DIVU : FormatI<0b001011,
+    (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
+    "divu $r1, $r2",
+    []
+  >;
+}
 
 // conditionals
 
