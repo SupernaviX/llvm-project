@@ -314,6 +314,20 @@ def CMPrr : FormatI<0b000011,
   [(V810CMP GenRegs:$r2, GenRegs:$r1)]
 >;
 
+// These hi+lo instructions have return values handled in code
+let Defs = [R30], Constraints = "$r2 = $rlo" in {
+  def MUL : FormatI<0b001000,
+    (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
+    "mul $r1, $r2",
+    []
+  >;
+  def MULU: FormatI<0b001010,
+    (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
+    "mulu $r1, $r2",
+    []
+  >;
+}
+
 // conditionals
 
 let isTerminator = 1, isBranch = 1 in

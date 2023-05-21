@@ -19,6 +19,8 @@ public:
 
   void Select(SDNode *N) override;
 
+  void SelectMUL_LOHI(SDNode *N, bool isSigned);
+
   // Complex Pattern Selectors.
   bool SelectADDR(SDValue N, SDValue &Value);
   bool SelectADDRri(SDValue N, SDValue &Base, SDValue &Offset);
@@ -71,13 +73,40 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
   return true;
 }
 
+void V810DAGToDAGISel::SelectMUL_LOHI(SDNode *N, bool isSigned) {
+  unsigned Opc = isSigned ? V810::MUL : V810::MULU;
+  SDLoc DL(N);
+  SDValue Ops[] = {N->getOperand(0), N->getOperand(1)};
+  SDNode *Mad = CurDAG->getMachineNode(Opc, DL, N->getVTList(), Ops);
+
+  SDValue Chain = CurDAG->getEntryNode();
+  if (!SDValue(N, 0).use_empty()) {
+    ReplaceUses(SDValue(N, 0), SDValue(Mad, 0));
+  }
+  if (!SDValue(N, 1).use_empty()) {
+    SDValue ValueFromR30 = CurDAG->getCopyFromReg(Chain, DL, V810::R30,
+                                                  SDValue(N, 1).getValueType());
+    ReplaceUses(SDValue(N, 1), ValueFromR30);
+  }
+  CurDAG->RemoveDeadNode(N);
+}
+
 void V810DAGToDAGISel::Select(SDNode *N) {
   if (N->isMachineOpcode()) {
     N->setNodeId(-1);
     return; // Already selected.
   }
 
-  // This is where target-specific opcodes would get handled
+  switch (N->getOpcode()) {
+  default:
+    break;
+  case ISD::SMUL_LOHI:
+    SelectMUL_LOHI(N, true);
+    return;
+  case ISD::UMUL_LOHI:
+    SelectMUL_LOHI(N, false);
+    return;
+  }
 
   SelectCode(N);
 }

@@ -1,4 +1,5 @@
 #include "V810ISelLowering.h"
+#include "V810.h"
 #include "MCTargetDesc/V810MCExpr.h"
 #include "V810RegisterInfo.h"
 #include "V810Subtarget.h"
@@ -24,6 +25,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
+
+  // Handle hi+lo operations
+  setOperationAction(ISD::MULHU, MVT::i32, Expand);
+  setOperationAction(ISD::MULHS, MVT::i32, Expand);
+  setOperationAction(ISD::MUL,   MVT::i32, Expand);
 
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
