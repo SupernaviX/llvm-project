@@ -62,12 +62,14 @@ def condcode : Operand<i32> {
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
-def SDT_V810Cmp   : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
-def V810CMP       : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain]>;
-def SDT_V810Bcond : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
-def V810Bcond     : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
-def SDT_V810Setf  : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
-def V810Setf      : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPHasChain]>;
+def SDT_V810Cmp       : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
+def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain]>;
+def SDT_V810Bcond     : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
+def V810Bcond         : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
+def SDT_V810Setf      : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
+def V810Setf          : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPHasChain]>;
+def SDT_V810Selectcc  : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<1, 2>, SDTCisVT<3, i32>]>;
+def V810Selectcc      : SDNode<"V810ISD::SELECT_CC", SDT_V810Selectcc, [SDNPInGlue]>;
 
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
 def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
@@ -79,6 +81,12 @@ def tailcall      : SDNode<"V810ISD::TAIL_CALL", SDT_V810Call,
 def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
 def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
                            [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+
+class Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>
+    : InstV810<outs, ins, asmstr, pattern> {
+  let isCodeGenOnly = 1;
+  let isPseudo = 1;
+}
 
 // Conditions
 // Keep this in sync with the values in V810.h
@@ -344,6 +352,13 @@ let Defs = [R30, PSW], Constraints = "$r2 = $rquot" in {
     []
   >;
 }
+
+let Uses = [PSW], usesCustomInserter = 1 in
+def SELECT_CC_Int : Pseudo<
+  (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
+  "; SELECT_CC_Int PSEUDO!",
+  [(set i32:$dst, (V810Selectcc i32:$t, i32:$f, imm:$cond))]
+>;
 
 // conditionals
 // V810ISelLowering generates the patterns which these instrs match, when lowering

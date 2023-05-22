@@ -15,6 +15,7 @@ namespace llvm {
     CMP,
     BCOND,
     SETF,
+    SELECT_CC,
     CALL,
     RET_GLUE,
     TAIL_CALL,
@@ -44,6 +45,12 @@ namespace llvm {
                       SmallVectorImpl<SDValue> &InVals) const override;
 
     SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
+
+    MachineBasicBlock *
+    EmitInstrWithCustomInserter(MachineInstr &MI,
+                                MachineBasicBlock *MBB) const override;
+    MachineBasicBlock *
+    ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *MBB) const;
   };
 }
 

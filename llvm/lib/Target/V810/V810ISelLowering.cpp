@@ -26,6 +26,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
 
+  // SELECT is just a SELECT_CC with hardcoded cond, expand it to that 
+  setOperationAction(ISD::SELECT, MVT::i32, Expand);
+  // Need to branch to handle SELECT_CC
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
+
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
   setOperationAction(ISD::MULHS, MVT::i32, Expand);
@@ -49,6 +54,8 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::LO:           return "V810ISD::LO";
   case V810ISD::CMP:          return "V810ISD::CMP";
   case V810ISD::BCOND:        return "V810ISD::BCOND";
+  case V810ISD::SETF:         return "V810ISD::SETF";
+  case V810ISD::SELECT_CC:    return "V810ISD::SELECT_CC";
   case V810ISD::CALL:         return "V810ISD::CALL";
   case V810ISD::TAIL_CALL:    return "V810ISD::TAIL_CALL";
   case V810ISD::RET_GLUE:     return "V810ISD::RET_GLUE";
@@ -307,7 +314,23 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
 
   SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
-  return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest);
+  return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest, Cmp);
+}
+
+static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+  SDValue TrueVal = Op.getOperand(2);
+  SDValue FalseVal = Op.getOperand(3);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+
+  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+
+  SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp);
 }
 
 SDValue V810TargetLowering::
@@ -317,5 +340,77 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
 
   case ISD::GlobalAddress:  return LowerGlobalAddress(Op, DAG);
   case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
+  case ISD::SELECT_CC:      return LowerSELECT_CC(Op, DAG);
   }
+}
+
+MachineBasicBlock *
+V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
+                                                MachineBasicBlock *BB) const {
+  switch (MI.getOpcode()) {
+  default: llvm_unreachable("No custom inserter found for instruction");
+  case V810::SELECT_CC_Int:
+    return ExpandSelectCC(MI, BB);
+  }  
+}
+
+// This is called after LowerSELECT_CC.
+// It turns the target-specific SELECT_CC instr into a set of branches.
+MachineBasicBlock *
+V810TargetLowering::ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *BB) const {
+  const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
+  DebugLoc dl = MI.getDebugLoc();
+
+  Register Dest = MI.getOperand(0).getReg();
+  Register TrueSrc = MI.getOperand(1).getReg();
+  Register FalseSrc = MI.getOperand(2).getReg();
+  unsigned CC = (V810CC::CondCodes)MI.getOperand(3).getImm();
+
+  /*
+    Split this block into the following control flow structure:
+    ThisMBB
+    |  \
+    |   IfFalseMBB
+    |  /
+    SinkMBB
+
+    ThisMBB ends with a Bcond; it goes to SinkMBB if true and IfFalseMBB if false.
+    IfFalseMBB falls through to SinkMBB.
+    SinkMBB uses a phi node to track the result.
+  */
+  const BasicBlock *LLVM_BB = BB->getBasicBlock();
+  MachineFunction::iterator It = ++BB->getIterator();
+
+  MachineBasicBlock *ThisMBB = BB;
+  MachineFunction *F = BB->getParent();
+  MachineBasicBlock *IfFalseMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  MachineBasicBlock *SinkMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  F->insert(It, IfFalseMBB);
+  F->insert(It, SinkMBB);
+
+  // Every node after the SELECT_CC in ThisMBB moves to SinkMBB
+  SinkMBB->splice(SinkMBB->begin(), ThisMBB,
+                  std::next(MachineBasicBlock::iterator(MI)), ThisMBB->end());
+  SinkMBB->transferSuccessorsAndUpdatePHIs(ThisMBB);
+
+  // Add the two successors of ThisMBB
+  ThisMBB->addSuccessor(IfFalseMBB);
+  ThisMBB->addSuccessor(SinkMBB);
+
+  // ThisMBB ends with a Bcond
+  BuildMI(ThisMBB, dl, TII.get(V810::Bcond))
+    .addImm(CC)
+    .addMBB(SinkMBB);
+
+  // IfFalseMBB has no logic, it just falls through to SinkMBB...
+  IfFalseMBB->addSuccessor(SinkMBB);
+
+  // because the logic is handled with a phi node at SinkMBB's start.
+  // %Result = phi [ %TrueValue, ThisMBB ], [ %FalseValue, IfFalseMBB ]
+  BuildMI(*SinkMBB, SinkMBB->begin(), dl, TII.get(V810::PHI), Dest)
+    .addReg(TrueSrc).addMBB(ThisMBB)
+    .addReg(FalseSrc).addMBB(IfFalseMBB);
+
+  MI.eraseFromParent(); // The pseudo instruction is gone.
+  return SinkMBB;
 }
