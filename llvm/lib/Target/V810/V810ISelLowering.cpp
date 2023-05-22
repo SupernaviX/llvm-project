@@ -30,6 +30,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   // Need to branch to handle SELECT_CC
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
+  // SETCC reduces nicely to CMP + SETF, so do that
+  setOperationAction(ISD::SETCC, MVT::i32, Custom);
 
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
@@ -333,6 +335,20 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
   return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp);
 }
 
+static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(2))->get();
+
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType(); // This could return a bool if that's useful?
+
+  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+
+  SDValue CMP = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  return DAG.getNode(V810ISD::SETF, DL, VT, CMP, Cond);
+}
+
 SDValue V810TargetLowering::
 LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -341,6 +357,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::GlobalAddress:  return LowerGlobalAddress(Op, DAG);
   case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
   case ISD::SELECT_CC:      return LowerSELECT_CC(Op, DAG);
+  case ISD::SETCC:          return LowerSETCC(Op, DAG);
   }
 }
 
