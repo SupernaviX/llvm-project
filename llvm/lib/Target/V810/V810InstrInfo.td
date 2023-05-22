@@ -66,6 +66,8 @@ def SDT_V810Cmp   : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
 def V810CMP       : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain]>;
 def SDT_V810Bcond : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
 def V810Bcond     : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
+def SDT_V810Setf  : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
+def V810Setf      : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPHasChain]>;
 
 def SDT_V810Call  : SDTypeProfile<0, -1, [SDTCisVT<0, i32>]>;
 def call          : SDNode<"V810ISD::CALL", SDT_V810Call,
@@ -194,128 +196,131 @@ let isMoveImm = 1, isMoveReg = 1 in {
 }
 
 // Bit ops
+let Defs = [PSW] in {
+  def ANDI : FormatV<0b101101,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "andi $imm, $r1, $r2",
+    [(set i32:$r2, (and GenRegs:$r1, simm16:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def AND : FormatI<0b001101,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "and $r1, $r2",
+    [(set i32:$r2, (and GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-def ANDI : FormatV<0b101101,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "andi $imm, $r1, $r2",
-  [(set i32:$r2, (and GenRegs:$r1, simm16:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def AND : FormatI<0b001101,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "and $r1, $r2",
-  [(set i32:$r2, (and GenRegs:$r2_, GenRegs:$r1))]
->;
+  def ORI : FormatV<0b101100,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "ori $imm, $r1, $r2",
+    [(set i32:$r2, (or GenRegs:$r1, simm16:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def OR : FormatI<0b001100,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "or $r1, $r2",
+    [(set i32:$r2, (or GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-def ORI : FormatV<0b101100,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "ori $imm, $r1, $r2",
-  [(set i32:$r2, (or GenRegs:$r1, simm16:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def OR : FormatI<0b001100,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "or $r1, $r2",
-  [(set i32:$r2, (or GenRegs:$r2_, GenRegs:$r1))]
->;
+  def XORI : FormatV<0b101110,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "xori $imm, $r1, $r2",
+    [(set i32:$r2, (xor GenRegs:$r1, simm16:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def XOR : FormatI<0b001110,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "xor $r1, $r2",
+    [(set i32:$r2, (xor GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-def XORI : FormatV<0b101110,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "xori $imm, $r1, $r2",
-  [(set i32:$r2, (xor GenRegs:$r1, simm16:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def XOR : FormatI<0b001110,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "xor $r1, $r2",
-  [(set i32:$r2, (xor GenRegs:$r2_, GenRegs:$r1))]
->;
+  def NOT : FormatI<0b001111,
+    (outs GenRegs:$r2), (ins GenRegs:$r1),
+    "not $r1, $r2",
+    [(set i32:$r2, (not GenRegs:$r1))]
+  >;
 
-def NOT : FormatI<0b001111,
-  (outs GenRegs:$r2), (ins GenRegs:$r1),
-  "not $r1, $r2",
-  [(set i32:$r2, (not GenRegs:$r1))]
->;
+  let Constraints = "$r2 = $r1" in
+  def SHLi : FormatII<0b010100,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "shl $imm, $r2",
+    [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def SHLr : FormatI<0b000100,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "shl $r1, $r2",
+    [(set i32:$r2, (shl GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-let Constraints = "$r2 = $r1" in
-def SHLi : FormatII<0b010100,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "shl $imm, $r2",
-  [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def SHLr : FormatI<0b000100,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "shl $r1, $r2",
-  [(set i32:$r2, (shl GenRegs:$r2_, GenRegs:$r1))]
->;
+  let Constraints = "$r2 = $r1" in
+  def SHRi : FormatII<0b010101,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "shr $imm, $r2",
+    [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def SHRr : FormatI<0b000101,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "shr $r1, $r2",
+    [(set i32:$r2, (srl GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-let Constraints = "$r2 = $r1" in
-def SHRi : FormatII<0b010101,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "shr $imm, $r2",
-  [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def SHRr : FormatI<0b000101,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "shr $r1, $r2",
-  [(set i32:$r2, (srl GenRegs:$r2_, GenRegs:$r1))]
->;
-
-let Constraints = "$r2 = $r1" in
-def SARi : FormatII<0b010111,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "sar $imm, $r2",
-  [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))]
->;
-let Constraints = "$r2 = $r2_" in
-def SARr : FormatI<0b000111,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "sar $r1, $r2",
-  [(set i32:$r2, (sra GenRegs:$r2_, GenRegs:$r1))]
->;
+  let Constraints = "$r2 = $r1" in
+  def SARi : FormatII<0b010111,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "sar $imm, $r2",
+    [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def SARr : FormatI<0b000111,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "sar $r1, $r2",
+    [(set i32:$r2, (sra GenRegs:$r2_, GenRegs:$r1))]
+  >;
+}
 
 // Maths
 
-let Constraints = "$r2 = $r2_" in
-def ADDrr : FormatI<0b000001,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "add $r1, $r2",
-  [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))]
->;
-let Constraints = "$r2 = $r1" in
-def ADDri : FormatII<0b010001,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "add $imm, $r2",
-  [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))]
->;
-def ADDI : FormatV<0b101001,
-  (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
-  "addi $imm, $r1, $r2",
-  [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
->;
+let Defs = [PSW] in {
+  let Constraints = "$r2 = $r2_" in
+  def ADDrr : FormatI<0b000001,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "add $r1, $r2",
+    [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))]
+  >;
+  let Constraints = "$r2 = $r1" in
+  def ADDri : FormatII<0b010001,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "add $imm, $r2",
+    [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))]
+  >;
+  def ADDI : FormatV<0b101001,
+    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    "addi $imm, $r1, $r2",
+    [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
+  >;
 
-let Constraints = "$r2 = $r2_" in
-def SUB : FormatI<0b000010,
-  (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-  "sub $r1, $r2",
-  [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
->;
+  let Constraints = "$r2 = $r2_" in
+  def SUB : FormatI<0b000010,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "sub $r1, $r2",
+    [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
+  >;
 
-def CMPri : FormatII<0b010011,
-  (outs), (ins GenRegs:$r2, i32imm:$imm),
-  "cmp $imm, $r2",
-  [(V810CMP GenRegs:$r2, simm5:$imm)]
->;
-def CMPrr : FormatI<0b000011,
-  (outs), (ins GenRegs:$r2, GenRegs:$r1),
-  "cmp $r1, $r2",
-  [(V810CMP GenRegs:$r2, GenRegs:$r1)]
->;
+  def CMPri : FormatII<0b010011,
+    (outs), (ins GenRegs:$r2, i32imm:$imm),
+    "cmp $imm, $r2",
+    [(V810CMP GenRegs:$r2, simm5:$imm)]
+  >;
+  def CMPrr : FormatI<0b000011,
+    (outs), (ins GenRegs:$r2, GenRegs:$r1),
+    "cmp $r1, $r2",
+    [(V810CMP GenRegs:$r2, GenRegs:$r1)]
+  >;
+}
 
 // These hi+lo instructions have return values handled in code
-let Defs = [R30], Constraints = "$r2 = $rlo" in {
+let Defs = [R30, PSW], Constraints = "$r2 = $rlo" in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
     "mul $r1, $r2",
@@ -327,7 +332,7 @@ let Defs = [R30], Constraints = "$r2 = $rlo" in {
     []
   >;
 }
-let Defs = [R30], Constraints = "$r2 = $rquot" in {
+let Defs = [R30, PSW], Constraints = "$r2 = $rquot" in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
     "div $r1, $r2",
@@ -341,13 +346,24 @@ let Defs = [R30], Constraints = "$r2 = $rquot" in {
 }
 
 // conditionals
+// V810ISelLowering generates the patterns which these instrs match, when lowering
+// LLVM conditional forms. That's because CMP is an instruction which writes PSW
+// flags that BCond/SETF read, and idk how to express that dependency in tablegen.
+let Uses = [PSW] in {
+  let isTerminator = 1, isBranch = 1 in
+  def Bcond : FormatIII<0b100,
+    (outs), (ins condcode:$cond, bcondtarget:$disp),
+    "b$cond $disp",
+    [(V810Bcond imm:$cond, bb:$disp)]
+  >;
 
-let isTerminator = 1, isBranch = 1 in
-def Bcond : FormatIII<0b100,
-  (outs), (ins condcode:$cond, bcondtarget:$disp),
-  "b$cond $disp",
-  [(V810Bcond imm:$cond, bb:$disp)]
->;
+  let imm = 0 in
+  def SETF : FormatII<0b010010,
+    (outs GenRegs:$r2), (ins condcode:$cond),
+    "setf $cond, $r2",
+    [(set i32:$r2, (V810Setf imm:$cond))]
+  >;
+}
 
 let isTerminator = 1, isBarrier = 1 in {
   let r2 = 0 in
@@ -387,8 +403,6 @@ let isCodeGenOnly = 1 in {
     [(retglue)]
   >;
 }
-
-
 
 // Non-instructions
 
