@@ -17,7 +17,9 @@ using namespace llvm;
 V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
                                        const V810Subtarget &STI)
     : TargetLowering(TM), Subtarget(&STI) {
-  
+
+  setBooleanContents(BooleanContent::ZeroOrOneBooleanContent);  
+
   // Set up the register classes.
   addRegisterClass(MVT::i32, &V810::GenRegsRegClass);
 
