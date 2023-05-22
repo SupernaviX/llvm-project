@@ -43,5 +43,6 @@ add_llvm_target(V810CodeGen
   V810
 )
 
+add_subdirectory(AsmParser)
 add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)
