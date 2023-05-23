@@ -6,7 +6,9 @@ include "V810InstrInfo.td"
 
 def V810InstrInfo : InstrInfo;
 
-def V810AsmParser : AsmParser;
+def V810AsmParser : AsmParser {
+  let ShouldEmitMatchRegisterAltName = 1;
+}
 
 class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
