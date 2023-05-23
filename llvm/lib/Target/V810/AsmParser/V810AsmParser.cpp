@@ -67,8 +67,7 @@ private:
     k_Token,
     k_Register,
     k_Immediate,
-    k_MemoryReg,
-    k_MemoryImm
+    k_Memory,
   } Kind;
 
   SMLoc StartLoc, EndLoc;
@@ -89,7 +88,6 @@ private:
 
   struct MemOp {
     unsigned Base;
-    unsigned OffsetReg;
     const MCExpr *Off;
   };
 
@@ -103,9 +101,47 @@ private:
 public:
   V810Operand(KindTy K) : Kind(K) {}
 
+  bool isToken() const override { return Kind == k_Token; }
+  bool isReg() const override { return Kind == k_Register; }
+  bool isImm() const override { return Kind == k_Immediate; }
+  bool isMem() const override { return Kind == k_Memory; }
+
+  unsigned getReg() const override {
+    assert((Kind == k_Register) && "Invalid access!");
+    return Reg.RegNum;
+  }
+
   const MCExpr *getImm() const {
     assert((Kind == k_Immediate) && "Invalid access!");
     return Imm.Val;
+  }
+
+  unsigned getMemBase() const {
+    assert((Kind == k_Memory) && "Invalid access!");
+    return Mem.Base;
+  }
+
+  const MCExpr *getMemOff() const {
+    assert((Kind == k_Memory) && "Invalid access!");
+    return Mem.Off;
+  }
+
+  SMLoc getStartLoc() const override {
+    return StartLoc;
+  }
+
+  SMLoc getEndLoc() const override {
+    return EndLoc;
+  }
+
+  void print(raw_ostream &OS) const override {
+    switch (Kind) {
+    case k_Token:     OS << "Token: " << getToken() << "\n"; break;
+    case k_Register:  OS << "Reg: #" << getReg() << "\n"; break;
+    case k_Immediate: OS << "Imm: " << getImm() << "\n"; break;
+    case k_Memory:    assert(getMemOff() != nullptr);
+      OS << "Mem: " << getMemBase() << "+" << getMemOff() << "\n"; break;
+    }
   }
 
   void addRegOperands(MCInst &Inst, unsigned N) const {
@@ -127,6 +163,15 @@ public:
       Inst.addOperand(MCOperand::createImm(CE->getValue()));
     else
       Inst.addOperand(MCOperand::createExpr(Expr));
+  }
+
+  static std::unique_ptr<V810Operand> CreateToken(StringRef Str, SMLoc S) {
+    auto Op = std::make_unique<V810Operand>(k_Token);
+    Op->Tok.Data = Str.data();
+    Op->Tok.Length = Str.size();
+    Op->StartLoc = S;
+    Op->EndLoc = S;
+    return Op;
   }
 
   StringRef getToken() const {
@@ -164,8 +209,9 @@ OperandMatchResultTy V810AsmParser::tryParseRegister(MCRegister &RegNo,
 bool V810AsmParser::ParseInstruction(ParseInstructionInfo &Info,
                                      StringRef Name, SMLoc NameLoc,
                                      OperandVector &Operands) {
-  // TODO
-  return Error(getLexer().getLoc(), "ParseInstruction not implemented");
+  // TODO: bcond and setf make this part weird
+  Operands.push_back(V810Operand::CreateToken(Name, NameLoc));
+  return Error(NameLoc, "ParseInstruction not implemented");
 }
 
 bool V810AsmParser::ParseDirective(AsmToken DirectiveID) {
