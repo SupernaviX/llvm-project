@@ -34,8 +34,8 @@ class V810AsmParser : public MCTargetAsmParser {
                         SMLoc NameLoc, OperandVector &Operands) override;
   bool ParseDirective(AsmToken DirectiveID) override;
 
+  OperandMatchResultTy parseMEMOperand(OperandVector &Operands);
   OperandMatchResultTy parseOperand(OperandVector &Operands, StringRef Name);
-
   OperandMatchResultTy parseV810AsmOperand(std::unique_ptr<V810Operand> &Operand);
 
 public:
@@ -97,6 +97,7 @@ public:
   bool isReg() const override { return Kind == k_Register; }
   bool isImm() const override { return Kind == k_Immediate; }
   bool isMem() const override { return Kind == k_Memory; }
+  bool isMEMri() const { return isMem(); }
 
   unsigned getReg() const override {
     assert((Kind == k_Register) && "Invalid access!");
@@ -147,7 +148,7 @@ public:
     addExpr(Inst, Expr);
   }
 
-  void addExpr(MCInst &Inst, const MCExpr *Expr) const{
+  void addExpr(MCInst &Inst, const MCExpr *Expr) const {
     // Add as immediate when possible.  Null MCExpr = 0.
     if (!Expr)
       Inst.addOperand(MCOperand::createImm(0));
@@ -155,6 +156,15 @@ public:
       Inst.addOperand(MCOperand::createImm(CE->getValue()));
     else
       Inst.addOperand(MCOperand::createExpr(Expr));
+  }
+
+  void addMEMriOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 2 && "Invalid number of operands!");
+
+    Inst.addOperand(MCOperand::createReg(getMemBase()));
+
+    const MCExpr *Expr = getMemOff();
+    addExpr(Inst, Expr);
   }
 
   static std::unique_ptr<V810Operand> CreateToken(StringRef Str, SMLoc S) {
@@ -179,6 +189,16 @@ public:
                                                 SMLoc E) {
     auto Op = std::make_unique<V810Operand>(k_Immediate);
     Op->Imm.Val = Val;
+    Op->StartLoc = S;
+    Op->EndLoc = E;
+    return Op;
+  }
+
+  static std::unique_ptr<V810Operand> CreateMEMri(unsigned Base, const MCExpr *Off,
+                                                  SMLoc S, SMLoc E) {
+    auto Op = std::make_unique<V810Operand>(k_Memory);
+    Op->Mem.Base = Base;
+    Op->Mem.Off = Off;
     Op->StartLoc = S;
     Op->EndLoc = E;
     return Op;
@@ -261,7 +281,6 @@ OperandMatchResultTy V810AsmParser::tryParseRegister(MCRegister &RegNo,
 bool V810AsmParser::ParseInstruction(ParseInstructionInfo &Info,
                                      StringRef Name, SMLoc NameLoc,
                                      OperandVector &Operands) {
-  // TODO: bcond and setf make this part weird
   Operands.push_back(V810Operand::CreateToken(Name, NameLoc));
 
   // read first operand  
@@ -287,10 +306,51 @@ bool V810AsmParser::ParseDirective(AsmToken DirectiveID) {
   return true;
 }
 
+  // offset[reg]
+  // offset is an (optional) expression, reg is a register
+OperandMatchResultTy
+V810AsmParser::parseMEMOperand(OperandVector &Operands) {
+  SMLoc S = getTok().getLoc();
+  SMLoc E = getTok().getEndLoc();
+
+  // Parse the offset (if it exists)
+  const MCExpr *EVal;
+  if (getLexer().is(AsmToken::LBrac)) {
+    EVal = MCConstantExpr::create(0, getContext());
+  } else {
+    if (getParser().parseExpression(EVal))
+      return MatchOperand_ParseFail;
+  }
+  getLexer().Lex(); // eat the [
+
+  // parse the register
+  MCRegister Reg;
+  if (parseRegister(Reg, S, E))
+    return MatchOperand_ParseFail;
+
+  // eat the ]
+  E = getTok().getEndLoc();
+  if (!getLexer().is(AsmToken::RBrac))
+    return MatchOperand_ParseFail;
+  getLexer().Lex();
+
+  Operands.push_back(V810Operand::CreateMEMri(Reg, EVal, S, E));
+
+  return MatchOperand_Success;
+}
+
 OperandMatchResultTy
 V810AsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
+  OperandMatchResultTy ResTy = MatchOperandParserImpl(Operands, Mnemonic);
+
+  // If there wasn't a custom match, try the generic matcher below. Otherwise,
+  // there was a match, but an error occurred, in which case, just return that
+  // the operand parsing failed.
+  if (ResTy == MatchOperand_Success || ResTy == MatchOperand_ParseFail)
+    return ResTy;
+
   std::unique_ptr<V810Operand> Op;
-  OperandMatchResultTy ResTy = parseV810AsmOperand(Op);
+  ResTy = parseV810AsmOperand(Op);
   if (ResTy != MatchOperand_Success || !Op)
     return MatchOperand_ParseFail;
   

@@ -36,9 +36,15 @@ def MOVHIimm : PatLeaf<(imm), [{
 def ADDR : ComplexPattern<iPTR, 1, "SelectADDR", [], []>;
 def ADDRri : ComplexPattern<iPTR, 2, "SelectADDRri", [], []>;
 
+def V810MEMriAsmOperand : AsmOperandClass {
+  let Name = "MEMri";
+  let ParserMethod = "parseMEMOperand";
+}
+
 def MEMri : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GenRegs, i16imm);
+  let ParserMatchClass = V810MEMriAsmOperand;
 }
 def calltarget : Operand<iPTR> {
   let PrintMethod = "printBranchOperand";
