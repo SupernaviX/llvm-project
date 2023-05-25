@@ -50,7 +50,7 @@ void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
   }
 
   if (MO.isImm()) {
-    O << (int) MO.getImm();
+    O << formatImm(MO.getImm());
     return;
   }
 
