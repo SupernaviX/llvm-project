@@ -68,7 +68,15 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
       }
     }
   }
-  // TODO: this is ignoring the offset, and should probably not be
+  if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr)) {
+    // When working with constant addresses, MOVHI the high bits and stick the low bits in the offset
+    uint64_t lo = CN->getSExtValue() & 0xffff;
+    uint64_t hi = ((CN->getSExtValue() >> 16) & 0xffff) + ((lo & 0x8000) != 0);
+    SDValue Ops[] = {CurDAG->getRegister(V810::R0, MVT::i32), CurDAG->getTargetConstant(hi, SDLoc(Addr), MVT::i32)};
+    Base = SDValue(CurDAG->getMachineNode(V810::MOVHI, SDLoc(Addr), MVT::i32, Ops), 0);
+    Offset = CurDAG->getTargetConstant(lo, SDLoc(Addr), MVT::i32);
+    return true;
+  }
   Base = Addr;
   Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
   return true;
