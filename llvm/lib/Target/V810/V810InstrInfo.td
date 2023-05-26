@@ -51,6 +51,11 @@ def V810BcondTargetAsmOperand : AsmOperandClass {
   let ParserMethod = "parseBcondTargetOperand";
 }
 
+def V810CondAsmOperand : AsmOperandClass {
+  let Name = "Cond";
+  let ParserMethod = "parseCondOperand";
+}
+
 def MEMri : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GenRegs, i16imm);
@@ -76,6 +81,7 @@ def bcondtarget : Operand<OtherVT> {
 }
 def condcode : Operand<i32> {
   let PrintMethod = "printCondOperand";
+  let ParserMatchClass = V810CondAsmOperand;
 }
 
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;

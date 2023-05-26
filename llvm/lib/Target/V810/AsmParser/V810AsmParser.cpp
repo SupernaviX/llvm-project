@@ -1,6 +1,8 @@
+#include "V810.h"
 #include "MCTargetDesc/V810MCExpr.h"
 #include "MCTargetDesc/V810MCTargetDesc.h"
 #include "TargetInfo/V810TargetInfo.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
@@ -38,6 +40,7 @@ class V810AsmParser : public MCTargetAsmParser {
   OperandMatchResultTy parseBranchTargetOperand(OperandVector &Operands);
   OperandMatchResultTy parseBcondTargetOperand(OperandVector &Operands);
   OperandMatchResultTy parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::VariantKind Kind);
+  OperandMatchResultTy parseCondOperand(OperandVector &Operands);
   OperandMatchResultTy parseOperand(OperandVector &Operands, StringRef Name);
   OperandMatchResultTy parseV810AsmOperand(std::unique_ptr<V810Operand> &Operand);
 
@@ -108,6 +111,12 @@ public:
     if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Imm.Val))
       return isInt<N>(CE->getValue());
     return true;
+  }
+  bool isCond() const {
+    if (!isImm()) return false;
+    if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Imm.Val))
+      return 0 <= CE->getValue() && CE->getValue() < 16;
+    return false;
   }
 
   unsigned getReg() const override {
@@ -185,6 +194,12 @@ public:
   }
 
   void addBcondTargetOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+
+    addExpr(Inst, getImm());
+  }
+
+  void addCondOperands(MCInst &Inst, unsigned N) const {
     assert(N == 1 && "Invalid number of operands!");
 
     addExpr(Inst, getImm());
@@ -379,10 +394,45 @@ V810AsmParser::parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::Varia
 
   const MCExpr *DispValue;
   if (getParser().parseExpression(DispValue))
-    return MatchOperand_NoMatch;
+    return MatchOperand_ParseFail;
 
   const V810MCExpr *DispExpr = V810MCExpr::create(Kind, DispValue, getContext());
   Operands.push_back(V810Operand::CreateImm(DispExpr, S, E));
+  return MatchOperand_Success;
+}
+
+OperandMatchResultTy
+V810AsmParser::parseCondOperand(OperandVector &Operands) {
+  SMLoc S = getTok().getLoc();
+  SMLoc E = getTok().getEndLoc();
+
+  if (getTok().isNot(AsmToken::Identifier))
+    return MatchOperand_ParseFail;
+
+  unsigned Val = llvm::StringSwitch<unsigned>(getTok().getString())
+    .CaseLower("v", V810CC::ICC_V)
+    .CasesLower("c", "l", V810CC::ICC_C)
+    .CasesLower("e", "z", V810CC::ICC_E)
+    .CaseLower("nh", V810CC::ICC_NH)
+    .CaseLower("n", V810CC::ICC_N)
+    .CaseLower("t", V810CC::ICC_BR)
+    .CaseLower("lt", V810CC::ICC_LT)
+    .CaseLower("le", V810CC::ICC_LE)
+    .CaseLower("nv", V810CC::ICC_NV)
+    .CasesLower("nc", "nl", V810CC::ICC_NC)
+    .CasesLower("ne", "nz", V810CC::ICC_NE)
+    .CaseLower("h", V810CC::ICC_H)
+    .CaseLower("p", V810CC::ICC_P)
+    .CaseLower("f", V810CC::ICC_NOP)
+    .CaseLower("ge", V810CC::ICC_GE)
+    .CaseLower("gt", V810CC::ICC_GT)
+    .Default(-1u);
+  if (Val == -1u)
+    return MatchOperand_ParseFail;
+  Lex();
+  
+  const MCExpr *Expr = MCConstantExpr::create(Val, getContext());
+  Operands.push_back(V810Operand::CreateImm(Expr, S, E));
   return MatchOperand_Success;
 }
 

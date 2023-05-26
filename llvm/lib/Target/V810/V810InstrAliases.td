@@ -3,7 +3,7 @@ multiclass int_cond_alias<string bcond, string setf, int condVal> {
   def : InstAlias<!strconcat(bcond, " $disp"),
                   (Bcond condVal, bcondtarget:$disp)>;
   // <setf> $condVal $imm
-  def : InstAlias<!strconcat("setf ", setf, ", $r2"),
+  def : InstAlias<!strconcat("setf", setf, " $r2"),
                   (SETF GenRegs:$r2, condVal)>;
 }
 
@@ -22,7 +22,7 @@ defm : int_cond_alias<"bnc", "nc", 0b1001>;
 defm : int_cond_alias<"bnl", "nl", 0b1001>;
 defm : int_cond_alias<"bne", "ne", 0b1010>;
 defm : int_cond_alias<"bnz", "nz", 0b1010>;
-defm : int_cond_alias<"bh",  "nh", 0b1011>;
+defm : int_cond_alias<"bh",  "h",  0b1011>;
 defm : int_cond_alias<"bp",  "p",  0b1100>;
 defm : int_cond_alias<"nop", "f",  0b1101>;
 defm : int_cond_alias<"bge", "ge", 0b1110>;
