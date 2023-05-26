@@ -41,6 +41,16 @@ def V810MEMriAsmOperand : AsmOperandClass {
   let ParserMethod = "parseMEMOperand";
 }
 
+def V810BranchTargetAsmOperand : AsmOperandClass {
+  let Name = "BranchTarget";
+  let ParserMethod = "parseBranchTargetOperand";
+}
+
+def V810BcondTargetAsmOperand : AsmOperandClass {
+  let Name = "BcondTarget";
+  let ParserMethod = "parseBcondTargetOperand";
+}
+
 def MEMri : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GenRegs, i16imm);
@@ -50,16 +60,19 @@ def calltarget : Operand<iPTR> {
   let PrintMethod = "printBranchOperand";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBranchTargetOpValue";
+  let ParserMatchClass = V810BranchTargetAsmOperand;
 }
 def brtarget : Operand<OtherVT> {
   let PrintMethod = "printBranchOperand";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBranchTargetOpValue";
+  let ParserMatchClass = V810BranchTargetAsmOperand;
 }
 def bcondtarget : Operand<OtherVT> {
   let PrintMethod = "printBranchOperand";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBcondTargetOpValue";
+  let ParserMatchClass = V810BcondTargetAsmOperand;
 }
 def condcode : Operand<i32> {
   let PrintMethod = "printCondOperand";

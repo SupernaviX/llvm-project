@@ -35,6 +35,9 @@ class V810AsmParser : public MCTargetAsmParser {
   bool ParseDirective(AsmToken DirectiveID) override;
 
   OperandMatchResultTy parseMEMOperand(OperandVector &Operands);
+  OperandMatchResultTy parseBranchTargetOperand(OperandVector &Operands);
+  OperandMatchResultTy parseBcondTargetOperand(OperandVector &Operands);
+  OperandMatchResultTy parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::VariantKind Kind);
   OperandMatchResultTy parseOperand(OperandVector &Operands, StringRef Name);
   OperandMatchResultTy parseV810AsmOperand(std::unique_ptr<V810Operand> &Operand);
 
@@ -98,6 +101,14 @@ public:
   bool isImm() const override { return Kind == k_Immediate; }
   bool isMem() const override { return Kind == k_Memory; }
   bool isMEMri() const { return isMem(); }
+  bool isBranchTarget() const { return isJumpTarget<26>(); }
+  bool isBcondTarget() const { return isJumpTarget<9>(); }
+  template <unsigned N> bool isJumpTarget() const {
+    if (!isImm()) return false;
+    if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Imm.Val))
+      return isInt<N>(CE->getValue());
+    return true;
+  }
 
   unsigned getReg() const override {
     assert((Kind == k_Register) && "Invalid access!");
@@ -165,6 +176,18 @@ public:
 
     const MCExpr *Expr = getMemOff();
     addExpr(Inst, Expr);
+  }
+
+  void addBranchTargetOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+
+    addExpr(Inst, getImm());
+  }
+
+  void addBcondTargetOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+
+    addExpr(Inst, getImm());
   }
 
   static std::unique_ptr<V810Operand> CreateToken(StringRef Str, SMLoc S) {
@@ -336,6 +359,30 @@ V810AsmParser::parseMEMOperand(OperandVector &Operands) {
 
   Operands.push_back(V810Operand::CreateMEMri(Reg, EVal, S, E));
 
+  return MatchOperand_Success;
+}
+
+OperandMatchResultTy
+V810AsmParser::parseBranchTargetOperand(OperandVector &Operands) {
+  return parseJumpTargetOperand(Operands, V810MCExpr::VK_V810_26_PCREL);
+}
+
+OperandMatchResultTy
+V810AsmParser::parseBcondTargetOperand(OperandVector &Operands) {
+  return parseJumpTargetOperand(Operands, V810MCExpr::VK_V810_9_PCREL);
+}
+
+OperandMatchResultTy
+V810AsmParser::parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::VariantKind Kind) {
+  SMLoc S = getTok().getLoc();
+  SMLoc E = getTok().getEndLoc();
+
+  const MCExpr *DispValue;
+  if (getParser().parseExpression(DispValue))
+    return MatchOperand_NoMatch;
+
+  const V810MCExpr *DispExpr = V810MCExpr::create(Kind, DispValue, getContext());
+  Operands.push_back(V810Operand::CreateImm(DispExpr, S, E));
   return MatchOperand_Success;
 }
 
