@@ -22,6 +22,8 @@ void V810InstPrinter::printInst(const MCInst *MI, uint64_t Address,
   if (!printAliasInstr(MI, Address, O)) {
     if (MI->getOpcode() == V810::Bcond)
       printBcondInstruction(MI, Address, O);
+    else if (MI->getOpcode() == V810::JMP)
+      printJmpInstruction(MI, Address, O);
     else
       printInstruction(MI, Address, O);
   }
@@ -38,6 +40,13 @@ void V810InstPrinter::printBcondInstruction(const MCInst *MI, uint64_t Address,
   } else {
     printInstruction(MI, Address, O);
   }
+}
+
+void V810InstPrinter::printJmpInstruction(const MCInst *MI, uint64_t Address,
+                                          raw_ostream &O) {
+  O <<"\tjmp[";
+  printOperand(MI, 0, O);
+  O << "]";
 }
 
 void V810InstPrinter::printOperand(const MCInst *MI, int opNum,

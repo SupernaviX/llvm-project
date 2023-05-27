@@ -455,6 +455,21 @@ OperandMatchResultTy
 V810AsmParser::MatchOperandParserCustomImpl(OperandVector &Operands, StringRef Mnemonic) {
   SMLoc Start = getTok().getLoc();
 
+  if (Mnemonic == "jmp" && Operands.size() == 1) {
+    // for some reason, JMP's target is enclosed in brackets
+    if (Parser.parseToken(AsmToken::LBrac))
+      return MatchOperand_ParseFail;
+    MCRegister RegNo;
+    SMLoc S, E;
+    if (parseRegister(RegNo, S, E))
+      return MatchOperand_ParseFail;
+    SMLoc End = getTok().getEndLoc();
+    if (Parser.parseToken(AsmToken::RBrac))
+      return MatchOperand_ParseFail;
+    Operands.push_back(V810Operand::CreateReg(RegNo, Start, End));
+    return MatchOperand_Success;    
+  }
+
   if ((Mnemonic == "stsr" && Operands.size() == 1) ||
       (Mnemonic == "ldsr" && Operands.size() == 2)) {
     // Handle parsing a system register. They can be referenced by either name or number.

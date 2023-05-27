@@ -412,7 +412,7 @@ let isTerminator = 1, isBarrier = 1 in {
   let r2 = 0 in
   def JMP : FormatI<0b000110,
     (outs), (ins GenRegs:$r1),
-    "jmp [$r1]",
+    "jmp $r1",
     []
   >;
 

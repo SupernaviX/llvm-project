@@ -19,6 +19,7 @@ public:
   void printInstruction(const MCInst *MI, uint64_t Address, raw_ostream &O);
   bool printAliasInstr(const MCInst *MI, uint64_t Address, raw_ostream &O);
   void printBcondInstruction(const MCInst *MI, uint64_t Address, raw_ostream &O);
+  void printJmpInstruction(const MCInst *MI, uint64_t Address, raw_ostream &O);
   void printCustomAliasOperand(const MCInst *MI, uint64_t Address,
                                unsigned OpIdx, unsigned PrintMethodIdx,
                                raw_ostream &O);
