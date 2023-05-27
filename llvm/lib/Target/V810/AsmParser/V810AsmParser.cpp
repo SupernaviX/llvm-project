@@ -321,6 +321,10 @@ bool V810AsmParser::ParseInstruction(ParseInstructionInfo &Info,
                                      OperandVector &Operands) {
   Operands.push_back(V810Operand::CreateToken(Name, NameLoc));
 
+  // If there are no operands, we're done
+  if (getLexer().is(AsmToken::EndOfStatement))
+    return false;
+
   // read first operand  
   if (parseOperand(Operands, Name) != MatchOperand_Success) {
     SMLoc Loc = getLexer().getLoc();

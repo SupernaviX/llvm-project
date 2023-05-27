@@ -448,8 +448,20 @@ let isCodeGenOnly = 1 in {
 }
 
 // VB-specific instructions
-
 let Predicates = [IsNintendo] in {
+  let Defs = [PSW], r2 = 0, imm = 0 in {
+    def CLI : FormatII<0b010110,
+      (outs), (ins),
+      "cli",
+      []
+    >;
+    def SEI : FormatII<0b011110,
+      (outs), (ins),
+      "sei",
+      []
+    >;
+  }
+
   let Constraints = "$r2 = $r2_" in
   def MPYHW : FormatVII<0b001100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
