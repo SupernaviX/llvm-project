@@ -91,11 +91,11 @@ def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
 def SDT_V810Cmp       : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
-def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain]>;
+def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain, SDNPOutGlue]>;
 def SDT_V810Bcond     : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
 def V810Bcond         : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
 def SDT_V810Setf      : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
-def V810Setf          : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPHasChain]>;
+def V810Setf          : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPInGlue]>;
 def SDT_V810Selectcc  : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<1, 2>, SDTCisVT<3, i32>]>;
 def V810Selectcc      : SDNode<"V810ISD::SELECT_CC", SDT_V810Selectcc, [SDNPInGlue]>;
 

@@ -357,7 +357,7 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
 
   SDValue CMP = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
-  return DAG.getNode(V810ISD::SETF, DL, VT, CMP, Cond);
+  return DAG.getNode(V810ISD::SETF, DL, VT, Cond, CMP);
 }
 
 SDValue V810TargetLowering::
