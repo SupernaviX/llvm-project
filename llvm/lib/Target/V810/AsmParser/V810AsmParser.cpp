@@ -396,8 +396,13 @@ V810AsmParser::parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::Varia
   if (getParser().parseExpression(DispValue))
     return MatchOperand_ParseFail;
 
-  const V810MCExpr *DispExpr = V810MCExpr::create(Kind, DispValue, getContext());
-  Operands.push_back(V810Operand::CreateImm(DispExpr, S, E));
+  int64_t Value;
+  if (DispValue->evaluateAsAbsolute(Value)) {
+    Operands.push_back(V810Operand::CreateImm(DispValue, S, E));
+  } else {
+    const V810MCExpr *DispExpr = V810MCExpr::create(Kind, DispValue, getContext());
+    Operands.push_back(V810Operand::CreateImm(DispExpr, S, E));
+  }
   return MatchOperand_Success;
 }
 
