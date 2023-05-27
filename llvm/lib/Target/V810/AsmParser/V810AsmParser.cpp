@@ -471,12 +471,6 @@ V810AsmParser::parseV810AsmOperand(std::unique_ptr<V810Operand> &Op) {
   case AsmToken::Integer:
     if (getParser().parseExpression(EVal, End))
       break;
-    int64_t Res;
-    if (!EVal->evaluateAsAbsolute(Res)) {
-      // TODO: variant kind
-      V810MCExpr::VariantKind Kind = V810MCExpr::VK_V810_None;
-      EVal = V810MCExpr::create(Kind, EVal, getContext());
-    }
     Op = V810Operand::CreateImm(EVal, Start, End);
     break;
   case AsmToken::Identifier:
@@ -486,6 +480,20 @@ V810AsmParser::parseV810AsmOperand(std::unique_ptr<V810Operand> &Op) {
       Op = V810Operand::CreateReg(IndexReg, Start, End);
       break;
     }
+
+    AsmToken Tok = getTok();
+    if (Tok.getString() == "hi" || Tok.getString() == "lo") {
+      Lex();
+      if (getParser().parseExpression(EVal, End))
+        break;
+      V810MCExpr::VariantKind Kind = Tok.getString() == "hi"
+        ? V810MCExpr::VK_V810_HI
+        : V810MCExpr::VK_V810_LO;
+      EVal = V810MCExpr::create(Kind, EVal, getContext());
+    } else if (getParser().parseExpression(EVal, End))
+      break;
+
+    Op = V810Operand::CreateImm(EVal, Start, End);
   }
 
   return (Op) ? MatchOperand_Success : MatchOperand_ParseFail;
