@@ -1,5 +1,6 @@
 #include "V810InstrInfo.h"
 #include "V810.h"
+#include "V810Subtarget.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 
@@ -9,6 +10,9 @@ using namespace llvm;
 #include "V810GenInstrInfo.inc"
 
 void V810InstrInfo::anchor() {}
+
+V810InstrInfo::V810InstrInfo(V810Subtarget &ST)
+  : V810GenInstrInfo(), RI(), Subtarget(ST) {}
 
 void V810InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I, const DebugLoc &DL,

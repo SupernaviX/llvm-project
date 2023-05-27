@@ -9,8 +9,11 @@
 
 namespace llvm {
 
+class V810Subtarget;
+
 class V810InstrInfo : public V810GenInstrInfo {
-  const V810RegisterInfo RI ;
+  const V810RegisterInfo RI;
+  const V810Subtarget& Subtarget;
   virtual void anchor();
   virtual void copyPhysReg(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator I, const DebugLoc &DL,
@@ -29,6 +32,7 @@ class V810InstrInfo : public V810GenInstrInfo {
                                     const TargetRegisterInfo *TRI,
                                     Register VReg) const override;
 public:
+  explicit V810InstrInfo(V810Subtarget &ST);
   const V810RegisterInfo &getRegisterInfo() const { return RI; }
 };
 

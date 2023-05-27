@@ -48,6 +48,15 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
 
+  // If we have native bit twiddlers, use em
+  if (Subtarget->isNintendo()) {
+    setOperationAction(ISD::BITREVERSE, MVT::i32, Legal);
+    setOperationAction(ISD::BSWAP, MVT::i32, Legal);
+  } else {
+    setOperationAction(ISD::BITREVERSE, MVT::i32, Expand);
+    setOperationAction(ISD::BSWAP, MVT::i32, Expand);
+  }
+
   computeRegisterProperties(Subtarget->getRegisterInfo());
 }
 

@@ -7,6 +7,9 @@ using namespace llvm;
 
 namespace {
 class V810DAGToDAGISel : public SelectionDAGISel {
+  /// Subtarget - Keep a pointer to the Sparc Subtarget around so that we can
+  /// make the right decision when generating code for different targets.
+  const V810Subtarget *Subtarget = nullptr;
 public:
   static char ID;
 
@@ -16,6 +19,10 @@ public:
 
   StringRef getPassName() const override { return PASS_NAME; }
 
+  bool runOnMachineFunction(MachineFunction &MF) override {
+    Subtarget = &MF.getSubtarget<V810Subtarget>();
+    return SelectionDAGISel::runOnMachineFunction(MF);
+  }
 
   void Select(SDNode *N) override;
 

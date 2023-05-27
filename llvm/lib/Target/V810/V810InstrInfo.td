@@ -456,6 +456,30 @@ let Predicates = [IsNintendo] in {
     "mpyhw $r1, $r2",
     []
   >;
+
+  def REV : FormatVII<0b001010,
+    (outs GenRegs:$r2), (ins GenRegs:$r1),
+    "rev $r1, $r2",
+    [(set i32:$r2, (bitreverse GenRegs:$r1))]
+  >;
+
+  let Constraints = "$r2 = $r2_", r1 = 0 in
+  def XB : FormatVII<0b001000,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_),
+    "xb $r2",
+    []
+  >;
+
+  let Constraints = "$r2 = $r2_", r1 = 0 in
+  def XH : FormatVII<0b001001,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_),
+    "xh $r2",
+    []
+  >;
+
+  def : Pat<(i32 (bswap GenRegs:$r2)),
+            (XB (XH (XB GenRegs:$r2)))>;
+
 }
 
 // Non-instructions
