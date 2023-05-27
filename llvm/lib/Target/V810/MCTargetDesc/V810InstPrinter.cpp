@@ -44,7 +44,7 @@ void V810InstPrinter::printBcondInstruction(const MCInst *MI, uint64_t Address,
 
 void V810InstPrinter::printJmpInstruction(const MCInst *MI, uint64_t Address,
                                           raw_ostream &O) {
-  O <<"\tjmp[";
+  O <<"\tjmp [";
   printOperand(MI, 0, O);
   O << "]";
 }
