@@ -32,10 +32,22 @@ V810TargetMachine::V810TargetMachine(
 
 const V810Subtarget *
 V810TargetMachine::getSubtargetImpl(const Function &F) const {
-  if (!Subtarget) {
-    Subtarget.reset(new V810Subtarget(TargetTriple, TargetCPU, TargetFS, *this));
+  Attribute CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute FSAttr = F.getFnAttribute("target-features");
+
+  std::string CPU =
+      CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
+  std::string FS =
+      FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
+  auto &I = SubtargetMap[CPU + FS];
+  if (!I) {
+    // This needs to be done before we create a new subtarget since any
+    // creation will depend on the TM and the code generation flags on the
+    // function that reside in TargetOptions.
+    resetTargetOptions(F);
+    I = std::make_unique<V810Subtarget>(TargetTriple, CPU, FS, *this);
   }
-  return Subtarget.get();
+  return I.get();
 }
 
 MachineFunctionInfo *V810TargetMachine::createMachineFunctionInfo(

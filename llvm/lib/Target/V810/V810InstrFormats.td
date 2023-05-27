@@ -95,3 +95,19 @@ class FormatVI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
   let Inst{9-5} = r2;
   let Inst{4-0} = r1;
 }
+
+class FormatVII<bits<6> subop, dag outs, dag ins, string asmstr, list<dag> pattern>
+    : InstV810<outs, ins, asmstr, pattern> {
+  field bits<32> Inst;
+  let Size = 4;
+
+  bits<6> op = 0b111110;
+  bits<5> r2;
+  bits<5> r1;
+
+  let Inst{31-26} = subop;
+  let Inst{25-16} = 0;
+  let Inst{15-10} = op;
+  let Inst{9-5} = r2;
+  let Inst{4-0} = r1;
+}

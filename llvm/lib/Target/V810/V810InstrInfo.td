@@ -1,5 +1,8 @@
 include "V810InstrFormats.td"
 
+def IsNintendo : Predicate<"Subtarget->isNintendo()">,
+                 AssemblerPredicate<(all_of FeatureNintendo)>;
+
 // split a 32-bit immediate into low and high bits
 def IMM32_LO16 : SDNodeXForm<imm, [{
   unsigned sextValue = (unsigned)N->getSExtValue();
@@ -441,6 +444,17 @@ let isCodeGenOnly = 1 in {
     (outs), (ins),
     "jmp [r31]",
     [(retglue)]
+  >;
+}
+
+// VB-specific instructions
+
+let Predicates = [IsNintendo] in {
+  let Constraints = "$r2 = $r2_" in
+  def MPYHW : FormatVII<0b001100,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "mpyhw $r1, $r2",
+    []
   >;
 }
 

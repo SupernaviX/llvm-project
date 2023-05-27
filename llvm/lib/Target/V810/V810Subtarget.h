@@ -15,6 +15,8 @@ class StringRef;
 
 class V810Subtarget : public V810GenSubtargetInfo {
 private:
+  bool IsNintendo;
+
   V810InstrInfo InstrInfo;
   V810TargetLowering TLInfo;
   SelectionDAGTargetInfo TSInfo;

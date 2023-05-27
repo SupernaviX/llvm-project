@@ -10,7 +10,7 @@ namespace llvm {
 class V810TargetMachine : public LLVMTargetMachine {
 private:
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
-  mutable std::unique_ptr<V810Subtarget> Subtarget;
+  mutable StringMap<std::unique_ptr<V810Subtarget>> SubtargetMap;
 public:
   V810TargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                     StringRef FS, const TargetOptions &Options,

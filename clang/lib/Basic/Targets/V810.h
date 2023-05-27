@@ -44,6 +44,24 @@ public:
     return std::nullopt;
   }
 
+  enum CPUKind {
+    CK_GENERIC,
+    CK_VB
+  } CPU = CK_GENERIC;
+
+  CPUKind getCPUKind(StringRef Name) const;
+
+  bool isValidCPUName(StringRef Name) const override {
+    return getCPUKind(Name) != CK_GENERIC;
+  }
+
+  void fillValidCPUList(SmallVectorImpl<StringRef> &Values) const override;
+
+  bool setCPU(const std::string &Name) override {
+    CPU = getCPUKind(Name);
+    return CPU != CK_GENERIC;
+  }
+
 };
 }
 }

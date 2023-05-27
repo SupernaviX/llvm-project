@@ -1,5 +1,9 @@
 include "llvm/Target/Target.td"
 
+def FeatureNintendo
+  : SubtargetFeature<"nintendo", "IsNintendo", "true",
+                     "Enable Nintendo instsructions">;
+
 include "V810RegisterInfo.td"
 include "V810CallingConv.td"
 include "V810InstrInfo.td"
@@ -14,6 +18,7 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
 
 def : Proc<"generic", []>;
+def : Proc<"vb", [FeatureNintendo]>;
 
 def V810AsmWriter : AsmWriter {
   string AsmWriterClassName  = "InstPrinter";

@@ -17,6 +17,7 @@
 #include "Arch/RISCV.h"
 #include "Arch/Sparc.h"
 #include "Arch/SystemZ.h"
+#include "Arch/V810.h"
 #include "Arch/VE.h"
 #include "Arch/X86.h"
 #include "HIPAMD.h"
@@ -454,6 +455,9 @@ std::string tools::getCPUName(const Driver &D, const ArgList &Args,
   case llvm::Triple::sparcel:
   case llvm::Triple::sparcv9:
     return sparc::getSparcTargetCPU(D, Args, T);
+
+  case llvm::Triple::v810:
+    return v810::getV810TargetCPU(D, Args, T);
 
   case llvm::Triple::x86:
   case llvm::Triple::x86_64:
