@@ -232,7 +232,7 @@ let isMoveImm = 1, isMoveReg = 1 in {
 }
 
 // Bit ops
-let Defs = [PSW] in {
+let Defs = [SR5] in {
   def ANDI : FormatV<0b101101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
     "andi $imm, $r1, $r2",
@@ -317,7 +317,7 @@ let Defs = [PSW] in {
 
 // Maths
 
-let Defs = [PSW] in {
+let Defs = [SR5] in {
   let Constraints = "$r2 = $r2_" in
   def ADDrr : FormatI<0b000001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
@@ -356,7 +356,7 @@ let Defs = [PSW] in {
 }
 
 // These hi+lo instructions have return values handled in code
-let Defs = [R30, PSW], Constraints = "$r2 = $rlo" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $rlo" in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
     "mul $r1, $r2",
@@ -368,7 +368,7 @@ let Defs = [R30, PSW], Constraints = "$r2 = $rlo" in {
     []
   >;
 }
-let Defs = [R30, PSW], Constraints = "$r2 = $rquot" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $rquot" in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
     "div $r1, $r2",
@@ -381,7 +381,7 @@ let Defs = [R30, PSW], Constraints = "$r2 = $rquot" in {
   >;
 }
 
-let Uses = [PSW], usesCustomInserter = 1 in
+let Uses = [SR5], usesCustomInserter = 1 in
 def SELECT_CC_Int : Pseudo<
   (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
   "; SELECT_CC_Int PSEUDO!",
@@ -390,9 +390,9 @@ def SELECT_CC_Int : Pseudo<
 
 // conditionals
 // V810ISelLowering generates the patterns which these instrs match, when lowering
-// LLVM conditional forms. That's because CMP is an instruction which writes PSW
+// LLVM conditional forms. That's because CMP is an instruction which writes SR5
 // flags that BCond/SETF read, and idk how to express that dependency in tablegen.
-let Uses = [PSW] in {
+let Uses = [SR5] in {
   let isTerminator = 1, isBranch = 1 in
   def Bcond : FormatIII<0b100,
     (outs), (ins condcode:$cond, bcondtarget:$disp),
@@ -447,9 +447,42 @@ let isCodeGenOnly = 1 in {
   >;
 }
 
+// System stuff
+def LDSR : FormatII<0b011100,
+  (outs SysRegs:$imm), (ins GenRegs:$r2),
+  "ldsr $r2, $imm",
+  []
+>;
+def STSR : FormatII<0b011101,
+  (outs GenRegs:$r2), (ins SysRegs:$imm),
+  "stsr $imm, $r2",
+  []
+>;
+
+let r2 = 0, imm = 0 in {
+  def HALT : FormatII<0b011010,
+    (outs), (ins),
+    "halt",
+    []
+  >;
+  def RETI : FormatII<0b011001,
+    (outs), (ins),
+    "reti",
+    []
+  >;
+}
+
+let r2 = 0 in
+def TRAP : FormatII<0b011000,
+  (outs), (ins i32imm:$imm),
+  "trap $imm",
+  []
+>;
+def : Pat<(trap), (TRAP 0)>;
+
 // VB-specific instructions
 let Predicates = [IsNintendo] in {
-  let Defs = [PSW], r2 = 0, imm = 0 in {
+  let Defs = [SR5], r2 = 0, imm = 0 in {
     def CLI : FormatII<0b010110,
       (outs), (ins),
       "cli",

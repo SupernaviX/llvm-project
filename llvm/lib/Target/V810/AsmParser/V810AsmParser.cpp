@@ -11,6 +11,7 @@
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/SMLoc.h"
 
 using namespace llvm;
 
@@ -41,6 +42,8 @@ class V810AsmParser : public MCTargetAsmParser {
   OperandMatchResultTy parseBcondTargetOperand(OperandVector &Operands);
   OperandMatchResultTy parseJumpTargetOperand(OperandVector &Operands, V810MCExpr::VariantKind Kind);
   OperandMatchResultTy parseCondOperand(OperandVector &Operands);
+
+  OperandMatchResultTy MatchOperandParserCustomImpl(OperandVector &Operands, StringRef Mnemonic);
   OperandMatchResultTy parseOperand(OperandVector &Operands, StringRef Name);
   OperandMatchResultTy parseV810AsmOperand(std::unique_ptr<V810Operand> &Operand);
 
@@ -348,8 +351,9 @@ bool V810AsmParser::ParseDirective(AsmToken DirectiveID) {
   return true;
 }
 
-  // offset[reg]
-  // offset is an (optional) expression, reg is a register
+
+// offset[reg]
+// offset is an (optional) expression, reg is a register
 OperandMatchResultTy
 V810AsmParser::parseMEMOperand(OperandVector &Operands) {
   SMLoc S = getTok().getLoc();
@@ -445,9 +449,44 @@ V810AsmParser::parseCondOperand(OperandVector &Operands) {
   return MatchOperand_Success;
 }
 
+// We need some slightly unusual logic to parse registers, and that seems hard to express in tablegen.
+// so, handle them here.
+OperandMatchResultTy
+V810AsmParser::MatchOperandParserCustomImpl(OperandVector &Operands, StringRef Mnemonic) {
+  SMLoc Start = getTok().getLoc();
+
+  if ((Mnemonic == "stsr" && Operands.size() == 1) ||
+      (Mnemonic == "ldsr" && Operands.size() == 2)) {
+    // Handle parsing a system register. They can be referenced by either name or number.
+    // (don't handle this in tryParseRegister because in general, we should not treat integers as registers)
+
+    std::string RegNameBuffer;
+    StringRef RegName;
+    if (getTok().is(AsmToken::Integer)) {
+      RegNameBuffer = "sr" + getTok().getString().str();
+      RegName = RegNameBuffer;
+    } else {
+      RegName = getTok().getString();
+    }
+
+    MCRegister RegNo = MatchRegisterName(RegName);
+    if (!RegNo) {
+      RegNo = MatchRegisterAltName(RegName);
+      if (!RegNo) {
+        return MatchOperand_ParseFail;
+      }
+    }
+    SMLoc End = getTok().getEndLoc();
+    Lex();
+    Operands.push_back(V810Operand::CreateReg(RegNo, Start, End));
+    return MatchOperand_Success;
+  }
+  return MatchOperandParserImpl(Operands, Mnemonic);
+}
+
 OperandMatchResultTy
 V810AsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
-  OperandMatchResultTy ResTy = MatchOperandParserImpl(Operands, Mnemonic);
+  OperandMatchResultTy ResTy = MatchOperandParserCustomImpl(Operands, Mnemonic);
 
   // If there wasn't a custom match, try the generic matcher below. Otherwise,
   // there was a match, but an error occurred, in which case, just return that

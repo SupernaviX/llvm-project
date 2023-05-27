@@ -39,7 +39,7 @@ V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   Reserved.set(V810::R30); // mul/div overflow
   Reserved.set(V810::R31); // return address
 
-  Reserved.set(V810::PSW); // PSW should always be defined
+  Reserved.set(V810::SR5); // PSW should always be defined
   return Reserved;
 }
 

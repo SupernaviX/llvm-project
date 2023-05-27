@@ -41,4 +41,24 @@ def R31 : V810Reg<31, "r31", ["lp"]>, DwarfRegNum<[31]>;
 def GenRegs : RegisterClass<"V810", [i32], 32, (sequence "R%u", 0, 31)>;
 
 // Program status word is the V810's status register
-def PSW : V810Reg<5, "PSW">;
+def SR0  : V810Reg< 0, "sr0",  ["eipc"]>, DwarfRegNum<[32]>;
+def SR1  : V810Reg< 1, "sr1",  ["eipsw"]>, DwarfRegNum<[33]>;
+def SR2  : V810Reg< 2, "sr2",  ["fepc"]>, DwarfRegNum<[34]>;
+def SR3  : V810Reg< 3, "sr3",  ["fepsw"]>, DwarfRegNum<[35]>;
+def SR4  : V810Reg< 4, "sr4",  ["ecr"]>, DwarfRegNum<[36]>;
+def SR5  : V810Reg< 5, "sr5",  ["psw"]>, DwarfRegNum<[37]>;
+def SR6  : V810Reg< 6, "sr6",  ["pir"]>, DwarfRegNum<[38]>;
+def SR7  : V810Reg< 7, "sr7",  ["tkcw"]>, DwarfRegNum<[39]>;
+def SR24 : V810Reg<24, "sr24", ["chcw"]>, DwarfRegNum<[40]>;
+def SR25 : V810Reg<25, "sr25", ["adtre"]>, DwarfRegNum<[41]>;
+def SR29 : V810Reg<29, "sr29">, DwarfRegNum<[42]>;
+def SR30 : V810Reg<30, "sr30">, DwarfRegNum<[43]>;
+def SR31 : V810Reg<31, "sr31">, DwarfRegNum<[44]>;
+
+def SysRegs : RegisterClass<"V810", [i32], 32,
+  (add (sequence "SR%u", 0, 7),
+       (sequence "SR%u", 24, 25),
+       (sequence "SR%u", 29, 31))> {
+  let CopyCost = -1;
+  let isAllocatable = false;
+}
