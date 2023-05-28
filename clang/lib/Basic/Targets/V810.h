@@ -15,7 +15,7 @@ class LLVM_LIBRARY_VISIBILITY V810TargetInfo : public TargetInfo {
 public:
   V810TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
     : TargetInfo(Triple) {
-      resetDataLayout("e-p:32:32-i32:32");
+      resetDataLayout("e-p:32:16-i32:32");
   }
 
   void getTargetDefines(const LangOptions &Opts, MacroBuilder &Builder) const override;
