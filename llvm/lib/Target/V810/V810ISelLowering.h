@@ -30,6 +30,12 @@ namespace llvm {
 
     const char *getTargetNodeName(unsigned Opcode) const override;
 
+    ConstraintType getConstraintType(StringRef Constraint) const override;
+    std::pair<unsigned, const TargetRegisterClass *>
+    getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
+                                 StringRef Constraint, MVT VT) const override;
+
+
     SDValue
     LowerFormalArguments(SDValue Chain, CallingConv::ID CallConv, bool IsVarArg,
                          const SmallVectorImpl<ISD::InputArg> &Ins,

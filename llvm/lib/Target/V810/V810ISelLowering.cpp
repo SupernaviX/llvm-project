@@ -442,3 +442,28 @@ V810TargetLowering::ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *BB) cons
   MI.eraseFromParent(); // The pseudo instruction is gone.
   return SinkMBB;
 }
+
+V810TargetLowering::ConstraintType
+V810TargetLowering::getConstraintType(StringRef Constraint) const {
+  if (Constraint.size() == 1) {
+    switch (Constraint[0]) {
+    default:  break;
+    case 'r':
+      return C_RegisterClass;
+    }
+  }
+
+  return TargetLowering::getConstraintType(Constraint);
+}
+
+std::pair<unsigned, const TargetRegisterClass *>
+V810TargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
+                                                  StringRef Constraint,
+                                                  MVT VT) const {
+  if (Constraint.empty())
+    return std::make_pair(0U, nullptr);
+  if (Constraint == "r") {
+    return std::make_pair(0U, &V810::GenRegsRegClass);
+  }
+  return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
+}
