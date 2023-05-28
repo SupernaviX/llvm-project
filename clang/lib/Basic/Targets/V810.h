@@ -12,6 +12,8 @@ namespace clang {
 namespace targets {
 
 class LLVM_LIBRARY_VISIBILITY V810TargetInfo : public TargetInfo {
+  static const TargetInfo::GCCRegAlias GCCRegAliases[];
+  static const char *const GCCRegNames[];
 public:
   V810TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
     : TargetInfo(Triple) {
@@ -27,6 +29,8 @@ public:
   BuiltinVaListKind getBuiltinVaListKind() const override {
     return BuiltinVaListKind::VoidPtrBuiltinVaList;
   }
+  ArrayRef<const char *> getGCCRegNames() const override;
+  ArrayRef<TargetInfo::GCCRegAlias> getGCCRegAliases() const override;
 
   bool validateAsmConstraint(const char *&Name, TargetInfo::ConstraintInfo &info) const override {
     return true;
@@ -34,14 +38,6 @@ public:
 
   std::string_view getClobbers() const override {
     return "";
-  }
-
-  ArrayRef<const char *> getGCCRegNames() const override {
-    return std::nullopt;
-  }
-
-  ArrayRef<TargetInfo::GCCRegAlias> getGCCRegAliases() const override {
-    return std::nullopt;
   }
 
   enum CPUKind {
