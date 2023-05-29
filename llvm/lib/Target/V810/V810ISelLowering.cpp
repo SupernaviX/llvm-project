@@ -173,6 +173,7 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   SmallVector<CCValAssign, 16> ArgLocs;
   CCState CCInfo(CLI.CallConv, CLI.IsVarArg, MF, ArgLocs, *DAG.getContext());
+  CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
 
   if (!CLI.IsTailCall) {
     //Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getNextStackOffset(), 0, DL);

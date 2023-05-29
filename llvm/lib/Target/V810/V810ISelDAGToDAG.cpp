@@ -58,21 +58,23 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
     Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
     return true;
   }
-  if (Addr.getOpcode() == ISD::ADD) {
-    if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1))) {
-      if (isInt<16>(CN->getSExtValue())) {
-        if (FrameIndexSDNode *FIN =
-                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
-          // Constant offset from frame ref.
-          Base = CurDAG->getTargetFrameIndex(
-              FIN->getIndex(), TLI->getPointerTy(CurDAG->getDataLayout()));
-        } else {
-          Base = Addr.getOperand(0);
-        }
-        Offset = CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr),
-                                           MVT::i32);
-        return true;
+  if (Addr.getOpcode() == ISD::TargetExternalSymbol ||
+      Addr.getOpcode() == ISD::TargetGlobalAddress ||
+      Addr.getOpcode() == ISD::TargetGlobalTLSAddress)
+    return false; // direct calls.
+  if (CurDAG->isBaseWithConstantOffset(Addr)) {
+    ConstantSDNode *CN = cast<ConstantSDNode>(Addr.getOperand(1));
+    if (isInt<16>(CN->getSExtValue())) {
+      if (FrameIndexSDNode *FIN =
+              dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
+        // Constant offset from frame ref.
+        Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), Addr->getValueType(0));
+      } else {
+        Base = Addr.getOperand(0);
       }
+      Offset =
+          CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), MVT::i32);
+      return true;
     }
   }
   if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr)) {

@@ -37,7 +37,7 @@ def MOVHIimm : PatLeaf<(imm), [{
 }], HI16>;
 
 def ADDR : ComplexPattern<iPTR, 1, "SelectADDR", [], []>;
-def ADDRri : ComplexPattern<iPTR, 2, "SelectADDRri", [], []>;
+def ADDRri : ComplexPattern<iPTR, 2, "SelectADDRri", [frameindex], []>;
 
 def V810MEMriAsmOperand : AsmOperandClass {
   let Name = "MEMri";
@@ -352,6 +352,14 @@ let Defs = [SR5] in {
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmp $r1, $r2",
     [(V810CMP GenRegs:$r2, GenRegs:$r1)]
+  >;
+
+  // Support loading addresses into a register
+  let isCodeGenOnly = 1 in
+  def ADDImem : FormatV<0b101001,
+    (outs GenRegs:$r2), (ins (MEMri $r1, $imm):$addr),
+    "addi $addr, $r2",
+    [(set iPTR:$r2, ADDRri:$addr)]
   >;
 }
 

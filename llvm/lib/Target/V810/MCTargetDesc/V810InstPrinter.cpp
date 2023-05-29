@@ -83,10 +83,17 @@ void V810InstPrinter::printBranchOperand(const MCInst *MI, uint64_t Address,
 
 void V810InstPrinter::printMemOperand(const MCInst *MI, int opNum,
                                       raw_ostream &O) {
-  printOperand(MI, opNum + 1, O);
-  O << "[";
-  printOperand(MI, opNum, O);
-  O << "]";
+  if (MI->getOpcode() == V810::ADDImem) {
+    // This is compiled to an ADDI, print it like "$imm, $r1"
+    printOperand(MI, opNum + 1, O);
+    O << ", ";
+    printOperand(MI, opNum, O);
+  } else {
+    printOperand(MI, opNum + 1, O);
+    O << "[";
+    printOperand(MI, opNum, O);
+    O << "]";
+  }
 }
 
 void V810InstPrinter::printCondOperand(const MCInst *MI, int opNum,
