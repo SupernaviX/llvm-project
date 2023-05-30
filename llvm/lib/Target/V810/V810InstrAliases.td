@@ -24,6 +24,13 @@ defm : int_cond_alias<"bne", "ne", 0b1010>;
 defm : int_cond_alias<"bnz", "nz", 0b1010>;
 defm : int_cond_alias<"bh",  "h",  0b1011>;
 defm : int_cond_alias<"bp",  "p",  0b1100>;
-defm : int_cond_alias<"nop", "f",  0b1101>;
+// defm : int_cond_alias<"nop", "f",  0b1101>;
 defm : int_cond_alias<"bge", "ge", 0b1110>;
 defm : int_cond_alias<"bgt", "gt", 0b1111>;
+
+// nop is a special case, it does not take an offset
+def : InstAlias<"nop",
+                (Bcond 0b1101, 0)>;
+  // <setf> $condVal $imm
+def : InstAlias<"setff $r2",
+                (SETF GenRegs:$r2, 0b1101)>;
