@@ -21,11 +21,12 @@ using namespace llvm;
 namespace {
 class V810MCCodeEmitter : public MCCodeEmitter {
 private:
+  const MCInstrInfo &MCII;
   MCContext &Ctx;
 
 public:
-  V810MCCodeEmitter(const MCInstrInfo &, MCContext &ctx)
-      : Ctx(ctx) {}
+  V810MCCodeEmitter(const MCInstrInfo &MCII, MCContext &ctx)
+      : MCII(MCII), Ctx(ctx) {}
 
   void encodeInstruction(const MCInst &MI, raw_ostream &OS,
                          SmallVectorImpl<MCFixup> &Fixups,
@@ -55,8 +56,20 @@ public:
 void V810MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {
+  const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+
+  unsigned Size = Desc.getSize();
   unsigned Bits = getBinaryCodeForInstr(MI, Fixups, STI);
-  support::endian::write(OS, Bits, support::little);
+
+  switch (Size) {
+  default: llvm_unreachable("Instruction is missing size");
+  case 2:
+    support::endian::write(OS, (uint16_t) Bits, support::little);
+    break;
+  case 4:
+    support::endian::write(OS, (uint32_t) Bits, support::little);
+    break;
+  }
 }
 
 unsigned V810MCCodeEmitter::
