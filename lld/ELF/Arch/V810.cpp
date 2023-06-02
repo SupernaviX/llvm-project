@@ -34,6 +34,8 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   case R_V810_LO:
   case R_V810_HI:
     return R_ABS;
+  case R_V810_SDAOFF:
+    return R_V810_GP;
   case R_V810_9_PCREL:
   case R_V810_26_PCREL:
     return R_PC;
@@ -66,6 +68,10 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
     // add one to HI if LO would be negative
     write16le(loc + 2, ((val >> 16) & 0x0000ffff) + ((val & 0x8000) != 0));
     break;
+  case R_V810_SDAOFF:
+    checkInt(loc, val, 16, rel);
+    write16le(loc + 2, val);
+    break;
   case R_V810_9_PCREL:
     checkInt(loc, val, 9, rel);
     write16le(loc, (read16le(loc) & ~0x01ff) | (val & 0x01ff));
@@ -87,6 +93,7 @@ int64_t V810::getImplicitAddend(const uint8_t *buf, RelType type) const {
     return SignExtend64<26>(read32vb(buf));
   case R_V810_LO:
   case R_V810_HI:
+  case R_V810_SDAOFF:
   case R_V810_NONE:
     return 0;
   default:

@@ -102,6 +102,7 @@ enum RelExpr {
   R_PPC64_RELAX_GOT_PC,
   R_RISCV_ADD,
   R_RISCV_PC_INDIRECT,
+  R_V810_GP,
 };
 
 // Architecture-neutral representation of relocation.

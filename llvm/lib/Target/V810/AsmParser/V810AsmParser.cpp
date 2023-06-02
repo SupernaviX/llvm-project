@@ -47,6 +47,8 @@ class V810AsmParser : public MCTargetAsmParser {
   OperandMatchResultTy parseOperand(OperandVector &Operands, StringRef Name);
   OperandMatchResultTy parseV810AsmOperand(std::unique_ptr<V810Operand> &Operand);
 
+  bool parseImm16Expression(const MCExpr *&Res, SMLoc &EndLoc);
+
 public:
   V810AsmParser(const MCSubtargetInfo &sti, MCAsmParser &parser,
                 const MCInstrInfo &MII,
@@ -364,7 +366,7 @@ V810AsmParser::parseMEMOperand(OperandVector &Operands) {
   if (getLexer().is(AsmToken::LBrac)) {
     EVal = MCConstantExpr::create(0, getContext());
   } else {
-    if (getParser().parseExpression(EVal))
+    if (parseImm16Expression(EVal, E))
       return MatchOperand_ParseFail;
   }
   getLexer().Lex(); // eat the [
@@ -544,22 +546,36 @@ V810AsmParser::parseV810AsmOperand(std::unique_ptr<V810Operand> &Op) {
       break;
     }
 
-    AsmToken Tok = getTok();
-    if (Tok.getString() == "hi" || Tok.getString() == "lo") {
-      Lex();
-      if (getParser().parseExpression(EVal, End))
-        break;
-      V810MCExpr::VariantKind Kind = Tok.getString() == "hi"
-        ? V810MCExpr::VK_V810_HI
-        : V810MCExpr::VK_V810_LO;
-      EVal = V810MCExpr::create(Kind, EVal, getContext());
-    } else if (getParser().parseExpression(EVal, End))
+    if (parseImm16Expression(EVal, End))
       break;
 
     Op = V810Operand::CreateImm(EVal, Start, End);
   }
 
   return (Op) ? MatchOperand_Success : MatchOperand_ParseFail;
+}
+
+bool V810AsmParser::parseImm16Expression(const MCExpr *&Res, SMLoc &EndLoc) {
+  SMLoc StartLoc = getLexer().getLoc();
+  if (getTok().isNot(AsmToken::Identifier)) {
+    return getParser().parseExpression(Res, EndLoc);
+  }
+  auto Kind = StringSwitch<V810MCExpr::VariantKind>(getTok().getString())
+                  .Case("lo", V810MCExpr::VK_V810_LO)
+                  .Case("hi", V810MCExpr::VK_V810_HI)
+                  .Case("sdaoff", V810MCExpr::VK_V810_SDAOFF)
+                  .Default(V810MCExpr::VK_V810_None);
+  if (Kind == V810MCExpr::VK_V810_None)
+    return getParser().parseExpression(Res, EndLoc);
+
+  Lex();
+  if (getTok().isNot(AsmToken::LParen))
+    return Error(StartLoc, "expected parenthesized expression");
+  if (getParser().parseExpression(Res, EndLoc))
+    return true;
+
+  Res = V810MCExpr::create(Kind, Res, getContext());
+  return false;
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810AsmParser() {

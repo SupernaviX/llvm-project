@@ -25,6 +25,8 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   case V810::fixup_v810_hi:
     // if LO is negative, increment HI to compensate
     return xh((Value >> 16) & 0x0000ffff) + ((Value & 0x00008000) != 0);
+  case V810::fixup_v810_sdaoff:
+    return 0; // can't compute this here
   case V810::fixup_v810_9_pcrel:
     return Value & 0x01ff;
   case V810::fixup_v810_26_pcrel:
@@ -61,6 +63,7 @@ namespace {
         // name                  offset bits  flags
         { "fixup_v810_lo",       16,    16,   0 },
         { "fixup_v810_hi",       16,    16,   0 },
+        { "fixup_v810_sdaoff",   16,    16,   0 },
         { "fixup_v810_9_pcrel",  0,     16,   MCFixupKindInfo::FKF_IsPCRel },
         { "fixup_v810_26_pcrel", 0,     32,   MCFixupKindInfo::FKF_IsPCRel }
       };

@@ -25,6 +25,7 @@ bool V810MCExpr::printVariantKind(raw_ostream &OS, VariantKind Kind) {
   case VK_V810_None:      return false;
   case VK_V810_LO:        OS << "lo"; return true;
   case VK_V810_HI:        OS << "hi"; return true;
+  case VK_V810_SDAOFF:    OS << "sdaoff"; return true;
   case VK_V810_9_PCREL:   return false;
   case VK_V810_26_PCREL:  return false;
   }
@@ -36,6 +37,7 @@ V810::Fixups V810MCExpr::getFixupKind(V810MCExpr::VariantKind Kind) {
   default: llvm_unreachable("Unhandled V810MCExpr::VariantKind");
   case VK_V810_LO:        return V810::fixup_v810_lo;
   case VK_V810_HI:        return V810::fixup_v810_hi;
+  case VK_V810_SDAOFF:    return V810::fixup_v810_sdaoff;
   case VK_V810_9_PCREL:   return V810::fixup_v810_9_pcrel;
   case VK_V810_26_PCREL:  return V810::fixup_v810_26_pcrel;
   }
