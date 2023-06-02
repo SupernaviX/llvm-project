@@ -36,7 +36,6 @@ def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
 }], HI16>;
 
-def ADDR : ComplexPattern<iPTR, 1, "SelectADDR", [], []>;
 def ADDRri : ComplexPattern<iPTR, 2, "SelectADDRri", [frameindex], []>;
 
 def V810MEMriAsmOperand : AsmOperandClass {
@@ -109,6 +108,14 @@ def tailcall      : SDNode<"V810ISD::TAIL_CALL", SDT_V810Call,
 def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
 def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
                            [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+
+def SDT_SPCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+def SDT_SPCallSeqEnd : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+
+def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_SPCallSeqStart,
+                           [SDNPHasChain, SDNPOutGlue]>;
+def callseq_end   : SDNode<"ISD::CALLSEQ_END",   SDT_SPCallSeqEnd,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
 
 class Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>
     : InstV810<outs, ins, asmstr, pattern> {
@@ -438,13 +445,14 @@ let isTerminator = 1, isBarrier = 1 in {
   >;
 }
 
+// Function call tools
 
 let isCodeGenOnly = 1 in {
   let isCall = 1, Defs = [R31] in
   def CALL : FormatIV<0b101011,
-    (outs), (ins calltarget:$disp),
+    (outs), (ins calltarget:$disp, variable_ops),
     "jal $disp",
-    [(call ADDR:$disp)]
+    []
   >;
 
   let isReturn = 1, isTerminator = 1, isBarrier = 1, r2 = 0, r1 = 31 in
@@ -453,7 +461,23 @@ let isCodeGenOnly = 1 in {
     "jmp [r31]",
     [(retglue)]
   >;
+
+  let Defs = [R3], Uses = [R3], hasSideEffects = 1 in {
+    def ADJCALLSTACKDOWN : Pseudo<
+      (outs), (ins i32imm:$amt1, i32imm:$amt2),
+      "!ADJCALLSTACKDOWN $amt1, $amt2",
+      [(callseq_start timm:$amt1, timm:$amt2)]
+    >;
+    def ADJCALLSTACKUP : Pseudo<
+      (outs), (ins i32imm:$amt1, i32imm:$amt2),
+      "!ADJCALLSTACKUP $amt1, $amt2",
+      [(callseq_end timm:$amt1, timm:$amt2)]
+    >;
+  }
 }
+
+def : Pat<(call tglobaladdr:$dst),
+          (CALL tglobaladdr:$dst)>;
 
 // System stuff
 def LDSR : FormatII<0b011100,

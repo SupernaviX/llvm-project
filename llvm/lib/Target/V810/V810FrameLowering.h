@@ -11,10 +11,15 @@ class V810FrameLowering : public TargetFrameLowering {
 public:
   explicit V810FrameLowering();
 
-    /// emitProlog/emitEpilog - These methods insert prolog and epilog code into
+  /// emitProlog/emitEpilog - These methods insert prolog and epilog code into
   /// the function.
   void emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
   void emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const override;
+
+  MachineBasicBlock::iterator
+  eliminateCallFramePseudoInstr(MachineFunction &MF,
+                                MachineBasicBlock &MBB,
+                                MachineBasicBlock::iterator I) const override;
 
   bool hasFP(const MachineFunction &MF) const override;
 private:

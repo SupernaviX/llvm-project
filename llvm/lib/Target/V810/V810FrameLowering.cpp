@@ -29,6 +29,26 @@ V810FrameLowering::emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) con
   moveStackPointer(MF, MBB, MBBI, bytes);
 }
 
+MachineBasicBlock::iterator V810FrameLowering::
+eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
+                              MachineBasicBlock::iterator I) const {
+  if (!hasReservedCallFrame(MF)) {
+    MachineInstr &MI = *I;
+    int Size = 0;
+    switch (MI.getOpcode()) {
+    default: llvm_unreachable("Unrecognized call frame pseudo");
+    case V810::ADJCALLSTACKDOWN:
+      Size = -MI.getOperand(0).getImm();
+      break;
+    case V810::ADJCALLSTACKUP:
+      Size = MI.getOperand(0).getImm();
+      break;
+    }
+    moveStackPointer(MF, MBB, I, Size);
+  }
+  return MBB.erase(I);
+}
+
 bool
 V810FrameLowering::hasFP(const MachineFunction &MF) const {
   return false;
@@ -48,6 +68,7 @@ V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
     BuildMI(MBB, MBBI, dl, TII.get(V810::ADDri), V810::R3)
       .addReg(V810::R3).addImm(bytes);
   } else {
+    assert(isInt<16>(bytes));
     BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R3)
       .addReg(V810::R3).addImm(bytes);
   }

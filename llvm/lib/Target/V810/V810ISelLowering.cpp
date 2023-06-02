@@ -176,7 +176,7 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
 
   if (!CLI.IsTailCall) {
-    //Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getNextStackOffset(), 0, DL);
+    Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getNextStackOffset(), 0, DL);
   }
 
   // Collect the registers to pass in.
@@ -257,8 +257,8 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   Chain = DAG.getNode(V810ISD::CALL, DL, NodeTys, Ops);
   InGlue = Chain.getValue(1);
 
-  //Chain = DAG.getCALLSEQ_END(Chain, CCInfo.getNextStackOffset(), 0, InGlue, DL);
-  //InGlue = Chain.getValue(1);
+  Chain = DAG.getCALLSEQ_END(Chain, CCInfo.getNextStackOffset(), 0, InGlue, DL);
+  InGlue = Chain.getValue(1);
 
   // Now after all that ceremony, extract the return values.
   SmallVector<CCValAssign, 16> RVLocs;
@@ -272,13 +272,9 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
     assert(VA.isRegLoc() && "Can only return in registers");
     unsigned Reg = VA.getLocReg();
 
-    SDValue RV = DAG.getCopyFromReg(Chain, DL, Reg, VA.getLocVT(), InGlue);
-    Chain = RV.getValue(1);
+    Chain = DAG.getCopyFromReg(Chain, DL, Reg, VA.getLocVT(), InGlue).getValue(1);
     InGlue = Chain.getValue(2);
-
-    // TODO: maybe promote? maybe truncate?
-
-    InVals.push_back(RV);
+    InVals.push_back(Chain.getValue(0));
   }
   
   return Chain;
