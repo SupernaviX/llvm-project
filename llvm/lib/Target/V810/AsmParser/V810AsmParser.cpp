@@ -57,6 +57,9 @@ public:
 
     // Initialize the set of available features.
     setAvailableFeatures(ComputeAvailableFeatures(getSTI().getFeatureBits()));
+
+    parser.addAliasForDirective(".hword", ".2byte");
+    parser.addAliasForDirective(".word", ".4byte");
   }
 };
 
