@@ -23,7 +23,7 @@ public:
 } // namespace
 
 V810::V810() {
-  
+  symbolicRel = R_V810_16;
 }
 
 RelExpr V810::getRelExpr(RelType type, const Symbol &s,
@@ -62,6 +62,10 @@ static void write32vb(uint8_t *loc, uint32_t val) {
 void V810::relocate(uint8_t *loc, const Relocation &rel,
                     uint64_t val) const {
   switch(rel.type) {
+  case R_V810_16:
+    checkInt(loc, val, 16, rel);
+    write16le(loc, val & 0x0000ffff);
+    break;
   case R_V810_LO:
     checkInt(loc, val, 32, rel);
     write16le(loc + 2, val & 0x0000ffff);
@@ -94,6 +98,9 @@ int64_t V810::getImplicitAddend(const uint8_t *buf, RelType type) const {
     return SignExtend64<9>(read16le(buf + 2));
   case R_V810_26_PCREL:
     return SignExtend64<26>(read32vb(buf));
+  case R_V810_8:
+  case R_V810_16:
+  case R_V810_32:
   case R_V810_LO:
   case R_V810_HI:
   case R_V810_SDAOFF:
