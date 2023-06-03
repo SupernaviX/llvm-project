@@ -31,6 +31,9 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   switch (type) {
   case R_V810_NONE:
     return R_NONE;
+  case R_V810_8:
+  case R_V810_16:
+  case R_V810_32:
   case R_V810_LO:
   case R_V810_HI:
     return R_ABS;

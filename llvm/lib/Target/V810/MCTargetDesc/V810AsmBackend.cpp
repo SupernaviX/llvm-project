@@ -20,6 +20,10 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   switch (Kind) {
   default:
     llvm_unreachable("Unknown fixup kind!");
+  case FK_Data_1:
+  case FK_Data_2:
+  case FK_Data_4:
+    return Value;
   case V810::fixup_v810_lo:
     return xh(Value & 0x0000ffff);
   case V810::fixup_v810_hi:
@@ -52,6 +56,9 @@ namespace {
 #include "llvm/BinaryFormat/ELFRelocs/V810.def"
 #undef ELF_RELOC
                  .Case("BFD_RELOC_NONE", ELF::R_V810_NONE)
+                 .Case("BFD_RELOC_8", ELF::R_V810_8)
+                 .Case("BFD_RELOC_16", ELF::R_V810_16)
+                 .Case("BFD_RELOC_32", ELF::R_V810_32)
                  .Default(-1u);
       if (Type == -1u)
         return std::nullopt;
