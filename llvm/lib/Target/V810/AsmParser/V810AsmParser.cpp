@@ -537,6 +537,7 @@ V810AsmParser::parseV810AsmOperand(std::unique_ptr<V810Operand> &Op) {
   case AsmToken::Minus:
   case AsmToken::Integer:
   case AsmToken::LParen:
+  case AsmToken::Tilde:
     if (getParser().parseExpression(EVal, End))
       break;
     Op = V810Operand::CreateImm(EVal, Start, End);
