@@ -311,12 +311,13 @@ OperandMatchResultTy V810AsmParser::tryParseRegister(MCRegister &RegNo,
   const AsmToken Tok = Parser.getTok();
   StartLoc = Tok.getLoc();
   EndLoc = Tok.getEndLoc();
-  RegNo = MatchRegisterName(Tok.getString());
+  std::string RegName = Tok.getString().lower();
+  RegNo = MatchRegisterName(RegName);
   if (RegNo) {
     Parser.Lex(); // eat the identifier
     return MatchOperand_Success;
   }
-  RegNo = MatchRegisterAltName(Tok.getString());
+  RegNo = MatchRegisterAltName(RegName);
   if (RegNo) {
     Parser.Lex();
     return MatchOperand_Success;
@@ -480,13 +481,11 @@ V810AsmParser::MatchOperandParserCustomImpl(OperandVector &Operands, StringRef M
     // Handle parsing a system register. They can be referenced by either name or number.
     // (don't handle this in tryParseRegister because in general, we should not treat integers as registers)
 
-    std::string RegNameBuffer;
-    StringRef RegName;
+    std::string RegName;
     if (getTok().is(AsmToken::Integer)) {
-      RegNameBuffer = "sr" + getTok().getString().str();
-      RegName = RegNameBuffer;
+      RegName = "sr" + getTok().getString().lower();
     } else {
-      RegName = getTok().getString();
+      RegName = getTok().getString().lower();
     }
 
     MCRegister RegNo = MatchRegisterName(RegName);
