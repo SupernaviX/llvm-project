@@ -24,6 +24,20 @@ unsigned V810ObjectWriter::getRelocType(MCContext &Ctx,
   MCFixupKind Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
+
+  if (IsPCRel) {
+    switch(Fixup.getTargetKind()) {
+    default:
+      llvm_unreachable("Unimplemented fixup -> relocation");
+    case FK_NONE:                   return ELF::R_V810_NONE;
+    case FK_Data_1:                 return ELF::R_V810_DISP8;
+    case FK_Data_2:                 return ELF::R_V810_DISP16;
+    case FK_Data_4:                 return ELF::R_V810_DISP32;
+    case V810::fixup_v810_9_pcrel:  return ELF::R_V810_9_PCREL;
+    case V810::fixup_v810_26_pcrel: return ELF::R_V810_26_PCREL;
+    }
+
+  }
   
   switch(Fixup.getTargetKind()) {
   default:
@@ -35,8 +49,6 @@ unsigned V810ObjectWriter::getRelocType(MCContext &Ctx,
   case V810::fixup_v810_lo:       return ELF::R_V810_LO;
   case V810::fixup_v810_hi:       return ELF::R_V810_HI;
   case V810::fixup_v810_sdaoff:   return ELF::R_V810_SDAOFF;
-  case V810::fixup_v810_9_pcrel:  return ELF::R_V810_9_PCREL;
-  case V810::fixup_v810_26_pcrel: return ELF::R_V810_26_PCREL;
   }
 
   return ELF::R_V810_NONE;
