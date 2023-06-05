@@ -98,7 +98,7 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
 int64_t V810::getImplicitAddend(const uint8_t *buf, RelType type) const {
   switch (type) {
   case R_V810_9_PCREL:
-    return SignExtend64<9>(read16le(buf + 2));
+    return SignExtend64<9>(read16le(buf));
   case R_V810_26_PCREL:
     return SignExtend64<26>(read32vb(buf));
   case R_V810_DISP8:
