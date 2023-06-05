@@ -18,7 +18,6 @@ public:
                      const uint8_t *loc) const override;
   void relocate(uint8_t *loc, const Relocation &rel,
                 uint64_t val) const override;
-  int64_t getImplicitAddend(const uint8_t *buf, RelType type) const override;
 };
 } // namespace
 
@@ -92,33 +91,6 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
     break;
   default:
     llvm_unreachable("unknown relocation");
-  }
-}
-
-int64_t V810::getImplicitAddend(const uint8_t *buf, RelType type) const {
-  switch (type) {
-  case R_V810_9_PCREL:
-    return SignExtend64<9>(read16le(buf));
-  case R_V810_26_PCREL:
-    return SignExtend64<26>(read32vb(buf));
-  case R_V810_DISP8:
-    return SignExtend64<8>(*buf);
-  case R_V810_DISP16:
-    return SignExtend64<16>(read16le(buf));
-  case R_V810_DISP32:
-    return SignExtend64<32>(read32le(buf));
-  case R_V810_8:
-  case R_V810_16:
-  case R_V810_32:
-  case R_V810_LO:
-  case R_V810_HI:
-  case R_V810_SDAOFF:
-  case R_V810_NONE:
-    return 0;
-  default:
-    internalLinkerError(getErrorLocation(buf),
-                        "cannot read addend for relocation " + toString(type));
-    return 0;
   }
 }
 
