@@ -415,11 +415,10 @@ let Uses = [SR5] in {
     [(V810Bcond imm:$cond, bb:$disp)]
   >;
 
-  let imm = 0 in
   def SETF : FormatII<0b010010,
-    (outs GenRegs:$r2), (ins condcode:$cond),
-    "setf $cond, $r2",
-    [(set i32:$r2, (V810Setf imm:$cond))]
+    (outs GenRegs:$r2), (ins condcode:$imm),
+    "setf $imm, $r2",
+    [(set i32:$r2, (V810Setf imm:$imm))]
   >;
 }
 
