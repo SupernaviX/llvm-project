@@ -2,6 +2,8 @@
 #include "MCTargetDesc/V810MCTargetDesc.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/MCAsmBackend.h"
+#include "llvm/MC/MCAssembler.h"
+#include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCFixupKindInfo.h"
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -16,8 +18,18 @@ static uint64_t xh(uint64_t value) {
   return (value >> 16) | (value << 16);
 }
 
-static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
-  switch (Kind) {
+template <unsigned N>
+static void checkOffsetInRange(const MCFixup &Fixup, int64_t Value,
+                               MCContext &Ctx) {
+  if (isInt<N>(Value)) return;
+  Ctx.reportError(Fixup.getLoc(),
+    Twine("offset value ") + Twine(Value) + " out of range [" +
+    Twine(minIntN(N)) + ", " + Twine(maxIntN(N)) + "]");
+}
+
+static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
+                                 MCContext &Ctx) {
+  switch (Fixup.getTargetKind()) {
   default:
     llvm_unreachable("Unknown fixup kind!");
   case FK_Data_1:
@@ -32,8 +44,10 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   case V810::fixup_v810_sdaoff:
     return 0; // can't compute this here
   case V810::fixup_v810_9_pcrel:
+    checkOffsetInRange<9>(Fixup, Value, Ctx);
     return Value & 0x01ff;
   case V810::fixup_v810_26_pcrel:
+    checkOffsetInRange<26>(Fixup, Value, Ctx);
     return xh(Value & 0x03ffffff);
   }
 }
@@ -99,7 +113,7 @@ namespace {
                     const MCSubtargetInfo *STI) const override {
       if (Fixup.getKind() >= FirstLiteralRelocationKind)
         return;
-      Value = adjustFixupValue(Fixup.getKind(), Value);
+      Value = adjustFixupValue(Fixup, Value, Asm.getContext());
       if (!Value) return; // Doesn't change encoding
       
       MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());

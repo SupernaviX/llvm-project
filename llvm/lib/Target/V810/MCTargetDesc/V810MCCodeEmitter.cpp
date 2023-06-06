@@ -88,7 +88,7 @@ getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   const MCExpr *Expr = MO.getExpr();
   if (const V810MCExpr *VExpr = dyn_cast<V810MCExpr>(Expr)) {
     MCFixupKind Kind = (MCFixupKind)VExpr->getFixupKind();
-    Fixups.push_back(MCFixup::create(0, Expr, Kind));
+    Fixups.push_back(MCFixup::create(0, Expr, Kind, MI.getLoc()));
     return 0;
   }
 
@@ -109,7 +109,8 @@ getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
     return getMachineOpValue(MI, MO, Fixups, STI);
   
   Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-                                   (MCFixupKind)V810::fixup_v810_26_pcrel));
+                                  (MCFixupKind)V810::fixup_v810_26_pcrel,
+                                  MI.getLoc()));
   return 0;
 }
 
@@ -122,7 +123,8 @@ getBcondTargetOpValue(const MCInst &MI, unsigned OpNo,
     return getMachineOpValue(MI, MO, Fixups, STI);
   
   Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-                                   (MCFixupKind)V810::fixup_v810_9_pcrel));
+                                  (MCFixupKind)V810::fixup_v810_9_pcrel,
+                                  MI.getLoc()));
   return 0;
 }
 
