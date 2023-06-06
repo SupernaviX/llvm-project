@@ -13,6 +13,7 @@ namespace llvm {
     HI,
     LO,
     CMP,
+    FCMP,
     BCOND,
     SETF,
     SELECT_CC,

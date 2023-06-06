@@ -91,6 +91,8 @@ def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
 def SDT_V810Cmp       : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
 def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain, SDNPOutGlue]>;
+def SDT_V810FCmp      : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisFP<0>]>;
+def V810FCMP          : SDNode<"V810ISD::FCMP", SDT_V810FCmp, [SDNPHasChain, SDNPOutGlue]>;
 def SDT_V810Bcond     : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
 def V810Bcond         : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
 def SDT_V810Setf      : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
@@ -125,23 +127,23 @@ class Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>
 
 // Conditions
 // Keep this in sync with the values in V810.h
-class ICC_VAL<int N> : PatLeaf<(i32 N)>;
-def ICC_V   : ICC_VAL<0>; // Overflow
-def ICC_C   : ICC_VAL<1>; // Carry/Lower (unsigned)
-def ICC_E   : ICC_VAL<2>; // Equal/Zero
-def ICC_NH  : ICC_VAL<3>; // Not higher (unsigned)
-def ICC_N   : ICC_VAL<4>; // Negative
-def ICC_BR  : ICC_VAL<5>; // Always (unconditional branch)
-def ICC_LT  : ICC_VAL<6>; // Less than (signed)
-def ICC_LE  : ICC_VAL<7>; // Less than or equal (signed)
-def ICC_NV  : ICC_VAL<8>; // Not overflow
-def ICC_NC  : ICC_VAL<9>; // Not carry/lower (unsigned)
-def ICC_NE  : ICC_VAL<10>; // Not equal/zero
-def ICC_H   : ICC_VAL<11>; // Nigher (unsigned)
-def ICC_P   : ICC_VAL<12>; // Positive
-def ICC_NOP : ICC_VAL<13>; // Never (nop)
-def ICC_GE  : ICC_VAL<14>; // Greater than or equal (signed)
-def ICC_GT  : ICC_VAL<15>; // Greater than
+class CC_VAL<int N> : PatLeaf<(i32 N)>;
+def CC_V   : CC_VAL<0>; // Overflow
+def CC_C   : CC_VAL<1>; // Carry/Lower (unsigned)
+def CC_E   : CC_VAL<2>; // Equal/Zero
+def CC_NH  : CC_VAL<3>; // Not higher (unsigned)
+def CC_N   : CC_VAL<4>; // Negative
+def CC_BR  : CC_VAL<5>; // Always (unconditional branch)
+def CC_LT  : CC_VAL<6>; // Less than (signed)
+def CC_LE  : CC_VAL<7>; // Less than or equal (signed)
+def CC_NV  : CC_VAL<8>; // Not overflow
+def CC_NC  : CC_VAL<9>; // Not carry/lower (unsigned)
+def CC_NE  : CC_VAL<10>; // Not equal/zero
+def CC_H   : CC_VAL<11>; // Nigher (unsigned)
+def CC_P   : CC_VAL<12>; // Positive
+def CC_NOP : CC_VAL<13>; // Never (nop)
+def CC_GE  : CC_VAL<14>; // Greater than or equal (signed)
+def CC_GT  : CC_VAL<15>; // Greater than
 
 let mayLoad = 1 in {
   def LD_W : FormatVI<0b110011,

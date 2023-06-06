@@ -67,6 +67,7 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::HI:           return "V810ISD::HI";
   case V810ISD::LO:           return "V810ISD::LO";
   case V810ISD::CMP:          return "V810ISD::CMP";
+  case V810ISD::FCMP:         return "V810ISD::FCMP";
   case V810ISD::BCOND:        return "V810ISD::BCOND";
   case V810ISD::SETF:         return "V810ISD::SETF";
   case V810ISD::SELECT_CC:    return "V810ISD::SELECT_CC";
@@ -281,19 +282,59 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   return Chain;
 }
 
-static V810CC::CondCodes IntCondCodeToICC(ISD::CondCode CC) {
+static V810CC::CondCodes IntCondCodeToCC(ISD::CondCode CC) {
   switch (CC) {
   default: llvm_unreachable("Unknown integer condition code!");
-  case ISD::SETEQ:  return V810CC::ICC_E;
-  case ISD::SETNE:  return V810CC::ICC_NE;
-  case ISD::SETLT:  return V810CC::ICC_LT;
-  case ISD::SETLE:  return V810CC::ICC_LE;
-  case ISD::SETGT:  return V810CC::ICC_GT;
-  case ISD::SETGE:  return V810CC::ICC_GE;
-  case ISD::SETULT: return V810CC::ICC_C;
-  case ISD::SETULE: return V810CC::ICC_NH;
-  case ISD::SETUGT: return V810CC::ICC_H;
-  case ISD::SETUGE: return V810CC::ICC_NC;
+  case ISD::SETEQ:  return V810CC::CC_E;
+  case ISD::SETNE:  return V810CC::CC_NE;
+  case ISD::SETLT:  return V810CC::CC_LT;
+  case ISD::SETLE:  return V810CC::CC_LE;
+  case ISD::SETGT:  return V810CC::CC_GT;
+  case ISD::SETGE:  return V810CC::CC_GE;
+  case ISD::SETULT: return V810CC::CC_C;
+  case ISD::SETULE: return V810CC::CC_NH;
+  case ISD::SETUGT: return V810CC::CC_H;
+  case ISD::SETUGE: return V810CC::CC_NC;
+  }
+}
+
+static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
+  switch (CC) {
+  default: llvm_unreachable("Unknown float condition code!");
+  // NB: the hardware throws an exception if either operand is a NaN,
+  // so... the "ordered" and "unordered" conditions can just match
+  case ISD::SETFALSE:
+  case ISD::SETUO:
+  case ISD::SETFALSE2:
+    return V810CC::CC_NOP;
+  case ISD::SETOEQ:
+  case ISD::SETUEQ:
+  case ISD::SETEQ:
+    return V810CC::CC_E;
+  case ISD::SETOGT:
+  case ISD::SETUGT:
+  case ISD::SETGT:
+    return V810CC::CC_GT;
+  case ISD::SETOGE:
+  case ISD::SETUGE:
+  case ISD::SETGE:
+    return V810CC::CC_GE;
+  case ISD::SETOLT:
+  case ISD::SETULT:
+  case ISD::SETLT:
+    return V810CC::CC_LT;
+  case ISD::SETOLE:
+  case ISD::SETULE:
+  case ISD::SETLE:
+    return V810CC::CC_LE;
+  case ISD::SETONE:
+  case ISD::SETUNE:
+  case ISD::SETNE:
+    return V810CC::CC_NE;
+  case ISD::SETO:
+  case ISD::SETTRUE:
+  case ISD::SETTRUE2:
+    return V810CC::CC_BR;
   }
 }
 
@@ -322,7 +363,7 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
 
   SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
   return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest, Cmp);
@@ -338,7 +379,7 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
 
   SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
   return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp);
@@ -352,7 +393,7 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType(); // This could return a bool if that's useful?
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToICC(CC), DL, MVT::i32);
+  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
 
   SDValue CMP = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
   return DAG.getNode(V810ISD::SETF, DL, VT, Cond, CMP);
