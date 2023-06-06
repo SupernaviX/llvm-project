@@ -567,16 +567,16 @@ def : Pat<(i32 simm5:$val),
           (MOVi imm:$val)>;
 // Med immediate (up to 16 bits).
 def : Pat<(i32 simm16:$val),
-          (MOVEA R0, imm:$val)>;
+          (MOVEA (i32 R0), imm:$val)>;
 // Immediate that only uses the top 16 bits
 def : Pat<(i32 MOVHIimm:$val),
-          (MOVHI R0, (HI16 imm:$val))>;
+          (MOVHI (i32 R0), (HI16 imm:$val))>;
 // Lorg immediate (up to 32 bits).
 def : Pat<(i32 imm:$val),
-          (MOVEA (MOVHI R0, (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
+          (MOVEA (MOVHI (i32 R0), (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
 
 // Make global addresses work
 def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
-          (MOVEA (MOVHI R0, tglobaladdr:$inhi), tglobaladdr:$inlo)>;
+          (MOVEA (MOVHI (i32 R0), tglobaladdr:$inhi), tglobaladdr:$inlo)>;
 
 include "V810InstrAliases.td"
