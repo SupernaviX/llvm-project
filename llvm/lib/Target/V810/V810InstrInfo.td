@@ -396,6 +396,43 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   >;
 }
 
+// Float ops
+let Defs = [SR5] in {
+  let Constraints = "$r2 = $r2_" in
+  def ADDF_S : FormatVII<0b000100,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "addf.s $r1, $r2",
+    [(set f32:$r2, (fadd GenRegs:$r2_, GenRegs:$r1))]
+  >;
+
+  let Constraints = "$r2 = $r2_" in
+  def SUBF_S : FormatVII<0b000101,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "subf.s $r1, $r2",
+    [(set f32:$r2, (fsub GenRegs:$r2_, GenRegs:$r1))]
+  >;
+
+  def CMPF_S : FormatVII<0b000000,
+    (outs), (ins GenRegs:$r2, GenRegs:$r1),
+    "cmpf.s $r1, $r2",
+    []
+  >;
+
+  let Constraints = "$r2 = $r2_" in
+  def MULF_S : FormatVII<0b000110,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "mulf.s $r1, $r2",
+    [(set f32:$r2, (fmul GenRegs:$r2_, GenRegs:$r1))]
+  >;
+
+  let Constraints = "$r2 = $r2_" in
+  def DIVF_S : FormatVII<0b000111,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "subf.s $r1, $r2",
+    [(set f32:$r2, (fdiv GenRegs:$r2_, GenRegs:$r1))]
+  >;
+}
+
 let Uses = [SR5], usesCustomInserter = 1 in
 def SELECT_CC_Int : Pseudo<
   (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
