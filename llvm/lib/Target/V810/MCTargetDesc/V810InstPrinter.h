@@ -26,6 +26,7 @@ public:
   static const char *getRegisterName(MCRegister Reg);
   
   void printOperand(const MCInst *MI, int opNum, raw_ostream &OS);
+  template <unsigned N>
   void printBranchOperand(const MCInst *MI, uint64_t Address, unsigned opNum, raw_ostream &OS);
   void printMemOperand(const MCInst *MI, int opNum, raw_ostream &OS);
   void printCondOperand(const MCInst *MI, int opNum, raw_ostream &OS);

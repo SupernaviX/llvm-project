@@ -64,19 +64,19 @@ def MEMri : Operand<iPTR> {
   let ParserMatchClass = V810MEMriAsmOperand;
 }
 def calltarget : Operand<iPTR> {
-  let PrintMethod = "printBranchOperand";
+  let PrintMethod = "printBranchOperand<26>";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBranchTargetOpValue";
   let ParserMatchClass = V810BranchTargetAsmOperand;
 }
 def brtarget : Operand<OtherVT> {
-  let PrintMethod = "printBranchOperand";
+  let PrintMethod = "printBranchOperand<26>";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBranchTargetOpValue";
   let ParserMatchClass = V810BranchTargetAsmOperand;
 }
 def bcondtarget : Operand<OtherVT> {
-  let PrintMethod = "printBranchOperand";
+  let PrintMethod = "printBranchOperand<9>";
   let OperandType = "OPERAND_PCREL";
   let EncoderMethod = "getBcondTargetOpValue";
   let ParserMatchClass = V810BcondTargetAsmOperand;

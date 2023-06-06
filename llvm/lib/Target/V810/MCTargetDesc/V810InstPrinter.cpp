@@ -3,6 +3,7 @@
 #include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCRegister.h"
+#include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
 
@@ -67,11 +68,13 @@ void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
   MO.getExpr()->print(O, &MAI);
 }
 
+template <unsigned N>
 void V810InstPrinter::printBranchOperand(const MCInst *MI, uint64_t Address,
                                          unsigned opNum, raw_ostream &O) {
   const MCOperand &MO = MI->getOperand(opNum);
   if (MO.isImm()) {
-    int64_t Val = MO.getImm();
+    int64_t Val = SignExtend64<N>(MO.getImm());
+    O << ".";
     if (Val > 0) O << '+';
     O << formatImm(Val);
     return;
