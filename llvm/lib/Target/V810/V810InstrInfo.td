@@ -371,26 +371,26 @@ let Defs = [SR5] in {
 }
 
 // These hi+lo instructions have return values handled in code
-let Defs = [R30, SR5], Constraints = "$r2 = $rlo" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def MUL : FormatI<0b001000,
-    (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mul $r1, $r2",
     []
   >;
   def MULU: FormatI<0b001010,
-    (outs GenRegs:$rlo, GenRegs:$rhi), (ins GenRegs:$r2, GenRegs:$r1),
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mulu $r1, $r2",
     []
   >;
 }
-let Defs = [R30, SR5], Constraints = "$r2 = $rquot" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def DIV : FormatI<0b001001,
-    (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "div $r1, $r2",
     []
   >;
   def DIVU : FormatI<0b001011,
-    (outs GenRegs:$rquot, GenRegs:$rrem), (ins GenRegs:$r2, GenRegs:$r1),
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "divu $r1, $r2",
     []
   >;
