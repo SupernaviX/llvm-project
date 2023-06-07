@@ -182,6 +182,9 @@ let mayLoad = 1 in {
 def : Pat<(i32 (extloadi16 ADDRri:$addr)), (LD_H ADDRri:$addr)>;
 def : Pat<(i32 (extloadi8 ADDRri:$addr)), (LD_B ADDRri:$addr)>;
 
+// floats can be loaded just like ints, nothing special
+def : Pat<(f32 (load ADDRri:$addr)), (LD_W ADDRri:$addr)>;
+
 let mayStore = 1 in {
   def ST_W : FormatVI<0b110111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
@@ -214,6 +217,9 @@ let mayStore = 1 in {
     [(truncstorei8 i32:$r2, ADDRri:$addr)]
   >;
 }
+
+// floats can be stored just like ints, nothing special
+def : Pat<(store f32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
 
 let isMoveImm = 1 in
 def MOVi : FormatII<0b010000,
@@ -417,7 +423,7 @@ let Defs = [SR5] in {
   def CMPF_S : FormatVII<0b000000,
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmpf.s $r1, $r2",
-    []
+    [(V810FCMP GenRegs:$r2, GenRegs:$r1)]
   >;
 
   let Constraints = "$r2 = $r2_" in
@@ -435,12 +441,18 @@ let Defs = [SR5] in {
   >;
 }
 
-let Uses = [SR5], usesCustomInserter = 1 in
-def SELECT_CC_Int : Pseudo<
-  (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
-  "; SELECT_CC_Int PSEUDO!",
-  [(set i32:$dst, (V810Selectcc i32:$t, i32:$f, imm:$cond))]
->;
+let Uses = [SR5], usesCustomInserter = 1 in {
+  def SELECT_CC_Int : Pseudo<
+    (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
+    "; SELECT_CC_Int PSEUDO!",
+    [(set i32:$dst, (V810Selectcc i32:$t, i32:$f, imm:$cond))]
+  >;
+  def SELECT_CC_Float : Pseudo<
+    (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
+    "; SELECT_CC_Float PSEUDO!",
+    [(set f32:$dst, (V810Selectcc f32:$t, f32:$f, imm:$cond))]
+  >;
+}
 
 // conditionals
 // V810ISelLowering generates the patterns which these instrs match, when lowering

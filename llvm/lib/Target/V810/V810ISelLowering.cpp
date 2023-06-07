@@ -28,13 +28,17 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
+  setOperationAction(ISD::BR_CC, MVT::f32, Custom);
 
   // SELECT is just a SELECT_CC with hardcoded cond, expand it to that 
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
+  setOperationAction(ISD::SELECT, MVT::f32, Expand);
   // Need to branch to handle SELECT_CC
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::f32, Custom);
   // SETCC reduces nicely to CMP + SETF, so do that
   setOperationAction(ISD::SETCC, MVT::i32, Custom);
+  setOperationAction(ISD::SETCC, MVT::f32, Custom);
 
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
@@ -363,9 +367,16 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+  SDValue Cond;
+  SDValue Cmp;
+  if (LHS.getSimpleValueType() == MVT::f32) {
+    Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, Chain, LHS, RHS);
+  } else {
+    Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
+  }
 
-  SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
   return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest, Cmp);
 }
 
@@ -379,9 +390,16 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+  SDValue Cond;
+  SDValue Cmp;
+  if (LHS.getSimpleValueType() == MVT::f32) {
+    Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  } else {
+    Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  }
 
-  SDValue Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
   return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp);
 }
 
@@ -393,10 +411,17 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType(); // This could return a bool if that's useful?
 
-  SDValue Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+  SDValue Cond;
+  SDValue Cmp;
+  if (LHS.getSimpleValueType() == MVT::f32) {
+    Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  } else {
+    Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+  }
 
-  SDValue CMP = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
-  return DAG.getNode(V810ISD::SETF, DL, VT, Cond, CMP);
+  return DAG.getNode(V810ISD::SETF, DL, VT, Cond, Cmp);
 }
 
 SDValue V810TargetLowering::
@@ -417,6 +442,7 @@ V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   switch (MI.getOpcode()) {
   default: llvm_unreachable("No custom inserter found for instruction");
   case V810::SELECT_CC_Int:
+  case V810::SELECT_CC_Float:
     return ExpandSelectCC(MI, BB);
   }  
 }
