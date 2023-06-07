@@ -383,17 +383,18 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
+  SDVTList VTWithGlue = DAG.getVTList(VT, MVT::Glue);
   SDValue Cond;
   SDValue Cmp;
-  if (LHS.getSimpleValueType() == MVT::f32) {
+  if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, Chain, LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, Chain, LHS, RHS);
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, Chain, LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, Chain, LHS, RHS);
   }
 
-  return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest, Cmp);
+  return DAG.getNode(V810ISD::BCOND, DL, VT, Cmp, Cond, Dest, Cmp.getValue(1));
 }
 
 static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
@@ -406,17 +407,18 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
+  SDVTList VTWithGlue = DAG.getVTList(VT, MVT::Glue);
   SDValue Cond;
   SDValue Cmp;
-  if (LHS.getSimpleValueType() == MVT::f32) {
+  if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
   }
 
-  return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp);
+  return DAG.getNode(V810ISD::SELECT_CC, DL, VT, TrueVal, FalseVal, Cond, Cmp.getValue(1));
 }
 
 static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
@@ -427,17 +429,18 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
   EVT VT = Op.getValueType(); // This could return a bool if that's useful?
 
+  SDVTList VTWithGlue = DAG.getVTList(VT, MVT::Glue);
   SDValue Cond;
   SDValue Cmp;
-  if (LHS.getSimpleValueType() == MVT::f32) {
+  if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::FCMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::CMP, DL, VT, DAG.getEntryNode(), LHS, RHS);
+    Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
   }
 
-  return DAG.getNode(V810ISD::SETF, DL, VT, Cond, Cmp);
+  return DAG.getNode(V810ISD::SETF, DL, VT, Cond, Cmp.getValue(1));
 }
 
 SDValue V810TargetLowering::

@@ -94,7 +94,7 @@ def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain, SDNPO
 def SDT_V810FCmp      : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisFP<0>]>;
 def V810FCMP          : SDNode<"V810ISD::FCMP", SDT_V810FCmp, [SDNPHasChain, SDNPOutGlue]>;
 def SDT_V810Bcond     : SDTypeProfile<0, 2, [SDTCisInt<0>, SDTCisVT<1, OtherVT>]>;
-def V810Bcond         : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain]>;
+def V810Bcond         : SDNode<"V810ISD::BCOND", SDT_V810Bcond, [SDNPHasChain, SDNPInGlue]>;
 def SDT_V810Setf      : SDTypeProfile<1, 1, [SDTCisInt<0>, SDTCisInt<1>]>;
 def V810Setf          : SDNode<"V810ISD::SETF", SDT_V810Setf, [SDNPInGlue]>;
 def SDT_V810Selectcc  : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<1, 2>, SDTCisVT<3, i32>]>;
