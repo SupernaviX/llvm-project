@@ -439,6 +439,24 @@ let Defs = [SR5] in {
     "subf.s $r1, $r2",
     [(set f32:$r2, (fdiv GenRegs:$r2_, GenRegs:$r1))]
   >;
+
+  def CVT_WS : FormatVII<0b000010,
+    (outs GenRegs:$r2), (ins GenRegs:$r1),
+    "cvt.ws $r1, $r2",
+    [(set f32:$r2, (sint_to_fp GenRegs:$r1))]
+  >;
+
+  def CVT_SW : FormatVII<0b000011,
+    (outs GenRegs:$r2), (ins GenRegs:$r1),
+    "cvt.sw $r1, $r2",
+    [(set i32:$r2, (fp_to_sint GenRegs:$r1))]
+  >;
+
+  def TRNC_SW : FormatVII<0b001011,
+    (outs GenRegs:$r2), (ins GenRegs:$r1),
+    "trnc.sw $r1, $r2",
+    []
+  >;
 }
 
 let Uses = [SR5], usesCustomInserter = 1 in {
