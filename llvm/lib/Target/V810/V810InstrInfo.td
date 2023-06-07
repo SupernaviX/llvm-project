@@ -580,6 +580,49 @@ def TRAP : FormatII<0b011000,
 >;
 def : Pat<(trap), (TRAP 0)>;
 
+// bitstrings
+class BitstringInst<bits<5> subop, string asmstr>
+  : FormatII<0b011111, (outs), (ins), asmstr, []> {
+  let r2 = 0;
+  let imm = subop;
+  let Uses = [R26, R27, R28, R29, R30];
+  let Defs = [R26, R27, R28, R29, R30];
+  let mayLoad = 1;
+  let mayStore = 1;
+}
+
+def ANDBSU  : BitstringInst<0b01001, "andbsu">;
+def ANDNBSU : BitstringInst<0b01101, "andnbsu">;
+def MOVBSU  : BitstringInst<0b01011, "movbsu">;
+def NOTBSU  : BitstringInst<0b01111, "notbsu">;
+def ORBSU   : BitstringInst<0b01000, "orbsu">;
+def ORNBSU  : BitstringInst<0b01100, "ornbsu">;
+def XORBSU  : BitstringInst<0b01010, "xorbsu">;
+def XORNBSU : BitstringInst<0b01110, "xornbsu">;
+
+// and bitstring searches
+class BitstringSearchInst<bits<5> subop, string asmstr>
+  : FormatII<0b011111, (outs), (ins), asmstr, []> {
+  let r2 = 0;
+  let imm = subop;
+  let Uses = [R27, R28, R29, R30];
+  let Defs = [R27, R28, R29, R30, SR5];
+  let mayLoad = 1;
+}
+
+def SCH0BSD : BitstringSearchInst<0b00001, "sch0bsd">;
+def SCH0BSU : BitstringSearchInst<0b00000, "sch0bsu">;
+def SCH1BSD : BitstringSearchInst<0b00011, "sch1bsd">;
+def SCH1BSU : BitstringSearchInst<0b00010, "sch1bsu">;
+
+// the one atomic operator
+let mayLoad = 1, mayStore = 1, Uses = [R30], Defs = [R30] in
+def CAXI : FormatVI<0b111010,
+  (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+  "caxi $addr, $r2",
+  []
+>;
+
 // VB-specific instructions
 let Predicates = [IsNintendo] in {
   let Defs = [SR5], r2 = 0, imm = 0 in {
