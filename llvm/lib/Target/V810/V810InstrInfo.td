@@ -626,8 +626,10 @@ def : Pat<(i32 MOVHIimm:$val),
 def : Pat<(i32 imm:$val),
           (MOVEA (MOVHI (i32 R0), (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
 
-// Make global addresses work
+// Make addresses work
 def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
           (MOVEA (MOVHI (i32 R0), tglobaladdr:$inhi), tglobaladdr:$inlo)>;
+def : Pat<(V810Lo (V810Hi tconstpool:$inhi), tconstpool:$inlo),
+          (MOVEA (MOVHI (i32 R0), tconstpool:$inhi), tconstpool:$inlo)>;
 
 include "V810InstrAliases.td"

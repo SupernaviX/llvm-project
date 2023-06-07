@@ -24,8 +24,9 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   addRegisterClass(MVT::i32, &V810::GenRegsRegClass);
   addRegisterClass(MVT::f32, &V810::GenRegsRegClass);
 
-  // Handle global addresses specially to make constants
+  // Handle addresses specially to make constants
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+  setOperationAction(ISD::ConstantPool, MVT::i32, Custom);
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::f32, Custom);
@@ -356,6 +357,21 @@ static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) {
   return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
 }
 
+static SDValue LowerConstantPool(SDValue Op, SelectionDAG &DAG) {
+  ConstantPoolSDNode *CP = dyn_cast<ConstantPoolSDNode>(Op);
+  assert(CP);
+
+  SDLoc DL(Op);
+  SDValue HiTarget = DAG.getTargetConstantPool(CP->getConstVal(), CP->getValueType(0),
+                                               CP->getAlign(), CP->getOffset(), V810MCExpr::VK_V810_HI);
+  SDValue LoTarget = DAG.getTargetConstantPool(CP->getConstVal(), CP->getValueType(0),
+                                               CP->getAlign(), CP->getOffset(), V810MCExpr::VK_V810_LO);
+
+  EVT VT = Op.getValueType();
+  SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
+  return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
+}
+
 // Convert a BR_CC into a cmp+bcond pair
 static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDValue Chain = Op.getOperand(0);
@@ -430,6 +446,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   default: llvm_unreachable("Should not custom lower this!");
 
   case ISD::GlobalAddress:  return LowerGlobalAddress(Op, DAG);
+  case ISD::ConstantPool:   return LowerConstantPool(Op, DAG);
   case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
   case ISD::SELECT_CC:      return LowerSELECT_CC(Op, DAG);
   case ISD::SETCC:          return LowerSETCC(Op, DAG);
