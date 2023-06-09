@@ -523,6 +523,14 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
+  // We can't jal from a register, so fake it with labels
+  let isCall = 1, Defs = [R31], usesCustomInserter = 1 in
+  def CALL_INDIRECT: Pseudo<
+    (outs), (ins GenRegs:$r1, variable_ops),
+    "!CALL_INDIRECT",
+    []
+  >;
+
   let isReturn = 1, isTerminator = 1, isBarrier = 1, r2 = 0, r1 = 31 in
   def RET : FormatI<0b000110,
     (outs), (ins),
@@ -546,6 +554,8 @@ let isCodeGenOnly = 1 in {
 
 def : Pat<(call tglobaladdr:$dst),
           (CALL tglobaladdr:$dst)>;
+def : Pat<(call GenRegs:$dst),
+          (CALL_INDIRECT GenRegs:$dst)>;
 
 // System stuff
 def LDSR : FormatII<0b011100,

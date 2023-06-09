@@ -58,6 +58,10 @@ namespace llvm {
                                 MachineBasicBlock *MBB) const override;
     MachineBasicBlock *
     ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *MBB) const;
+
+    MachineBasicBlock *
+    ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *MBB) const;
+
   };
 }
 

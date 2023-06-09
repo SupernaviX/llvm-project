@@ -464,6 +464,8 @@ V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case V810::SELECT_CC_Int:
   case V810::SELECT_CC_Float:
     return ExpandSelectCC(MI, BB);
+  case V810::CALL_INDIRECT:
+    return ExpandCallIndirect(MI, BB);
   }  
 }
 
@@ -523,6 +525,54 @@ V810TargetLowering::ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *BB) cons
   BuildMI(*SinkMBB, SinkMBB->begin(), dl, TII.get(V810::PHI), Dest)
     .addReg(TrueSrc).addMBB(ThisMBB)
     .addReg(FalseSrc).addMBB(IfFalseMBB);
+
+  MI.eraseFromParent(); // The pseudo instruction is gone.
+  return SinkMBB;
+}
+
+// Turns the target-specific CALL_INDIRECT into a "set r31 to the return address and JMP"
+MachineBasicBlock *
+V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) const {
+  const V810InstrInfo &TII = *Subtarget->getInstrInfo();
+  DebugLoc dl = MI.getDebugLoc();
+
+  Register Target = MI.getOperand(0).getReg();
+
+  /*
+    Split this block into the following control flow structure:
+    ThisMBB ---> SinkMBB
+
+    ThisMBB ends with a JMP; it's indirect, so we can't represent it with a BB.
+    When the function returns, it'll return at the start of SinkMBB.
+  */
+  const BasicBlock *LLVM_BB = BB->getBasicBlock();
+  MachineFunction::iterator It = ++BB->getIterator();
+
+  MachineBasicBlock *ThisMBB = BB;
+  MachineFunction *F = BB->getParent();
+  MachineBasicBlock *SinkMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  F->insert(It, SinkMBB);
+
+  // Everything after the CALL_INDIRECT in ThisMBB moves to SinkMBB
+  SinkMBB->splice(SinkMBB->begin(), ThisMBB,
+                  std::next(MachineBasicBlock::iterator(MI)), ThisMBB->end());
+  SinkMBB->transferSuccessorsAndUpdatePHIs(ThisMBB);
+
+  // Add this successor of ThisMBB (hopefully this is right? control flow reaches there eventually)
+  ThisMBB->addSuccessor(SinkMBB);
+
+  // MOVHI+MOVEA the return address into R31
+  MCSymbol *RetTargetSym = SinkMBB->getSymbol();
+  BuildMI(ThisMBB, dl, TII.get(V810::MOVHI), V810::R31)
+    .addReg(V810::R0)
+    .addSym(RetTargetSym, V810MCExpr::VK_V810_HI);
+  BuildMI(ThisMBB, dl, TII.get(V810::MOVEA), V810::R31)
+    .addReg(V810::R31)
+    .addSym(RetTargetSym, V810MCExpr::VK_V810_LO);
+
+  // Now we've done the link, all that's left is the jump
+  BuildMI(ThisMBB, dl, TII.get(V810::JMP))
+    .addReg(Target);
 
   MI.eraseFromParent(); // The pseudo instruction is gone.
   return SinkMBB;

@@ -52,6 +52,8 @@ static MCOperand LowerOperand(const MachineInstr *MI,
     return MCOperand::createReg(MO.getReg());
   case MachineOperand::MO_Immediate:
     return MCOperand::createImm(MO.getImm());
+  case MachineOperand::MO_MCSymbol:
+    return LowerSymbolOperand(MO, MO.getMCSymbol(), AP);
   case MachineOperand::MO_GlobalAddress:
     return LowerGlobalOperand(MI, MO, AP);
   case MachineOperand::MO_ConstantPoolIndex:
