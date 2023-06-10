@@ -538,44 +538,22 @@ V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) 
 
   Register Target = MI.getOperand(0).getReg();
 
-  /*
-    Split this block into the following control flow structure:
-    ThisMBB ---> SinkMBB
-
-    ThisMBB ends with a JMP; it's indirect, so we can't represent it with a BB.
-    When the function returns, it'll return at the start of SinkMBB.
-  */
-  const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  MachineFunction::iterator It = ++BB->getIterator();
-
   MachineBasicBlock *ThisMBB = BB;
-  MachineFunction *F = BB->getParent();
-  MachineBasicBlock *SinkMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  F->insert(It, SinkMBB);
+  MachineBasicBlock::instr_iterator I = std::next(MachineBasicBlock::instr_iterator(MI));
 
-  // Everything after the CALL_INDIRECT in ThisMBB moves to SinkMBB
-  SinkMBB->splice(SinkMBB->begin(), ThisMBB,
-                  std::next(MachineBasicBlock::iterator(MI)), ThisMBB->end());
-  SinkMBB->transferSuccessorsAndUpdatePHIs(ThisMBB);
-
-  // Add this successor of ThisMBB (hopefully this is right? control flow reaches there eventually)
-  ThisMBB->addSuccessor(SinkMBB);
-
-  // MOVHI+MOVEA the return address into R31
-  MCSymbol *RetTargetSym = SinkMBB->getSymbol();
-  BuildMI(ThisMBB, dl, TII.get(V810::MOVHI), V810::R31)
-    .addReg(V810::R0)
-    .addSym(RetTargetSym, V810MCExpr::VK_V810_HI);
-  BuildMI(ThisMBB, dl, TII.get(V810::MOVEA), V810::R31)
+  // JAL to right after this instr
+  BuildMI(*ThisMBB, I, dl, TII.get(V810::JAL))
+    .addImm(4);
+  // Fix lp to point to after this + the next instruction
+  BuildMI(*ThisMBB, I, dl, TII.get(V810::ADDri), V810::R31)
     .addReg(V810::R31)
-    .addSym(RetTargetSym, V810MCExpr::VK_V810_LO);
-
-  // Now we've done the link, all that's left is the jump
-  BuildMI(ThisMBB, dl, TII.get(V810::JMP))
+    .addImm(4);
+  // And jump!
+  BuildMI(*ThisMBB, I, dl, TII.get(V810::JMP))
     .addReg(Target);
 
   MI.eraseFromParent(); // The pseudo instruction is gone.
-  return SinkMBB;
+  return ThisMBB;
 }
 
 V810TargetLowering::ConstraintType
