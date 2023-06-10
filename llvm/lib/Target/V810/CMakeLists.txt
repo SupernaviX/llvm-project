@@ -16,6 +16,7 @@ add_public_tablegen_target(V810CommonTableGen)
 
 add_llvm_target(V810CodeGen
   V810AsmPrinter.cpp
+  V810BranchSelector.cpp
   V810FrameLowering.cpp
   V810InstrInfo.cpp
   V810ISelDAGToDAG.cpp

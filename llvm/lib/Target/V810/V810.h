@@ -13,11 +13,13 @@ class MCInst;
 class PassRegistry;
 class V810TargetMachine;
 
+FunctionPass *createV810BranchSelectionPass();
 FunctionPass *createV810IselDag(V810TargetMachine &TM);
 
 void LowerV810MachineInstrToMCInst(const MachineInstr *MI, MCInst &OutMI,
                                    AsmPrinter &AP);
 
+void initializeV810BSelPass(PassRegistry &);
 void initializeV810DAGToDAGISelPass(PassRegistry &);
 }
 
@@ -42,6 +44,10 @@ namespace llvm {
     CC_GE = 14, // Greater than or equal (signed)
     CC_GT = 15, // Greater than
   };
+  }
+
+  inline static V810CC::CondCodes InvertV810CondCode(V810CC::CondCodes CC) {
+    return (V810CC::CondCodes)(CC ^ 0x8);
   }
 
   inline static const char *V810CondCodeToString(V810CC::CondCodes CC) {

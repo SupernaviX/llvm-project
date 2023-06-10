@@ -67,6 +67,7 @@ public:
   }
 
   bool addInstSelector() override;
+  void addPreEmitPass2() override;
 };
 } // namespace
 
@@ -77,6 +78,10 @@ TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
 bool V810PassConfig::addInstSelector() {
   addPass(createV810IselDag(getV810TargetMachine()));
   return false;
+}
+
+void V810PassConfig::addPreEmitPass2() {
+  addPass(createV810BranchSelectionPass());
 }
 
 V810TargetMachine::~V810TargetMachine() {}

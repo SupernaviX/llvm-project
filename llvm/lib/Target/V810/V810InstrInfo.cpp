@@ -63,3 +63,14 @@ void V810InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   BuildMI(MBB, I, DL, get(V810::LD_W), DestReg).addFrameIndex(FrameIndex).addImm(0)
     .addMemOperand(MMO);
 }
+
+unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
+  if (MI.isInlineAsm()) {
+    const MachineFunction *MF = MI.getParent()->getParent();
+    const char *AsmStr = MI.getOperand(0).getSymbolName();
+    return getInlineAsmLength(AsmStr, *MF->getTarget().getMCAsmInfo());
+  }
+
+  unsigned Opcode = MI.getOpcode();
+  return get(Opcode).getSize();
+}
