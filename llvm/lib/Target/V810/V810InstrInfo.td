@@ -523,11 +523,25 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
+  let isCall = 1, Uses = [R31] in
+  def TAIL_CALL : FormatIV<0b101010,
+    (outs), (ins calltarget:$disp, variable_ops),
+    "jr $disp",
+    []
+  >;
+
   // We can't jal from a register, so fake it with labels
   let isCall = 1, Defs = [R31], usesCustomInserter = 1 in
   def CALL_INDIRECT: Pseudo<
     (outs), (ins GenRegs:$r1, variable_ops),
     "!CALL_INDIRECT",
+    []
+  >;
+
+  let isCall = 1, Uses = [R31], r2 = 0 in
+  def TAIL_CALL_INDIRECT: FormatI<0b000110,
+    (outs), (ins GenRegs:$r1, variable_ops),
+    "jmp $r1",
     []
   >;
 
@@ -554,8 +568,12 @@ let isCodeGenOnly = 1 in {
 
 def : Pat<(call tglobaladdr:$dst),
           (CALL tglobaladdr:$dst)>;
+def : Pat<(tailcall tglobaladdr:$dst),
+          (TAIL_CALL tglobaladdr:$dst)>;
 def : Pat<(call GenRegs:$dst),
           (CALL_INDIRECT GenRegs:$dst)>;
+def : Pat<(tailcall GenRegs:$dst),
+          (TAIL_CALL_INDIRECT GenRegs:$dst)>;
 
 // System stuff
 def LDSR : FormatII<0b011100,
