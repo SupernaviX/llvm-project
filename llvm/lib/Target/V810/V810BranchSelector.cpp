@@ -20,7 +20,7 @@ namespace {
     // The offsets of the basic blocks in the function.
     std::vector<unsigned> BlockOffsets;
 
-    unsigned ComputeBlockOffsets(MachineFunction &Fn);
+    void ComputeBlockOffsets(MachineFunction &Fn);
     int computeBranchSize(MachineFunction &Fn,
                           const MachineBasicBlock *Src,
                           const MachineBasicBlock *Dest,
@@ -45,8 +45,8 @@ FunctionPass *llvm::createV810BranchSelectionPass() {
   return new V810BSel();
 }
 
-/// Measure each MBB and compute a size for the entire function
-unsigned V810BSel::ComputeBlockOffsets(MachineFunction &Fn) {
+/// Measure each MBB
+void V810BSel::ComputeBlockOffsets(MachineFunction &Fn) {
   const V810InstrInfo *TII =
     static_cast<const V810InstrInfo *>(Fn.getSubtarget().getInstrInfo());
   unsigned FuncSize = 0;
@@ -57,8 +57,6 @@ unsigned V810BSel::ComputeBlockOffsets(MachineFunction &Fn) {
       FuncSize += TII->getInstSizeInBytes(MI);
     }
   }
-  
-  return FuncSize;
 }
 
 /// Determine the offset from the branch in Src block to the Dest block.
@@ -70,7 +68,9 @@ int V810BSel::computeBranchSize(MachineFunction &Fn,
   int SrcAddr = BlockOffsets[Src->getNumber()] + BrOffset;
   int DestAddr = BlockOffsets[Dest->getNumber()];
 
-  return DestAddr - SrcAddr;
+  int Offset = DestAddr - SrcAddr;
+  if (Offset > 0) Offset -= 2; // If we shrink this JR, later addresses are 2 bytes closer
+  return Offset;
 }
 
 bool V810BSel::runOnMachineFunction(MachineFunction &Fn) {
@@ -80,21 +80,13 @@ bool V810BSel::runOnMachineFunction(MachineFunction &Fn) {
   Fn.RenumberBlocks();
   BlockOffsets.resize(Fn.getNumBlockIDs());
 
-  // Measure each MBB and compute a size for the entire function.
-  unsigned FuncSize = ComputeBlockOffsets(Fn);
-
-  // If the entire function is smaller than the displacement of a branch field,
-  // we know we don't need to shrink any branches in this function.  This is a
-  // common case.
-  if (isInt<9>(FuncSize)) {
-    BlockOffsets.clear();
-    return false;
-  }
+  // Measure each MBB
+  ComputeBlockOffsets(Fn);
 
   bool MadeChange = true;
   bool EverMadeChange = false;
   while (MadeChange) {
-    // Iteratively expand branches until we reach a fixed point
+    // Iteratively shrink branches until we reach a fixed point
     MadeChange = false;
 
     for (MachineFunction::iterator MFI = Fn.begin(), E = Fn.end(); MFI != E; ++MFI) {
@@ -103,8 +95,8 @@ bool V810BSel::runOnMachineFunction(MachineFunction &Fn) {
       for (MachineBasicBlock::iterator I = MBB.begin(), E = MBB.end(); I != E; ++I) {
         MachineBasicBlock *Dest = nullptr;
         MachineInstr &MI = *I;
-        if (MI.getOpcode() == V810::Bcond && !MI.getOperand(1).isImm()) {
-          Dest = MI.getOperand(1).getMBB();
+        if (MI.getOpcode() == V810::JR && !MI.getOperand(0).isImm()) {
+          Dest = MI.getOperand(0).getMBB();
         }
 
         if (!Dest) {
@@ -113,38 +105,28 @@ bool V810BSel::runOnMachineFunction(MachineFunction &Fn) {
         }
 
         int BranchSize = computeBranchSize(Fn, &MBB, Dest, MBBStartOffset);
-        if (isInt<9>(BranchSize)) {
-          // it fits, we're fine
+        if (!isInt<9>(BranchSize)) {
+          // Can't shrink this one, keep going
           MBBStartOffset += TII->getInstSizeInBytes(MI);
           continue;
         }
 
-        // This instruction can't reach that far, replace it with one that can
+        // We can replace this JR with a BR, saving two bytes
         DebugLoc dl = MI.getDebugLoc();
         int BlockSizeChange = 0;
 
-        V810CC::CondCodes Cond = (V810CC::CondCodes) MI.getOperand(0).getImm();
-        V810CC::CondCodes InvertedCond = InvertV810CondCode(Cond);
+        I = BuildMI(MBB, I, dl, TII->get(V810::Bcond))
+          .addImm(V810CC::CC_BR)
+          .addMBB(Dest);
+        BlockSizeChange += 2;
 
-        if (InvertedCond != V810CC::CC_NOP) {
-          // conditionally branch over the unconditional jump
-          BuildMI(MBB, I, dl, TII->get(V810::Bcond))
-            .addImm(InvertedCond)
-            .addImm(6);
-          BlockSizeChange += 2;          
-        }
-
-        // Unconditionally jump to where we were gonna go before
-        I = BuildMI(MBB, I, dl, TII->get(V810::JR)).addMBB(Dest);
-        BlockSizeChange += 4;
-        
         // Remember that we're tracking our current offset in this function.
         // Add the size of the new code to that.
         MBBStartOffset += BlockSizeChange;
 
-        // Clear the old conditional branch out, we've replaced it
+        // Clear the old JR out, we've replaced it
         MI.eraseFromParent();
-        BlockSizeChange -= 2;
+        BlockSizeChange -= 4;
 
         // Update the offsets of everything that comes after this block
         for (unsigned i = MBB.getNumber() + 1; i < BlockOffsets.size(); ++i) {

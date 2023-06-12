@@ -83,6 +83,7 @@ bool V810PassConfig::addInstSelector() {
 
 void V810PassConfig::addPreEmitPass() {
   addPass(&BranchRelaxationPassID);
+  addPass(createV810BranchSelectionPass());
 }
 
 void V810PassConfig::addPreEmitPass2() {
