@@ -67,6 +67,7 @@ public:
   }
 
   bool addInstSelector() override;
+  void addPreEmitPass() override;
   void addPreEmitPass2() override;
 };
 } // namespace
@@ -80,8 +81,12 @@ bool V810PassConfig::addInstSelector() {
   return false;
 }
 
+void V810PassConfig::addPreEmitPass() {
+  addPass(&BranchRelaxationPassID);
+}
+
 void V810PassConfig::addPreEmitPass2() {
-  addPass(createV810BranchSelectionPass());
+  // addPass(createV810BranchSelectionPass());
 }
 
 V810TargetMachine::~V810TargetMachine() {}

@@ -491,8 +491,8 @@ let Uses = [SR5] in {
   >;
 }
 
-let isTerminator = 1, isBarrier = 1 in {
-  let r2 = 0 in
+let isTerminator = 1, isBarrier = 1, isBranch = 1 in {
+  let isIndirectBranch = 1, r2 = 0 in
   def JMP : FormatI<0b000110,
     (outs), (ins GenRegs:$r1),
     "jmp $r1",
