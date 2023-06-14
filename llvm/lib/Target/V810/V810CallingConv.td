@@ -1,4 +1,10 @@
+class CCIfArgIsVarArg<CCAction A>
+  : CCIf<"State.isVarArg() && "
+         "ValNo >= static_cast<V810CCState&>(State).getNumFixedParams()",
+         A>;
+
 def CC_V810 : CallingConv<[
+  CCIfArgIsVarArg<CCAssignToStack<4, 4>>,
   CCIfType<[i8, i16, i32, f32], CCAssignToReg<[R6, R7, R8, R9]>>,
   CCAssignToStack<4, 4>
 ]>;

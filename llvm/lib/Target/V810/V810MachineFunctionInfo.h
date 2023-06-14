@@ -6,6 +6,8 @@
 namespace llvm {
 
   class V810MachineFunctionInfo : public MachineFunctionInfo {
+  private:
+    int VarArgsFrameIndex = 0;
     virtual void anchor();
   public:
     V810MachineFunctionInfo(const Function &f, const TargetSubtargetInfo *STI) {}
@@ -14,6 +16,9 @@ namespace llvm {
     clone(BumpPtrAllocator &Allocator, MachineFunction &DestMF,
           const DenseMap<MachineBasicBlock *, MachineBasicBlock *> &Src2DstMBB)
         const override;
+
+    int getVarArgsFrameIndex() const { return VarArgsFrameIndex; }
+    void setVarArgsFrameIndex(int Index) { VarArgsFrameIndex = Index; }
   };
 }
 

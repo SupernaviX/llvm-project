@@ -1,5 +1,6 @@
 #include "V810ISelLowering.h"
 #include "V810.h"
+#include "V810MachineFunctionInfo.h"
 #include "MCTargetDesc/V810MCExpr.h"
 #include "V810RegisterInfo.h"
 #include "V810Subtarget.h"
@@ -11,6 +12,20 @@
 #include "llvm/CodeGen/ValueTypes.h"
 
 using namespace llvm;
+
+namespace {
+  class V810CCState : public CCState {
+    unsigned NumFixedParams = 0;
+
+  public:
+    V810CCState(CallingConv::ID CC, bool IsVarArg, MachineFunction &MF,
+                SmallVectorImpl<CCValAssign> &locs, LLVMContext &C,
+                unsigned NumFixedParams)
+        : CCState(CC, IsVarArg, MF, locs, C),
+          NumFixedParams(NumFixedParams) {}
+    unsigned getNumFixedParams() const { return NumFixedParams; }
+  };
+}
 
 #include "V810GenCallingConv.inc"
 
@@ -54,6 +69,10 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
 
+  setOperationAction(ISD::VASTART, MVT::Other, Custom);
+  setOperationAction(ISD::VAEND,   MVT::Other, Expand);
+  setOperationAction(ISD::VAARG,   MVT::Other, Expand);
+
   // If we have native bit twiddlers, use em
   if (Subtarget->isNintendo()) {
     setOperationAction(ISD::BITREVERSE, MVT::i32, Legal);
@@ -62,6 +81,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
     setOperationAction(ISD::BITREVERSE, MVT::i32, Expand);
     setOperationAction(ISD::BSWAP, MVT::i32, Expand);
   }
+
+  setMinStackArgumentAlignment(Align(4));
 
   computeRegisterProperties(Subtarget->getRegisterInfo());
 }
@@ -89,10 +110,12 @@ SDValue V810TargetLowering::LowerFormalArguments(
     const SDLoc &DL, SelectionDAG &DAG,
     SmallVectorImpl<SDValue> &InVals) const {
   MachineFunction &MF = DAG.getMachineFunction();
+  V810MachineFunctionInfo *FuncInfo = MF.getInfo<V810MachineFunctionInfo>();
 
   // Figure out where the calling convention sez all the arguments live
   SmallVector<CCValAssign, 16> ArgLocs;
-  CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext());
+  V810CCState CCInfo(CallConv, IsVarArg, MF, ArgLocs, *DAG.getContext(),
+                     MF.getFunction().getFunctionType()->getNumParams());
   CCInfo.AnalyzeFormalArguments(Ins, CC_V810);
 
   for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
@@ -105,7 +128,6 @@ SDValue V810TargetLowering::LowerFormalArguments(
       Register VReg = MF.addLiveIn(VA.getLocReg(),
                                    getRegClassFor(VA.getLocVT()));
       SDValue Arg = DAG.getCopyFromReg(Chain, DL, VReg, VA.getLocVT());
-      if (VA.getLocInfo() == CCValAssign::SExt) {}
 
       // If needed, truncate the register down to the argument type
       if (VA.isExtInLoc()) {
@@ -128,7 +150,12 @@ SDValue V810TargetLowering::LowerFormalArguments(
                   MachinePointerInfo::getFixedStack(MF, FI)));
   }
 
-  assert(!IsVarArg && "varags not supported yet");
+  // If this function is variadic, the varargs are on the stack, after any fixed arguments.
+  if (IsVarArg) {
+    unsigned VarArgOffset = CCInfo.getNextStackOffset();
+    FuncInfo->setVarArgsFrameIndex(VarArgOffset);
+  }
+
   return Chain;
 }
 
@@ -177,9 +204,10 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDLoc DL = CLI.DL;
   SDValue Chain = CLI.Chain;
   MVT PtrVT = getPointerTy(DAG.getDataLayout());
+  unsigned NumParams = CLI.CB ? CLI.CB->getFunctionType()->getNumParams() : 0;
 
   SmallVector<CCValAssign, 16> ArgLocs;
-  CCState CCInfo(CLI.CallConv, CLI.IsVarArg, MF, ArgLocs, *DAG.getContext());
+  V810CCState CCInfo(CLI.CallConv, CLI.IsVarArg, MF, ArgLocs, *DAG.getContext(), NumParams);
   CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
 
   if (!CLI.IsTailCall) {
@@ -443,6 +471,21 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   return DAG.getNode(V810ISD::SETF, DL, VT, Cond, Cmp.getValue(1));
 }
 
+static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG, const V810TargetLowering &TLI) {
+  MachineFunction &MF = DAG.getMachineFunction();
+  V810MachineFunctionInfo *FuncInfo = MF.getInfo<V810MachineFunctionInfo>();
+
+  SDLoc DL(Op);
+  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
+                                 TLI.getPointerTy(MF.getDataLayout()));
+
+  // vastart just stores the address of the VarArgsFrameIndex slot into the
+  // memory location argument.
+  const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
+  return DAG.getStore(Op.getOperand(0), DL, FI, Op.getOperand(1),
+                      MachinePointerInfo(SV));
+}
+
 SDValue V810TargetLowering::
 LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -453,6 +496,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
   case ISD::SELECT_CC:      return LowerSELECT_CC(Op, DAG);
   case ISD::SETCC:          return LowerSETCC(Op, DAG);
+  case ISD::VASTART:        return LowerVASTART(Op, DAG, *this);
   }
 }
 
