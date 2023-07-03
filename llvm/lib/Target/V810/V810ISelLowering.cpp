@@ -152,7 +152,7 @@ SDValue V810TargetLowering::LowerFormalArguments(
 
   // If this function is variadic, the varargs are on the stack, after any fixed arguments.
   if (IsVarArg) {
-    unsigned VarArgOffset = CCInfo.getNextStackOffset();
+    unsigned VarArgOffset = CCInfo.getStackSize();
     FuncInfo->setVarArgsFrameIndex(VarArgOffset);
   }
 
@@ -211,7 +211,7 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
 
   if (!CLI.IsTailCall) {
-    Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getNextStackOffset(), 0, DL);
+    Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getStackSize(), 0, DL);
   }
 
   // Collect the registers to pass in.
@@ -292,7 +292,7 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   Chain = DAG.getNode(V810ISD::CALL, DL, NodeTys, Ops);
   InGlue = Chain.getValue(1);
 
-  Chain = DAG.getCALLSEQ_END(Chain, CCInfo.getNextStackOffset(), 0, InGlue, DL);
+  Chain = DAG.getCALLSEQ_END(Chain, CCInfo.getStackSize(), 0, InGlue, DL);
   InGlue = Chain.getValue(1);
 
   // Now after all that ceremony, extract the return values.
