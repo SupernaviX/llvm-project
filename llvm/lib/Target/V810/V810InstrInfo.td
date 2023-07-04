@@ -459,6 +459,11 @@ let Defs = [SR5] in {
   >;
 }
 
+// It's not safe to convert u32 to f32, because a large enough value would become a negative float.
+// But if it was zero-extended from a smaller type, that can't happen, so it is safe after all.
+def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
+          (CVT_WS GenRegs:$r1)>;
+
 let Uses = [SR5], usesCustomInserter = 1 in {
   def SELECT_CC_Int : Pseudo<
     (outs GenRegs:$dst), (ins GenRegs:$t, GenRegs:$f, condcode:$cond),
