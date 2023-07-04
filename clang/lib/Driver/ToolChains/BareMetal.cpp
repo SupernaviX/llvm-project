@@ -160,6 +160,12 @@ static bool isRISCVBareMetal(const llvm::Triple &Triple) {
   return Triple.getEnvironmentName() == "elf";
 }
 
+static bool isV810BareMetal(const llvm::Triple &Triple) {
+  if (Triple.getArch() != llvm::Triple::v810)
+    return false;
+  return true;
+}
+
 static void findMultilibsFromYAML(const ToolChain &TC, const Driver &D,
                                   StringRef MultilibPath, const ArgList &Args,
                                   DetectedMultilibs &Result) {
@@ -225,7 +231,7 @@ void BareMetal::findMultilibs(const Driver &D, const llvm::Triple &Triple,
 
 bool BareMetal::handlesTarget(const llvm::Triple &Triple) {
   return isARMBareMetal(Triple) || isAArch64BareMetal(Triple) ||
-         isRISCVBareMetal(Triple);
+         isRISCVBareMetal(Triple) || isV810BareMetal(Triple);
 }
 
 Tool *BareMetal::buildLinker() const {
