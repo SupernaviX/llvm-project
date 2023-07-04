@@ -183,6 +183,7 @@ static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(StringRef emul) {
           .Case("elf64_sparc", {ELF64BEKind, EM_SPARCV9})
           .Case("msp430elf", {ELF32LEKind, EM_MSP430})
           .Case("elf64_amdgpu", {ELF64LEKind, EM_AMDGPU})
+          .Case("elf32_v810", {ELF32LEKind, EM_V810})
           .Default({ELFNoneKind, EM_NONE});
 
   if (ret.first == ELFNoneKind)
