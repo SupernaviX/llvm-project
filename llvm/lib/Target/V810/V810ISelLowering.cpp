@@ -45,6 +45,9 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
   setOperationAction(ISD::BR_CC, MVT::f32, Custom);
+  setOperationAction(ISD::BRCOND, MVT::Other, Expand);
+  setOperationAction(ISD::BRIND, MVT::Other, Expand);
+  setOperationAction(ISD::BR_JT, MVT::Other, Expand);
 
   // SELECT is just a SELECT_CC with hardcoded cond, expand it to that 
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
