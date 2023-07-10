@@ -9,13 +9,20 @@ using namespace llvm;
 
 static MCOperand LowerSymbolOperand(const MachineOperand &MO,
                                     const MCSymbol *Symbol,
+                                    const int64_t Offset,
                                     AsmPrinter &AP) {
   V810MCExpr::VariantKind Kind =
     (V810MCExpr::VariantKind)MO.getTargetFlags();
 
-  const MCSymbolRefExpr *MCSym = MCSymbolRefExpr::create(Symbol,
-                                                         AP.OutContext);
-  const V810MCExpr *expr = V810MCExpr::create(Kind, MCSym,
+  const MCExpr *InnerExpr = MCSymbolRefExpr::create(Symbol,
+                                                    AP.OutContext);
+  if (Offset != 0) {
+    const MCExpr *OffsetExpr = MCConstantExpr::create(Offset, AP.OutContext);
+    InnerExpr = MCBinaryExpr::create(MCBinaryExpr::Add, InnerExpr,
+                                     OffsetExpr, AP.OutContext);
+  }
+
+  const V810MCExpr *expr = V810MCExpr::create(Kind, InnerExpr,
                                               AP.OutContext);
   return MCOperand::createExpr(expr);
 }
@@ -24,21 +31,21 @@ static MCOperand LowerGlobalOperand(const MachineInstr *MI,
                                     const MachineOperand &MO,
                                     AsmPrinter &AP) {
   const MCSymbol *Symbol = AP.getSymbol(MO.getGlobal());
-  return LowerSymbolOperand(MO, Symbol, AP);
+  return LowerSymbolOperand(MO, Symbol, MO.getOffset(), AP);
 }
 
 static MCOperand LowerConstantPoolIndex(const MachineInstr *MI,
                                           const MachineOperand &MO,
                                           AsmPrinter &AP) {
   const MCSymbol *Symbol = AP.GetCPISymbol(MO.getIndex());
-  return LowerSymbolOperand(MO, Symbol, AP);
+  return LowerSymbolOperand(MO, Symbol, MO.getOffset(), AP);
 }
 
 static MCOperand LowerBlockAddress(const MachineInstr *MI,
                                    const MachineOperand &MO,
                                    AsmPrinter &AP) {
   const MCSymbol *Symbol = MO.getMBB()->getSymbol();
-  return LowerSymbolOperand(MO, Symbol, AP);
+  return LowerSymbolOperand(MO, Symbol, 0, AP);
 }
 
 static MCOperand LowerOperand(const MachineInstr *MI,
@@ -53,7 +60,7 @@ static MCOperand LowerOperand(const MachineInstr *MI,
   case MachineOperand::MO_Immediate:
     return MCOperand::createImm(MO.getImm());
   case MachineOperand::MO_MCSymbol:
-    return LowerSymbolOperand(MO, MO.getMCSymbol(), AP);
+    return LowerSymbolOperand(MO, MO.getMCSymbol(), MO.getOffset(), AP);
   case MachineOperand::MO_GlobalAddress:
     return LowerGlobalOperand(MI, MO, AP);
   case MachineOperand::MO_ConstantPoolIndex:
