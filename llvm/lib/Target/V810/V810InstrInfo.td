@@ -178,13 +178,6 @@ let mayLoad = 1 in {
   >;
 }
 
-// loads that aren't explicitly sign-extended or zero-extended will sign-extend
-def : Pat<(i32 (extloadi16 ADDRri:$addr)), (LD_H ADDRri:$addr)>;
-def : Pat<(i32 (extloadi8 ADDRri:$addr)), (LD_B ADDRri:$addr)>;
-
-// floats can be loaded just like ints, nothing special
-def : Pat<(f32 (load ADDRri:$addr)), (LD_W ADDRri:$addr)>;
-
 let mayStore = 1 in {
   def ST_W : FormatVI<0b110111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
@@ -217,9 +210,6 @@ let mayStore = 1 in {
     [(truncstorei8 i32:$r2, ADDRri:$addr)]
   >;
 }
-
-// floats can be stored just like ints, nothing special
-def : Pat<(store f32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
 
 let isMoveImm = 1 in
 def MOVi : FormatII<0b010000,
@@ -458,11 +448,6 @@ let Defs = [SR5] in {
     []
   >;
 }
-
-// It's not safe to convert u32 to f32, because a large enough value would become a negative float.
-// But if it was zero-extended from a smaller type, that can't happen, so it is safe after all.
-def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
-          (CVT_WS GenRegs:$r1)>;
 
 let Uses = [SR5], usesCustomInserter = 1 in {
   def SELECT_CC_Int : Pseudo<
@@ -719,6 +704,27 @@ def : Pat<(i32 MOVHIimm:$val),
 // Lorg immediate (up to 32 bits).
 def : Pat<(i32 imm:$val),
           (MOVEA (MOVHI (i32 R0), (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
+
+// loads that aren't explicitly sign-extended or zero-extended will sign-extend
+def : Pat<(i32 (extloadi16 ADDRri:$addr)), (LD_H ADDRri:$addr)>;
+def : Pat<(i32 (extloadi8 ADDRri:$addr)), (LD_B ADDRri:$addr)>;
+
+// bools (i1) can be loaded as bytes
+def : Pat<(i32 (extloadi1 ADDRri:$addr)), (IN_B ADDRri:$addr)>;
+def : Pat<(i32 (zextloadi1 ADDRri:$addr)), (IN_B ADDRri:$addr)>;
+def : Pat<(i32 (sextloadi1 ADDRri:$addr)),
+          (SHLi (SARi (IN_B ADDRri:$addr), 31), 31)>;
+
+// floats can be stored just like ints, nothing special
+def : Pat<(store f32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
+
+// floats can be loaded just like ints, nothing special
+def : Pat<(f32 (load ADDRri:$addr)), (LD_W ADDRri:$addr)>;
+
+// It's not safe to convert u32 to f32, because a large enough value would become a negative float.
+// But if it was zero-extended from a smaller type, that can't happen, so it is safe after all.
+def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
+          (CVT_WS GenRegs:$r1)>;
 
 // Make addresses work
 def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
