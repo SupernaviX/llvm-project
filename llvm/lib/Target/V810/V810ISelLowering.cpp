@@ -265,6 +265,8 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   SDValue Callee = CLI.Callee;
   if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee))
     Callee = DAG.getTargetGlobalAddress(G->getGlobal(), DL, PtrVT, 0, V810MCExpr::VK_V810_26_PCREL);
+  else if (ExternalSymbolSDNode *E = dyn_cast<ExternalSymbolSDNode>(Callee))
+    Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT, V810MCExpr::VK_V810_26_PCREL);
 
   // Now build the ops for the call
   SmallVector<SDValue, 8> Ops;

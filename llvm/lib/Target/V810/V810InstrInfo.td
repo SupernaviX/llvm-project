@@ -558,8 +558,12 @@ let isCodeGenOnly = 1 in {
 
 def : Pat<(call tglobaladdr:$dst),
           (CALL tglobaladdr:$dst)>;
+def : Pat<(call texternalsym:$dst),
+          (CALL texternalsym:$dst)>;
 def : Pat<(tailcall tglobaladdr:$dst),
           (TAIL_CALL tglobaladdr:$dst)>;
+def : Pat<(tailcall texternalsym:$dst),
+          (TAIL_CALL texternalsym:$dst)>;
 def : Pat<(call GenRegs:$dst),
           (CALL_INDIRECT GenRegs:$dst)>;
 def : Pat<(tailcall GenRegs:$dst),
@@ -729,6 +733,8 @@ def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
 // Make addresses work
 def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
           (MOVEA (MOVHI (i32 R0), tglobaladdr:$inhi), tglobaladdr:$inlo)>;
+def : Pat<(V810Lo (V810Hi texternalsym:$inhi), texternalsym:$inlo),
+          (MOVEA (MOVHI (i32 R0), texternalsym:$inhi), texternalsym:$inlo)>;
 def : Pat<(V810Lo (V810Hi tconstpool:$inhi), tconstpool:$inlo),
           (MOVEA (MOVHI (i32 R0), tconstpool:$inhi), tconstpool:$inlo)>;
 
