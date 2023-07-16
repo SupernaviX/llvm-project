@@ -559,6 +559,19 @@ V810AsmParser::parseV810AsmOperand(std::unique_ptr<V810Operand> &Op) {
   return (Op) ? MatchOperand_Success : MatchOperand_ParseFail;
 }
 
+static bool evalPseudoOp(V810MCExpr::VariantKind Kind, int64_t &Value) {
+  switch (Kind) {
+  case V810MCExpr::VK_V810_LO:
+    Value = EvalLo(Value);
+    return true;
+  case V810MCExpr::VK_V810_HI:
+    Value = EvalHi(Value);
+    return true;
+  default:
+    return false;
+  }
+}
+
 bool V810AsmParser::parseImm16Expression(const MCExpr *&Res, SMLoc &EndLoc) {
   SMLoc StartLoc = getLexer().getLoc();
   if (getTok().isNot(AsmToken::Identifier)) {
@@ -577,6 +590,15 @@ bool V810AsmParser::parseImm16Expression(const MCExpr *&Res, SMLoc &EndLoc) {
     return Error(StartLoc, "expected parenthesized expression");
   if (getParser().parseExpression(Res, EndLoc))
     return true;
+  
+  // Try constant folding hi and lo
+  int64_t Value;
+  if (Res->evaluateAsAbsolute(Value)) {
+    if (evalPseudoOp(Kind, Value)) {
+      Res = MCConstantExpr::create(Value, getContext());
+      return false;
+    }
+  }
 
   Res = V810MCExpr::create(Kind, Res, getContext());
   return false;

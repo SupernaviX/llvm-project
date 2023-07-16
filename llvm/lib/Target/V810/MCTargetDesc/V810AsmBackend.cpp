@@ -1,3 +1,4 @@
+#include "V810.h"
 #include "MCTargetDesc/V810FixupKinds.h"
 #include "MCTargetDesc/V810MCTargetDesc.h"
 #include "llvm/ADT/StringSwitch.h"
@@ -37,10 +38,9 @@ static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
   case FK_Data_4:
     return Value;
   case V810::fixup_v810_lo:
-    return xh(Value & 0x0000ffff);
+    return xh(EvalLo(Value));
   case V810::fixup_v810_hi:
-    // if LO is negative, increment HI to compensate
-    return xh((Value >> 16) & 0x0000ffff) + ((Value & 0x00008000) != 0);
+    return xh(EvalHi(Value));
   case V810::fixup_v810_sdaoff:
     return 0; // can't compute this here
   case V810::fixup_v810_9_pcrel:

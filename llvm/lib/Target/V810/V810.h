@@ -71,6 +71,15 @@ namespace llvm {
     }
     llvm_unreachable("Invalid cond code");
   }
+
+  // logic for HI and LO
+  inline static int64_t EvalLo(int64_t Value) {
+    return Value & 0xffff;
+  }
+  inline static int64_t EvalHi(int64_t Value) {
+    // if LO is negative, increment HI to compensate
+    return ((Value >> 16) & 0x0000ffff) + ((Value & 0x8000) == 0x8000);
+  }
 }
 
 #endif
