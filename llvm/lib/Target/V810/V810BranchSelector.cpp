@@ -39,7 +39,7 @@ namespace {
 }
 
 INITIALIZE_PASS(V810BSel, "v810-branch-select", "V810 Branch Selector",
-                false, false);
+                false, false)
 
 FunctionPass *llvm::createV810BranchSelectionPass() {
   return new V810BSel();
