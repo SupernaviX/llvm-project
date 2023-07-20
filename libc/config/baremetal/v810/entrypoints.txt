@@ -1,4 +1,7 @@
 set(TARGET_LIBC_ENTRYPOINTS
+    # stdlib.h entrypoints
+    libc.src.stdlib.abs
+    libc.src.stdlib.div
 )
 
 set(TARGET_LIBM_ENTRYPOINTS
