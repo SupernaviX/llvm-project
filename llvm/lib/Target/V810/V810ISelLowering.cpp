@@ -41,6 +41,7 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 
   // Handle addresses specially to make constants
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
+  setOperationAction(ISD::GlobalTLSAddress, MVT::i32, Custom);
   setOperationAction(ISD::ConstantPool, MVT::i32, Custom);
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
@@ -497,12 +498,13 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   default: llvm_unreachable("Should not custom lower this!");
 
-  case ISD::GlobalAddress:  return LowerGlobalAddress(Op, DAG);
-  case ISD::ConstantPool:   return LowerConstantPool(Op, DAG);
-  case ISD::BR_CC:          return LowerBR_CC(Op, DAG);
-  case ISD::SELECT_CC:      return LowerSELECT_CC(Op, DAG);
-  case ISD::SETCC:          return LowerSETCC(Op, DAG);
-  case ISD::VASTART:        return LowerVASTART(Op, DAG, *this);
+  case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG);
+  case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG); // luckily no threads
+  case ISD::ConstantPool:     return LowerConstantPool(Op, DAG);
+  case ISD::BR_CC:            return LowerBR_CC(Op, DAG);
+  case ISD::SELECT_CC:        return LowerSELECT_CC(Op, DAG);
+  case ISD::SETCC:            return LowerSETCC(Op, DAG);
+  case ISD::VASTART:          return LowerVASTART(Op, DAG, *this);
   }
 }
 

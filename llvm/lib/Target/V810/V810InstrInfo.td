@@ -733,6 +733,8 @@ def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
 // Make addresses work
 def : Pat<(V810Lo (V810Hi tglobaladdr:$inhi), tglobaladdr:$inlo),
           (MOVEA (MOVHI (i32 R0), tglobaladdr:$inhi), tglobaladdr:$inlo)>;
+def : Pat<(V810Lo (V810Hi tglobaltlsaddr:$inhi), tglobaltlsaddr:$inlo),
+          (MOVEA (MOVHI (i32 R0), tglobaltlsaddr:$inhi), tglobaltlsaddr:$inlo)>;
 def : Pat<(V810Lo (V810Hi texternalsym:$inhi), texternalsym:$inlo),
           (MOVEA (MOVHI (i32 R0), texternalsym:$inhi), texternalsym:$inlo)>;
 def : Pat<(V810Lo (V810Hi tconstpool:$inhi), tconstpool:$inlo),
