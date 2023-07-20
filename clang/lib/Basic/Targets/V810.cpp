@@ -26,7 +26,7 @@ ArrayRef<TargetInfo::GCCRegAlias> V810TargetInfo::getGCCRegAliases() const {
 
 void V810TargetInfo::getTargetDefines(const LangOptions &Opts,
                                       MacroBuilder &Builder) const {
-  DefineStd(Builder, "V810", Opts);
+  DefineStd(Builder, "v810", Opts);
 }
 
 V810TargetInfo::CPUKind V810TargetInfo::getCPUKind(StringRef Name) const {

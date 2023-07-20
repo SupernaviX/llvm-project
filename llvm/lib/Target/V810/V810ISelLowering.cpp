@@ -87,6 +87,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
     setOperationAction(ISD::BSWAP, MVT::i32, Expand);
   }
 
+  setOperationAction(ISD::BITCAST, MVT::i32, Expand);
+  setOperationAction(ISD::BITCAST, MVT::f32, Expand);
+  setOperationAction(ISD::FABS, MVT::f32, Expand);
+  setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
+
   setMinStackArgumentAlignment(Align(4));
 
   computeRegisterProperties(Subtarget->getRegisterInfo());

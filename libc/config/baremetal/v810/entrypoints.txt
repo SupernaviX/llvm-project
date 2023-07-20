@@ -64,6 +64,11 @@ set(TARGET_LIBC_ENTRYPOINTS
 )
 
 set(TARGET_LIBM_ENTRYPOINTS
+    # math.h entrypoints
+    libc.src.math.fabsf
+    libc.src.math.fdimf
+    libc.src.math.fmaxf
+    libc.src.math.fminf
 )
 
 set(TARGET_LLVMLIBC_ENTRYPOINTS
