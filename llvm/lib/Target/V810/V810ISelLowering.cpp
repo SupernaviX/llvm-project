@@ -517,12 +517,16 @@ static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG, const V810TargetLower
   MachineFunction &MF = DAG.getMachineFunction();
   V810MachineFunctionInfo *FuncInfo = MF.getInfo<V810MachineFunctionInfo>();
 
-  SDLoc DL(Op);
-  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(),
-                                 TLI.getPointerTy(MF.getDataLayout()));
+  MF.getFrameInfo().setFrameAddressIsTaken(true);
 
   // vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
+  SDLoc DL(Op);
+  MVT PtrVT = TLI.getPointerTy(DAG.getDataLayout());
+  SDValue StackPtr = DAG.getRegister(V810::R3, PtrVT);
+  SDValue StackOffset = DAG.getIntPtrConstant(FuncInfo->getVarArgsFrameIndex(), DL);
+  SDValue FI = DAG.getNode(ISD::ADD, DL, PtrVT, StackPtr, StackOffset);
+
   const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
   return DAG.getStore(Op.getOperand(0), DL, FI, Op.getOperand(1),
                       MachinePointerInfo(SV));
