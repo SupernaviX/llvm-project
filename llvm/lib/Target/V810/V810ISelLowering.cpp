@@ -60,6 +60,17 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SETCC, MVT::i32, Custom);
   setOperationAction(ISD::SETCC, MVT::f32, Custom);
 
+  // maths and bits
+  setOperationAction(ISD::UADDO, MVT::i32, Expand);
+  setOperationAction(ISD::USUBO, MVT::i32, Expand);
+  setOperationAction(ISD::SADDO, MVT::i32, Expand);
+  setOperationAction(ISD::SSUBO, MVT::i32, Expand);
+  setOperationAction(ISD::UADDO_CARRY, MVT::i32, Expand);
+  setOperationAction(ISD::USUBO_CARRY, MVT::i32, Expand);
+  setOperationAction(ISD::SHL_PARTS, MVT::i32, Expand);
+  setOperationAction(ISD::SRA_PARTS, MVT::i32, Expand);
+  setOperationAction(ISD::SRL_PARTS, MVT::i32, Expand);
+
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
   setOperationAction(ISD::MULHS, MVT::i32, Expand);
@@ -77,9 +88,13 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::VASTART, MVT::Other, Custom);
   setOperationAction(ISD::VAEND,   MVT::Other, Expand);
   setOperationAction(ISD::VAARG,   MVT::Other, Expand);
+  setOperationAction(ISD::VACOPY,  MVT::Other, Expand);
 
-  setOperationAction(ISD::ROTL , MVT::i32, Expand);
-  setOperationAction(ISD::ROTR , MVT::i32, Expand);
+  setOperationAction(ISD::CTPOP, MVT::i32, Expand);
+  setOperationAction(ISD::CTTZ , MVT::i32, Expand);
+  setOperationAction(ISD::CTLZ , MVT::i32, Expand);
+  setOperationAction(ISD::ROTL, MVT::i32, Expand);
+  setOperationAction(ISD::ROTR, MVT::i32, Expand);
   // If we have native bit twiddlers, use em
   if (Subtarget->isNintendo()) {
     setOperationAction(ISD::BITREVERSE, MVT::i32, Legal);
@@ -91,8 +106,12 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 
   setOperationAction(ISD::BITCAST, MVT::i32, Expand);
   setOperationAction(ISD::BITCAST, MVT::f32, Expand);
+  setOperationAction(ISD::UINT_TO_FP, MVT::i32, Expand);
   setOperationAction(ISD::FABS, MVT::f32, Expand);
   setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
+  setOperationAction(ISD::FNEG, MVT::f32, Expand);
+  setOperationAction(ISD::FREM, MVT::f32, Expand);
+  setOperationAction(ISD::FSQRT, MVT::f32, Expand);
 
   setMinStackArgumentAlignment(Align(4));
 

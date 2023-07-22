@@ -445,7 +445,7 @@ let Defs = [SR5] in {
   def TRNC_SW : FormatVII<0b001011,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "trnc.sw $r1, $r2",
-    []
+    [(set i32:$r2, (fp_to_sint (ftrunc GenRegs:$r1)))]
   >;
 }
 
