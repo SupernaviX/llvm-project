@@ -171,6 +171,17 @@ SDValue V810TargetLowering::LowerFormalArguments(
   return Chain;
 }
 
+bool
+V810TargetLowering::CanLowerReturn(CallingConv::ID CallConv,
+                                   MachineFunction &MF,
+                                   bool IsVarArg,
+                                   const SmallVectorImpl<ISD::OutputArg> &Outs,
+                                   LLVMContext &Context) const {
+  SmallVector<CCValAssign, 16> RVLocs;
+  CCState CCInfo(CallConv, IsVarArg, MF, RVLocs, Context);
+  return CCInfo.CheckReturn(Outs, RetCC_V810);
+}
+
 SDValue
 V810TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
                                 bool IsVarArg,
@@ -185,8 +196,6 @@ V810TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 
   SDValue Glue;
   SmallVector<SDValue, 4> RetOps(1, Chain);
-
-  assert(RVLocs.size() < 2 && "Why are you returning multiple things");
 
   // Copy the result values into the output registers.
   for (unsigned i = 0; i != RVLocs.size(); ++i) {
