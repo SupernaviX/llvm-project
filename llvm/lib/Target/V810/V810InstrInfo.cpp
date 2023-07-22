@@ -11,9 +11,8 @@ using namespace llvm;
 
 void V810InstrInfo::anchor() {}
 
-V810InstrInfo::V810InstrInfo(V810Subtarget &ST)
-  : V810GenInstrInfo(V810::ADJCALLSTACKDOWN, V810::ADJCALLSTACKUP), RI(),
-    Subtarget(ST) {}
+V810InstrInfo::V810InstrInfo()
+  : V810GenInstrInfo(V810::ADJCALLSTACKDOWN, V810::ADJCALLSTACKUP), RI() {}
 
 void V810InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I, const DebugLoc &DL,

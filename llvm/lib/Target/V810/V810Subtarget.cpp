@@ -22,4 +22,4 @@ V810Subtarget &V810Subtarget::initializeSubtargetDependencies(StringRef CPU,
 V810Subtarget::V810Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
     : V810GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS),
-      InstrInfo(initializeSubtargetDependencies(CPU, FS)), TLInfo(TM, *this), FrameLowering() {}
+      InstrInfo(), TLInfo(TM, initializeSubtargetDependencies(CPU, FS)), FrameLowering() {}

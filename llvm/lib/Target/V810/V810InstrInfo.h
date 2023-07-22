@@ -13,7 +13,6 @@ class V810Subtarget;
 
 class V810InstrInfo : public V810GenInstrInfo {
   const V810RegisterInfo RI;
-  const V810Subtarget& Subtarget;
   virtual void anchor();
   virtual void copyPhysReg(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator I, const DebugLoc &DL,
@@ -53,7 +52,7 @@ class V810InstrInfo : public V810GenInstrInfo {
   bool isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) const override;
 
 public:
-  explicit V810InstrInfo(V810Subtarget &ST);
+  explicit V810InstrInfo();
   const V810RegisterInfo &getRegisterInfo() const { return RI; }
 
   virtual unsigned getInstSizeInBytes(const MachineInstr &MI) const override;
