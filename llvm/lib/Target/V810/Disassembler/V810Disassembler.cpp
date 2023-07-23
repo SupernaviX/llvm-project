@@ -21,6 +21,8 @@ public:
   DecodeStatus getInstruction(MCInst &Instr, uint64_t &Size,
                               ArrayRef<uint8_t> Bytes, uint64_t Address,
                               raw_ostream &CStream) const override;
+  uint64_t suggestBytesToSkip(ArrayRef<uint8_t> Bytes,
+                              uint64_t Address) const override;
 };
 }
 
@@ -79,10 +81,19 @@ static DecodeStatus DecodeSysRegsRegisterClass(MCInst &Inst, unsigned RegNo,
 
 #include "V810GenDisassemblerTables.inc"
 
+uint64_t V810Disassembler::suggestBytesToSkip(ArrayRef<uint8_t> Bytes,
+                                              uint64_t Address) const {
+  return 2;
+}
+
 DecodeStatus V810Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                                               ArrayRef<uint8_t> Bytes,
                                               uint64_t Address,
                                               raw_ostream &CStream) const {
+  if (Bytes.size() < 2) {
+    Size = 0;
+    return DecodeStatus::Fail;
+  }
   uint16_t SmallInsn = support::endian::read16le(Bytes.data());
   DecodeStatus Result = decodeInstruction(DecoderTableV81016, Instr, SmallInsn, Address,
                                           this, STI);
@@ -91,6 +102,10 @@ DecodeStatus V810Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,
     return Result;
   }
 
+  if (Bytes.size() < 4) {
+    Size = 0;
+    return DecodeStatus::Fail;
+  }
   uint32_t LargeInsn = support::endian::read32le(Bytes.data());
   Result = decodeInstruction(DecoderTableV81032, Instr, LargeInsn, Address,
                              this, STI);

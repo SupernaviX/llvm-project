@@ -102,5 +102,9 @@ void V810InstPrinter::printMemOperand(const MCInst *MI, int opNum,
 void V810InstPrinter::printCondOperand(const MCInst *MI, int opNum,
                                        raw_ostream &O) {
   V810CC::CondCodes Cond = (V810CC::CondCodes)MI->getOperand(opNum).getImm();
-  O << V810CondCodeToString(Cond);
+  if (Cond & (~0x0f)) {
+    O << "<invalid>";
+  } else {
+    O << V810CondCodeToString(Cond);
+  }
 }
