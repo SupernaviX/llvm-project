@@ -1,7 +1,4 @@
-CC='clang' CXX='clang++' \
 cmake -S llvm -B build -G Ninja \
--DCMAKE_C_COMPILER=clang \
--DCMAKE_CXX_COMPILER=clang++ \
 -DLLVM_DEFAULT_TARGET_TRIPLE="v810-unknown-vb" \
 -DLLVM_ENABLE_DUMP=ON \
 -DLLVM_ENABLE_PROJECTS="clang;lld" \
@@ -9,4 +6,4 @@ cmake -S llvm -B build -G Ninja \
 -DLLVM_ENABLE_ASSERTIONS=ON \
 -DCMAKE_BUILD_TYPE=Release \
 -DCMAKE_INSTALL_PREFIX="$HOME/llvm-v810" \
--DLLVM_TARGETS_TO_BUILD="Sparc;V810"
+-DLLVM_TARGETS_TO_BUILD="V810"
