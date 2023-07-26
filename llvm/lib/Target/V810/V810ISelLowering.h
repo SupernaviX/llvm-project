@@ -19,6 +19,7 @@ namespace llvm {
     SELECT_CC,
     CALL,
     RET_GLUE,
+    RETI_GLUE,
     TAIL_CALL,
   };
   }
@@ -66,6 +67,10 @@ namespace llvm {
     MachineBasicBlock *
     ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *MBB) const;
 
+
+    bool IsEligibleForTailCallOptimization(CCState &CCInfo,
+                                           CallLoweringInfo &CLI,
+                                           MachineFunction &MF) const;
   };
 }
 

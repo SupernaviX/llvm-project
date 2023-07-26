@@ -19,12 +19,18 @@ V810RegisterInfo::V810RegisterInfo() : V810GenRegisterInfo(V810::R31) {}
 
 const MCPhysReg*
 V810RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
+  if (MF->getFunction().hasFnAttribute("interrupt")) {
+    return CSR_Interrupt_SaveList;
+  }
   return CSR_SaveList;
 }
 
 const uint32_t *
 V810RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const {
+  if (MF.getFunction().hasFnAttribute("interrupt")) {
+    return CSR_Interrupt_RegMask;
+  }
   return CSR_RegMask;
 }
 

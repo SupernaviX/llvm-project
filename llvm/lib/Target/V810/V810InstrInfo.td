@@ -110,6 +110,8 @@ def tailcall      : SDNode<"V810ISD::TAIL_CALL", SDT_V810Call,
 def SDT_V810Ret   : SDTypeProfile<0, 0, []>;
 def retglue       : SDNode<"V810ISD::RET_GLUE", SDT_V810Ret,
                            [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+def retiglue      : SDNode<"V810ISD::RETI_GLUE", SDT_V810Ret,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
 
 def SDT_SPCallSeqStart : SDCallSeqStart<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
 def SDT_SPCallSeqEnd : SDCallSeqEnd<[SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
@@ -587,10 +589,11 @@ let r2 = 0, imm = 0 in {
     "halt",
     []
   >;
+  let isReturn = 1, isTerminator = 1, isBarrier = 1 in 
   def RETI : FormatII<0b011001,
     (outs), (ins),
     "reti",
-    []
+    [(retiglue)]
   >;
 }
 

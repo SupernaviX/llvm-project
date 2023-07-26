@@ -131,6 +131,7 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::CALL:         return "V810ISD::CALL";
   case V810ISD::TAIL_CALL:    return "V810ISD::TAIL_CALL";
   case V810ISD::RET_GLUE:     return "V810ISD::RET_GLUE";
+  case V810ISD::RETI_GLUE:    return "V810ISD::RETI_GLUE";
   }
   return nullptr;
 }
@@ -208,6 +209,7 @@ V810TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
                                 const SmallVectorImpl<SDValue> &OutVals,
                                 const SDLoc &DL, SelectionDAG &DAG) const {
   MachineFunction &MF = DAG.getMachineFunction();
+  bool IsInterrupt = MF.getFunction().hasFnAttribute("interrupt");
 
   SmallVector<CCValAssign, 16> RVLocs;
   CCState CCInfo(CallConv, IsVarArg, MF, RVLocs, *DAG.getContext());
@@ -233,7 +235,11 @@ V810TargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
     RetOps.push_back(Glue);
   }
 
-  return DAG.getNode(V810ISD::RET_GLUE, DL, MVT::Other, RetOps);
+  V810ISD::NodeType RetOp = IsInterrupt
+    ? V810ISD::RETI_GLUE
+    : V810ISD::RET_GLUE;
+
+  return DAG.getNode(RetOp, DL, MVT::Other, RetOps);
 }
 
 SDValue
@@ -249,6 +255,8 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   SmallVector<CCValAssign, 16> ArgLocs;
   V810CCState CCInfo(CLI.CallConv, CLI.IsVarArg, MF, ArgLocs, *DAG.getContext(), NumParams);
   CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
+
+  CLI.IsTailCall = CLI.IsTailCall && IsEligibleForTailCallOptimization(CCInfo, CLI, MF);
 
   if (!CLI.IsTailCall) {
     Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getStackSize(), 0, DL);
@@ -355,6 +363,13 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   }
   
   return Chain;
+}
+
+bool V810TargetLowering::IsEligibleForTailCallOptimization(
+    CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF) const {
+  if (MF.getFunction().hasFnAttribute("interrupt"))
+    return false;
+  return true;
 }
 
 static V810CC::CondCodes IntCondCodeToCC(ISD::CondCode CC) {
