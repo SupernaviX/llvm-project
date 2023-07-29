@@ -515,7 +515,7 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
-  let isCall = 1, Uses = [R31] in
+  let isCall = 1, isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R31] in
   def TAIL_CALL : FormatIV<0b101010,
     (outs), (ins calltarget:$disp, variable_ops),
     "jr $disp",
