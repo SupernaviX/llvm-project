@@ -31,6 +31,7 @@ def HI16 : SDNodeXForm<imm, [{
 
 def uimm5 : PatLeaf<(imm), [{ return isInt<5>(N->getZExtValue()); }]>;
 def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
+def uimm16 : PatLeaf<(imm), [{ return isInt<16>(N->getZExtValue()); }]>;
 def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
 def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
@@ -243,7 +244,7 @@ let Defs = [SR5] in {
   def ANDI : FormatV<0b101101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
     "andi $imm, $r1, $r2",
-    [(set i32:$r2, (and GenRegs:$r1, simm16:$imm))]
+    [(set i32:$r2, (and GenRegs:$r1, uimm16:$imm))]
   >;
   let Constraints = "$r2 = $r2_" in
   def AND : FormatI<0b001101,
@@ -255,7 +256,7 @@ let Defs = [SR5] in {
   def ORI : FormatV<0b101100,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
     "ori $imm, $r1, $r2",
-    [(set i32:$r2, (or GenRegs:$r1, simm16:$imm))]
+    [(set i32:$r2, (or GenRegs:$r1, uimm16:$imm))]
   >;
   let Constraints = "$r2 = $r2_" in
   def OR : FormatI<0b001100,
@@ -267,7 +268,7 @@ let Defs = [SR5] in {
   def XORI : FormatV<0b101110,
     (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
     "xori $imm, $r1, $r2",
-    [(set i32:$r2, (xor GenRegs:$r1, simm16:$imm))]
+    [(set i32:$r2, (xor GenRegs:$r1, uimm16:$imm))]
   >;
   let Constraints = "$r2 = $r2_" in
   def XOR : FormatI<0b001110,
