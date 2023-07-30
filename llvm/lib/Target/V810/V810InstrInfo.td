@@ -531,7 +531,7 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
-  let isCall = 1, Uses = [R31], r2 = 0 in
+  let isCall = 1, isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R31], r2 = 0 in
   def TAIL_CALL_INDIRECT: FormatI<0b000110,
     (outs), (ins GenRegs:$r1, variable_ops),
     "jmp [$r1]",
