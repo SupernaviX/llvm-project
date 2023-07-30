@@ -648,14 +648,13 @@ V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) 
   MachineBasicBlock::instr_iterator I = std::next(MachineBasicBlock::instr_iterator(MI));
 
   // JAL to right after this instr
-  BuildMI(*ThisMBB, I, dl, TII.get(V810::JAL))
-    .addImm(4);
+  BuildMI(*ThisMBB, I, dl, TII.get(V810::LINK));
   // Fix lp to point to after this + the next instruction
   BuildMI(*ThisMBB, I, dl, TII.get(V810::ADDri), V810::R31)
     .addReg(V810::R31)
     .addImm(4);
   // And jump!
-  BuildMI(*ThisMBB, I, dl, TII.get(V810::JMP))
+  BuildMI(*ThisMBB, I, dl, TII.get(V810::INDIRECT_CALL_PRELINKED))
     .addReg(Target);
 
   MI.eraseFromParent(); // The pseudo instruction is gone.

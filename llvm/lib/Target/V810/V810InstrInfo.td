@@ -531,6 +531,23 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
+  // JAL to immediately after this instruction.
+  // After execution, r31 will contain the current PC.
+  let Defs = [R31], disp = 4 in
+  def LINK : FormatIV<0b101011,
+    (outs), (ins),
+    "jal .+4",
+    []
+  >;
+
+  // Perform an indirect call, assuming that r31 is already set correctly
+  let isCall = 1, Uses = [R31], r2 = 0 in
+  def INDIRECT_CALL_PRELINKED : FormatI<0b000110,
+    (outs), (ins GenRegs:$r1, variable_ops),
+    "jmp [$r1]",
+    []
+  >;
+
   let isCall = 1, isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R31], r2 = 0 in
   def TAIL_CALL_INDIRECT: FormatI<0b000110,
     (outs), (ins GenRegs:$r1, variable_ops),
