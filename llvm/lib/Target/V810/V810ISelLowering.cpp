@@ -642,8 +642,6 @@ V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) 
   const V810InstrInfo &TII = *Subtarget->getInstrInfo();
   DebugLoc dl = MI.getDebugLoc();
 
-  Register Target = MI.getOperand(0).getReg();
-
   MachineBasicBlock *ThisMBB = BB;
   MachineBasicBlock::instr_iterator I = std::next(MachineBasicBlock::instr_iterator(MI));
 
@@ -654,8 +652,10 @@ V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) 
     .addReg(V810::R31)
     .addImm(4);
   // And jump!
-  BuildMI(*ThisMBB, I, dl, TII.get(V810::INDIRECT_CALL_PRELINKED))
-    .addReg(Target);
+  auto Call = BuildMI(*ThisMBB, I, dl, TII.get(V810::INDIRECT_CALL_PRELINKED));
+  for (unsigned int i = 0; i < MI.getNumOperands(); ++i) {
+    Call.add(MI.getOperand(i));
+  }
 
   MI.eraseFromParent(); // The pseudo instruction is gone.
   return ThisMBB;
