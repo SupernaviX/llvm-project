@@ -15,4 +15,4 @@ def RetCC_V810 : CallingConv<[
 
 def CSR : CalleeSavedRegs<(add R31, (sequence "R%u", 2, 5))>;
 
-def CSR_Interrupt : CalleeSavedRegs<(sequence "R%u", 1, 31)>;
+def CSR_Interrupt : CalleeSavedRegs<(sequence "R%u", 2, 31)>;

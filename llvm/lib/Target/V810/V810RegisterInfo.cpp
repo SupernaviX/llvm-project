@@ -41,8 +41,6 @@ V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   Reserved.set(V810::R1); // useful for ASM things
   Reserved.set(V810::R3); // stack pointer
   Reserved.set(V810::R4); // global pointer
-  Reserved.set(V810::R10); // return value
-  Reserved.set(V810::R30); // mul/div overflow
   Reserved.set(V810::R31); // return address
 
   Reserved.set(V810::SR5); // PSW should always be defined
