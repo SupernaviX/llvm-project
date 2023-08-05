@@ -10,7 +10,7 @@ def CC_V810 : CallingConv<[
 ]>;
 
 def RetCC_V810 : CallingConv<[
-  CCIfType<[i8, i16, i32, f32], CCAssignToReg<[R10]>>
+  CCIfType<[i8, i16, i32, f32], CCAssignToReg<[R10, R11]>>
 ]>;
 
 def CSR : CalleeSavedRegs<(add R31, (sequence "R%u", 2, 5))>;
