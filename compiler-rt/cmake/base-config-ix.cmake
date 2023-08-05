@@ -225,6 +225,8 @@ macro(test_targets)
     elseif("${COMPILER_RT_DEFAULT_TARGET_ARCH}" MATCHES "sparc")
       test_target_arch(sparc "" "-m32")
       test_target_arch(sparcv9 "" "-m64")
+    elseif("${COMPILER_RT_DEFAULT_TARGET_ARCH}" MATCHES "v810")
+      test_target_arch(v810 "" "")
     elseif("${COMPILER_RT_DEFAULT_TARGET_ARCH}" MATCHES "mips")
       # FIXME: Ideally, we would build the N32 library too.
       if("${COMPILER_RT_MIPS_EL}" AND ("${COMPILER_RT_MIPS32R6}" OR "${COMPILER_RT_MIPS64R6}"))

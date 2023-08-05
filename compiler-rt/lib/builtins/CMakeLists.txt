@@ -734,6 +734,11 @@ set(ve_SOURCES
   ${GENERIC_TF_SOURCES}
   ${GENERIC_SOURCES})
 
+set(v810_SOURCES
+  ${GENERIC_TF_SOURCES}
+  ${GENERIC_SOURCES}
+)
+
 add_custom_target(builtins)
 set_target_properties(builtins PROPERTIES FOLDER "Compiler-RT Misc")
 
