@@ -467,10 +467,10 @@ namespace IncDec {
     T a;
     if constexpr (Inc)
       ++a; // ref-note 2{{increment of uninitialized}} \
-           // expected-note 2{{increment of object outside its lifetime}}
+           // expected-note 2{{increment of uninitialized}}
     else
       --a; // ref-note 2{{decrement of uninitialized}} \
-           // expected-note 2{{decrement of object outside its lifetime}}
+           // expected-note 2{{decrement of uninitialized}}
     return 1;
   }
   static_assert(uninit<int, true>(), ""); // ref-error {{not an integral constant expression}} \
@@ -764,6 +764,17 @@ namespace IncDec {
   }
   static_assert(bug1Dec() == 3);
 
+  constexpr int f() {
+    int a[] = {1,2};
+    int i = 0;
+
+    // RHS should be evaluated before LHS, so this should
+    // write to a[1];
+    a[i++] += ++i;
+
+    return a[1];
+  }
+  static_assert(f() == 3, "");
 };
 #endif
 

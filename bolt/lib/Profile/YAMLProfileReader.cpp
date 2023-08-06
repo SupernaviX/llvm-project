@@ -26,6 +26,10 @@ static llvm::cl::opt<bool>
     IgnoreHash("profile-ignore-hash",
                cl::desc("ignore hash while reading function profile"),
                cl::Hidden, cl::cat(BoltOptCategory));
+
+llvm::cl::opt<bool> ProfileUseDFS("profile-use-dfs",
+                                  cl::desc("use DFS order for YAML profile"),
+                                  cl::Hidden, cl::cat(BoltOptCategory));
 }
 
 namespace llvm {
@@ -75,6 +79,7 @@ bool YAMLProfileReader::parseFunctionProfile(
     BinaryFunction &BF, const yaml::bolt::BinaryFunctionProfile &YamlBF) {
   BinaryContext &BC = BF.getBinaryContext();
 
+  const bool IsDFSOrder = YamlBP.Header.IsDFSOrder;
   bool ProfileMatched = true;
   uint64_t MismatchedBlocks = 0;
   uint64_t MismatchedCalls = 0;
@@ -90,7 +95,7 @@ bool YAMLProfileReader::parseFunctionProfile(
       FuncRawBranchCount += YamlSI.Count;
   BF.setRawBranchCount(FuncRawBranchCount);
 
-  if (!opts::IgnoreHash && YamlBF.Hash != BF.computeHash(/*UseDFS=*/true)) {
+  if (!opts::IgnoreHash && YamlBF.Hash != BF.computeHash(IsDFSOrder)) {
     if (opts::Verbosity >= 1)
       errs() << "BOLT-WARNING: function hash mismatch\n";
     ProfileMatched = false;
@@ -102,10 +107,14 @@ bool YAMLProfileReader::parseFunctionProfile(
     ProfileMatched = false;
   }
 
-  BinaryFunction::BasicBlockOrderType DFSOrder = BF.dfs();
+  BinaryFunction::BasicBlockOrderType Order;
+  if (IsDFSOrder)
+    llvm::copy(BF.dfs(), std::back_inserter(Order));
+  else
+    llvm::copy(BF.getLayout().blocks(), std::back_inserter(Order));
 
   for (const yaml::bolt::BinaryBasicBlockProfile &YamlBB : YamlBF.Blocks) {
-    if (YamlBB.Index >= DFSOrder.size()) {
+    if (YamlBB.Index >= Order.size()) {
       if (opts::Verbosity >= 2)
         errs() << "BOLT-WARNING: index " << YamlBB.Index
                << " is out of bounds\n";
@@ -113,7 +122,7 @@ bool YAMLProfileReader::parseFunctionProfile(
       continue;
     }
 
-    BinaryBasicBlock &BB = *DFSOrder[YamlBB.Index];
+    BinaryBasicBlock &BB = *Order[YamlBB.Index];
 
     // Basic samples profile (without LBR) does not have branches information
     // and needs a special processing.
@@ -197,14 +206,14 @@ bool YAMLProfileReader::parseFunctionProfile(
     }
 
     for (const yaml::bolt::SuccessorInfo &YamlSI : YamlBB.Successors) {
-      if (YamlSI.Index >= DFSOrder.size()) {
+      if (YamlSI.Index >= Order.size()) {
         if (opts::Verbosity >= 1)
           errs() << "BOLT-WARNING: index out of bounds for profiled block\n";
         ++MismatchedEdges;
         continue;
       }
 
-      BinaryBasicBlock &SuccessorBB = *DFSOrder[YamlSI.Index];
+      BinaryBasicBlock &SuccessorBB = *Order[YamlSI.Index];
       if (!BB.getSuccessor(SuccessorBB.getLabel())) {
         if (opts::Verbosity >= 1)
           errs() << "BOLT-WARNING: no successor for block " << BB.getName()
@@ -338,7 +347,7 @@ Error YAMLProfileReader::readProfile(BinaryContext &BC) {
 
     // Recompute hash once per function.
     if (!opts::IgnoreHash)
-      Function.computeHash(/*UseDFS=*/true);
+      Function.computeHash(YamlBP.Header.IsDFSOrder);
 
     for (StringRef FunctionName : Function.getNames()) {
       auto PI = ProfileNameToProfile.find(FunctionName);

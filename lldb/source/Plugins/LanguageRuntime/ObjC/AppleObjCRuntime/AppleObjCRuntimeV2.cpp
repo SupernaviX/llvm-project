@@ -33,6 +33,7 @@
 #include "lldb/Target/ABI.h"
 #include "lldb/Target/DynamicLoader.h"
 #include "lldb/Target/ExecutionContext.h"
+#include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
@@ -751,6 +752,19 @@ AppleObjCRuntimeV2::AppleObjCRuntimeV2(Process *process,
       HasSymbol(g_objc_getRealizedClassList_trylock);
   WarnIfNoExpandedSharedCache();
   RegisterObjCExceptionRecognizer(process);
+}
+
+LanguageRuntime *
+AppleObjCRuntimeV2::GetPreferredLanguageRuntime(ValueObject &in_value) {
+  if (auto process_sp = in_value.GetProcessSP()) {
+    assert(process_sp.get() == m_process);
+    if (auto descriptor_sp = GetNonKVOClassDescriptor(in_value)) {
+      LanguageType impl_lang = descriptor_sp->GetImplementationLanguage();
+      if (impl_lang != eLanguageTypeUnknown)
+        return process_sp->GetLanguageRuntime(impl_lang);
+    }
+  }
+  return nullptr;
 }
 
 bool AppleObjCRuntimeV2::GetDynamicTypeAndAddress(
@@ -1685,7 +1699,7 @@ AppleObjCRuntimeV2::SharedCacheImageHeaders::CreateSharedCacheImageHeaders(
                                   entsize));
   if (auto Err = shared_cache_image_headers->UpdateIfNeeded()) {
     LLDB_LOG_ERROR(log, std::move(Err),
-                   "Failed to update SharedCacheImageHeaders");
+                   "Failed to update SharedCacheImageHeaders: {0}");
     return nullptr;
   }
 
@@ -1745,7 +1759,7 @@ bool AppleObjCRuntimeV2::SharedCacheImageHeaders::IsImageLoaded(
   if (auto Err = UpdateIfNeeded()) {
     Log *log = GetLog(LLDBLog::Process | LLDBLog::Types);
     LLDB_LOG_ERROR(log, std::move(Err),
-                   "Failed to update SharedCacheImageHeaders");
+                   "Failed to update SharedCacheImageHeaders: {0}");
   }
   return m_loaded_images.test(image_index);
 }
@@ -1754,7 +1768,7 @@ uint64_t AppleObjCRuntimeV2::SharedCacheImageHeaders::GetVersion() {
   if (auto Err = UpdateIfNeeded()) {
     Log *log = GetLog(LLDBLog::Process | LLDBLog::Types);
     LLDB_LOG_ERROR(log, std::move(Err),
-                   "Failed to update SharedCacheImageHeaders");
+                   "Failed to update SharedCacheImageHeaders: {0}");
   }
   return m_version;
 }

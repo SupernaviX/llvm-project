@@ -331,8 +331,6 @@ private:
   Instruction *foldNot(BinaryOperator &I);
   Instruction *foldBinOpOfDisplacedShifts(BinaryOperator &I);
 
-  void freelyInvertAllUsersOf(Value *V, Value *IgnoredUser = nullptr);
-
   /// Determine if a pair of casts can be replaced by a single cast.
   ///
   /// \param CI1 The first of a pair of casts.
@@ -455,6 +453,12 @@ public:
   // (Binop1 (Binop2 (logic_shift X, Amt), Mask), (logic_shift Y, Amt))
   //    -> (BinOp (logic_shift (BinOp X, Y)), Mask)
   Instruction *foldBinOpShiftWithShift(BinaryOperator &I);
+
+  /// Tries to simplify binops of select and cast of the select condition.
+  ///
+  /// (Binop (cast C), (select C, T, F))
+  ///    -> (select C, C0, C1)
+  Instruction *foldBinOpOfSelectAndCastOfSelectCondition(BinaryOperator &I);
 
   /// This tries to simplify binary operations by factorizing out common terms
   /// (e. g. "(A*B)+(A*C)" -> "A*(B+C)").
@@ -665,6 +669,7 @@ public:
   bool removeInstructionsBeforeUnreachable(Instruction &I);
   bool handleUnreachableFrom(Instruction *I);
   bool handlePotentiallyDeadSuccessors(BasicBlock *BB, BasicBlock *LiveSucc);
+  void freelyInvertAllUsersOf(Value *V, Value *IgnoredUser = nullptr);
 };
 
 class Negator final {

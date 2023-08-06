@@ -177,6 +177,12 @@ static ExprValue bitAnd(ExprValue a, ExprValue b) {
           (a.getValue() & b.getValue()) - a.getSecAddr(), a.loc};
 }
 
+static ExprValue bitXor(ExprValue a, ExprValue b) {
+  moveAbsRight(a, b);
+  return {a.sec, a.forceAbsolute,
+          (a.getValue() ^ b.getValue()) - a.getSecAddr(), a.loc};
+}
+
 static ExprValue bitOr(ExprValue a, ExprValue b) {
   moveAbsRight(a, b);
   return {a.sec, a.forceAbsolute,
@@ -440,6 +446,8 @@ static std::pair<ELFKind, uint16_t> parseBfdName(StringRef s) {
       .Case("elf64-sparc", {ELF64BEKind, EM_SPARCV9})
       .Case("elf32-msp430", {ELF32LEKind, EM_MSP430})
       .Case("elf32-v810", {ELF32LEKind, EM_V810})
+      .Case("elf32-loongarch", {ELF32LEKind, EM_LOONGARCH})
+      .Case("elf64-loongarch", {ELF64LEKind, EM_LOONGARCH})
       .Default({ELFNoneKind, EM_NONE});
 }
 
@@ -639,12 +647,13 @@ void ScriptParser::readTarget() {
 
 static int precedence(StringRef op) {
   return StringSwitch<int>(op)
-      .Cases("*", "/", "%", 10)
-      .Cases("+", "-", 9)
-      .Cases("<<", ">>", 8)
-      .Cases("<", "<=", ">", ">=", 7)
-      .Cases("==", "!=", 6)
-      .Case("&", 5)
+      .Cases("*", "/", "%", 11)
+      .Cases("+", "-", 10)
+      .Cases("<<", ">>", 9)
+      .Cases("<", "<=", ">", ">=", 8)
+      .Cases("==", "!=", 7)
+      .Case("&", 6)
+      .Case("^", 5)
       .Case("|", 4)
       .Case("&&", 3)
       .Case("||", 2)
@@ -1048,7 +1057,7 @@ SymbolAssignment *ScriptParser::readAssignment(StringRef tok) {
     // Support = followed by an expression without whitespace.
     SaveAndRestore saved(inExpr, true);
     cmd = readSymbolAssignment(tok);
-  } else if ((op.size() == 2 && op[1] == '=' && strchr("*/+-&|", op[0])) ||
+  } else if ((op.size() == 2 && op[1] == '=' && strchr("*/+-&^|", op[0])) ||
              op == "<<=" || op == ">>=") {
     cmd = readSymbolAssignment(tok);
   } else if (tok == "PROVIDE") {
@@ -1075,7 +1084,7 @@ SymbolAssignment *ScriptParser::readSymbolAssignment(StringRef name) {
   name = unquote(name);
   StringRef op = next();
   assert(op == "=" || op == "*=" || op == "/=" || op == "+=" || op == "-=" ||
-         op == "&=" || op == "|=" || op == "<<=" || op == ">>=");
+         op == "&=" || op == "^=" || op == "|=" || op == "<<=" || op == ">>=");
   // Note: GNU ld does not support %= or ^=.
   Expr e = readExpr();
   if (op != "=") {
@@ -1100,6 +1109,8 @@ SymbolAssignment *ScriptParser::readSymbolAssignment(StringRef name) {
         return lhs.getValue() >> e().getValue() % 64;
       case '&':
         return lhs.getValue() & e().getValue();
+      case '^':
+        return lhs.getValue() ^ e().getValue();
       case '|':
         return lhs.getValue() | e().getValue();
       default:
@@ -1169,6 +1180,8 @@ Expr ScriptParser::combine(StringRef op, Expr l, Expr r) {
     return [=] { return l().getValue() && r().getValue(); };
   if (op == "&")
     return [=] { return bitAnd(l(), r()); };
+  if (op == "^")
+    return [=] { return bitXor(l(), r()); };
   if (op == "|")
     return [=] { return bitOr(l(), r()); };
   llvm_unreachable("invalid operator");
@@ -1384,7 +1397,7 @@ Expr ScriptParser::readPrimary() {
     };
   }
   if (tok == "ADDR") {
-    StringRef name = readParenLiteral();
+    StringRef name = unquote(readParenLiteral());
     OutputSection *osec = &script->getOrCreateOutputSection(name)->osec;
     osec->usedInExpression = true;
     return [=]() -> ExprValue {
@@ -1409,7 +1422,7 @@ Expr ScriptParser::readPrimary() {
     };
   }
   if (tok == "ALIGNOF") {
-    StringRef name = readParenLiteral();
+    StringRef name = unquote(readParenLiteral());
     OutputSection *osec = &script->getOrCreateOutputSection(name)->osec;
     return [=] {
       checkIfExists(*osec, location);
@@ -1467,7 +1480,7 @@ Expr ScriptParser::readPrimary() {
     return script->memoryRegions[name]->length;
   }
   if (tok == "LOADADDR") {
-    StringRef name = readParenLiteral();
+    StringRef name = unquote(readParenLiteral());
     OutputSection *osec = &script->getOrCreateOutputSection(name)->osec;
     osec->usedInExpression = true;
     return [=] {
@@ -1511,7 +1524,7 @@ Expr ScriptParser::readPrimary() {
     return [=] { return e(); };
   }
   if (tok == "SIZEOF") {
-    StringRef name = readParenLiteral();
+    StringRef name = unquote(readParenLiteral());
     OutputSection *cmd = &script->getOrCreateOutputSection(name)->osec;
     // Linker script does not create an output section if its content is empty.
     // We want to allow SIZEOF(.foo) where .foo is a section which happened to

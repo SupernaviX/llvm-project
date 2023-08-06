@@ -266,7 +266,9 @@ static void computeFunctionSummary(
   unsigned NumInsts = 0;
   // Map from callee ValueId to profile count. Used to accumulate profile
   // counts for all static calls to a given callee.
-  MapVector<ValueInfo, CalleeInfo> CallGraphEdges;
+  MapVector<ValueInfo, CalleeInfo, DenseMap<ValueInfo, unsigned>,
+            std::vector<std::pair<ValueInfo, CalleeInfo>>>
+      CallGraphEdges;
   SetVector<ValueInfo> RefEdges, LoadRefEdges, StoreRefEdges;
   SetVector<GlobalValue::GUID> TypeTests;
   SetVector<FunctionSummary::VFuncId> TypeTestAssumeVCalls,
@@ -786,10 +788,14 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
     std::function<const StackSafetyInfo *(const Function &F)> GetSSICallback) {
   assert(PSI);
   bool EnableSplitLTOUnit = false;
+  bool UnifiedLTO = false;
   if (auto *MD = mdconst::extract_or_null<ConstantInt>(
           M.getModuleFlag("EnableSplitLTOUnit")))
     EnableSplitLTOUnit = MD->getZExtValue();
-  ModuleSummaryIndex Index(/*HaveGVs=*/true, EnableSplitLTOUnit);
+  if (auto *MD =
+          mdconst::extract_or_null<ConstantInt>(M.getModuleFlag("UnifiedLTO")))
+    UnifiedLTO = MD->getZExtValue();
+  ModuleSummaryIndex Index(/*HaveGVs=*/true, EnableSplitLTOUnit, UnifiedLTO);
 
   // Identify the local values in the llvm.used and llvm.compiler.used sets,
   // which should not be exported as they would then require renaming and

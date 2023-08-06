@@ -103,6 +103,15 @@ enum RelExpr {
   R_RISCV_ADD,
   R_RISCV_PC_INDIRECT,
   R_V810_GP,
+  // Same as R_PC but with page-aligned semantics.
+  R_LOONGARCH_PAGE_PC,
+  // Same as R_PLT_PC but with page-aligned semantics.
+  R_LOONGARCH_PLT_PAGE_PC,
+  // In addition to having page-aligned semantics, LoongArch GOT relocs are
+  // also reused for TLS, making the semantics differ from other architectures.
+  R_LOONGARCH_GOT,
+  R_LOONGARCH_GOT_PAGE_PC,
+  R_LOONGARCH_TLSGD_PAGE_PC,
 };
 
 // Architecture-neutral representation of relocation.

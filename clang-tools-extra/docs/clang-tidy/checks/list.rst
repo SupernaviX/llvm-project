@@ -86,6 +86,7 @@ Clang-Tidy Checks
    `bugprone-dangling-handle <bugprone/dangling-handle.html>`_,
    `bugprone-dynamic-static-initializers <bugprone/dynamic-static-initializers.html>`_,
    `bugprone-easily-swappable-parameters <bugprone/easily-swappable-parameters.html>`_,
+   `bugprone-empty-catch <bugprone/empty-catch.html>`_,
    `bugprone-exception-escape <bugprone/exception-escape.html>`_,
    `bugprone-fold-init-type <bugprone/fold-init-type.html>`_,
    `bugprone-forward-declaration-namespace <bugprone/forward-declaration-namespace.html>`_,
@@ -131,6 +132,7 @@ Clang-Tidy Checks
    `bugprone-suspicious-semicolon <bugprone/suspicious-semicolon.html>`_, "Yes"
    `bugprone-suspicious-string-compare <bugprone/suspicious-string-compare.html>`_, "Yes"
    `bugprone-swapped-arguments <bugprone/swapped-arguments.html>`_, "Yes"
+   `bugprone-switch-missing-default-case <bugprone/switch-missing-default-case.html>`_,
    `bugprone-terminating-continue <bugprone/terminating-continue.html>`_, "Yes"
    `bugprone-throw-keyword-missing <bugprone/throw-keyword-missing.html>`_,
    `bugprone-too-small-loop-variable <bugprone/too-small-loop-variable.html>`_,
@@ -489,7 +491,7 @@ Clang-Tidy Checks
    `cppcoreguidelines-noexcept-move-operations <cppcoreguidelines/noexcept-move-operations.html>`_, `performance-noexcept-move-constructor <performance/noexcept-move-constructor.html>`_, "Yes"
    `cppcoreguidelines-noexcept-swap <cppcoreguidelines/noexcept-swap.html>`_, `performance-noexcept-swap <performance/noexcept-swap.html>`_, "Yes"
    `cppcoreguidelines-non-private-member-variables-in-classes <cppcoreguidelines/non-private-member-variables-in-classes.html>`_, `misc-non-private-member-variables-in-classes <misc/non-private-member-variables-in-classes.html>`_,
-   `cppcoreguidelines-use-default-member-init <cppcoreguidelines/use-default-member-init.html>`_, `modernize-use-default-member-init <modernize/use-default-member-init.html>`_,
+   `cppcoreguidelines-use-default-member-init <cppcoreguidelines/use-default-member-init.html>`_, `modernize-use-default-member-init <modernize/use-default-member-init.html>`_, "Yes"
    `fuchsia-header-anon-namespaces <fuchsia/header-anon-namespaces.html>`_, `google-build-namespaces <google/build-namespaces.html>`_,
    `google-readability-braces-around-statements <google/readability-braces-around-statements.html>`_, `readability-braces-around-statements <readability/braces-around-statements.html>`_, "Yes"
    `google-readability-function-size <google/readability-function-size.html>`_, `readability-function-size <readability/function-size.html>`_,

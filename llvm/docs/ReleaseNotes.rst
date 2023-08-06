@@ -55,8 +55,9 @@ The new requirements are as follows:
 Changes to the LLVM IR
 ----------------------
 
-* Typed pointers are no longer supported. See the `opaque pointers
-  <OpaquePointers.html>`__ documentation for migration instructions.
+* Typed pointers are no longer supported and the ``-opaque-pointers`` option
+  has been removed. See the `opaque pointers <OpaquePointers.html>`__
+  documentation for migration instructions.
 
 * The ``nofpclass`` attribute was introduced. This allows more
   optimizations around special floating point value comparisons.
@@ -69,6 +70,10 @@ Changes to the LLVM IR
   removed:
 
   * ``select``
+
+* Introduced a set of experimental `convergence control intrinsics
+  <ConvergentOperations.html>`__ to explicitly define the semantics of convergent
+  operations.
 
 Changes to LLVM infrastructure
 ------------------------------
@@ -94,8 +99,14 @@ Changes to building LLVM
 Changes to TableGen
 -------------------
 
-Changes to Interprocedural Optimizations
+* Named arguments are supported. Arguments can be specified in the form of
+  ``name=value``.
+
+Changes to Optimizations
 ----------------------------------------
+
+* :ref:`llvm.assume <int_assume>` now recognizes certain
+  floating-point tests. e.g. ``__builtin_assume(!isnan(x))``
 
 Changes to the AArch64 Backend
 ------------------------------
@@ -141,6 +152,15 @@ Changes to the AMDGPU Backend
   improves the interaction between AMDGPU buffer operations and the LLVM memory
   model, and so the non `.ptr` intrinsics are deprecated.
 
+* SGPR spilling is now performed to virtual VGPRs. This should avoid
+  some assorted register allocation failures.
+
+* Backend now performs range merging of "amdgpu-waves-per-eu" attribute based on
+  known callers.
+
+* Certain :ref:`atomicrmw <i_atomicrmw>` operations are now optimized by
+  performing a wave reduction if the access is uniform by default.
+
 * Removed ``llvm.amdgcn.atomic.inc`` and ``llvm.amdgcn.atomic.dec``
   intrinsics. :ref:`atomicrmw <i_atomicrmw>` should be used instead
   with ``uinc_wrap`` and ``udec_wrap``.
@@ -151,8 +171,25 @@ Changes to the AMDGPU Backend
 * Added llvm.amdgcn.exp2.f32 intrinsic. This provides direct access to
   v_exp_f32.
 
-* llvm.log2.f32 is now lowered accurately. Use llvm.amdgcn.log.f32 to
-  access the old behavior.
+* llvm.log2.f32, llvm.log10.f32, and llvm.log.f32 are now lowered
+  accurately. Use llvm.amdgcn.log.f32 to access the old behavior for
+  llvm.log2.f32.
+
+* llvm.exp2.f32 and llvm.exp.f32 are now lowered accurately. Use
+  llvm.amdgcn.exp2.f32 to access the old behavior for llvm.exp2.f32.
+
+* Implemented new 1ulp IEEE lowering strategy for float reciprocal
+  which saves 2 instructions. This is used by default for OpenCL on
+  gfx9+. With ``contract`` flags, this will fold into a 1 ulp rsqrt.
+
+* Implemented new 2ulp IEEE lowering strategy for float
+  reciprocal. This is used by default for OpenCL on gfx9+.
+
+* `llvm.sqrt.f64` is now lowered correctly. Use `llvm.amdgcn.sqrt.f64`
+  for raw instruction access.
+
+* Deprecate `llvm.amdgcn.ldexp` intrinsic. :ref:`llvm.ldexp <int_ldexp>`
+  should be used instead.
 
 Changes to the ARM Backend
 --------------------------
@@ -180,9 +217,13 @@ Changes to the Hexagon Backend
 Changes to the LoongArch Backend
 --------------------------------
 
+* Adds assembler/disassembler support for the LSX, LASX, LVZ and LBT ISA extensions.
 * The ``lp64s`` ABI is supported now and has been tested on Rust bare-matal target.
 * A target feature ``ual`` is introduced to allow unaligned memory accesses and
   this feature is enabled by default for generic 64-bit processors.
+* Adds support for the ``large`` code model, which is equivalent to GCC's ``extreme`` one.
+* Assorted codegen improvements.
+* llvm-objcopy now supports processing LoongArch objects.
 
 Changes to the MIPS Backend
 ---------------------------
@@ -199,6 +240,11 @@ Changes to the PowerPC Backend
   only supported on AIX.
 * On AIX, teach the profile runtime to check for a build-id string; such string
   can be created by the -mxcoff-build-id option.
+* Removed ``-ppc-quadword-atomics`` which only affected lock-free quadword
+  atomics on AIX. Now backend generates lock-free quadword atomics code on AIX
+  by default. To support lock-free quadword atomics in libatomic, the OS level
+  must be at least AIX 7.2 TL5 SP3 with libc++.rte of version 17.1.1 or above
+  installed.
 
 Changes to the RISC-V Backend
 -----------------------------
@@ -249,11 +295,17 @@ Changes to the RISC-V Backend
 * Assembly support was added for the experimental Zfbfmin (scalar BF16
   conversions), Zvfbfmin (vector BF16 conversions), and Zvfbfwma (vector BF16
   widening mul-add) extensions.
+* Added assembler/disassembler support for the experimental Zacas (atomic
+  compare-and-swap) extension.
+* Zvfh extension version was upgraded to 1.0 and is no longer experimental.
 
 Changes to the WebAssembly Backend
 ----------------------------------
 
-* ...
+* Function annotations (``__attribute__((annotate(<name>)))``)
+  now generate custom sections in the Wasm output file. A custom section
+  for each unique name will be created that contains each function
+  index the annotation applies to.
 
 Changes to the Windows Target
 -----------------------------
@@ -263,7 +315,12 @@ Changes to the X86 Backend
 
 * ``__builtin_unpredictable`` (unpredictable metadata in LLVM IR), is handled by X86 Backend.
   ``X86CmovConversion`` pass now respects this builtin and does not convert CMOVs to branches.
-
+* Add support for the ``PBNDKB`` instruction.
+* Support ISA of ``SHA512``.
+* Support ISA of ``SM3``.
+* Support ISA of ``SM4``.
+* Support ISA of ``AVX-VNNI-INT16``.
+* ``-mcpu=graniterapids-d`` is now supported.
 
 Changes to the OCaml bindings
 -----------------------------

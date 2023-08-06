@@ -107,6 +107,14 @@ void Ctx::reset() {
   needsTlsLd.store(false, std::memory_order_relaxed);
 }
 
+llvm::raw_fd_ostream Ctx::openAuxiliaryFile(llvm::StringRef filename,
+                                            std::error_code &ec) {
+  using namespace llvm::sys::fs;
+  OpenFlags flags =
+      auxiliaryFiles.insert(filename).second ? OF_None : OF_Append;
+  return {filename, ec, flags};
+}
+
 namespace lld {
 namespace elf {
 bool link(ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS,
@@ -172,6 +180,7 @@ static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(StringRef emul) {
           .Case("elf32lriscv", {ELF32LEKind, EM_RISCV})
           .Cases("elf32ppc", "elf32ppclinux", {ELF32BEKind, EM_PPC})
           .Cases("elf32lppc", "elf32lppclinux", {ELF32LEKind, EM_PPC})
+          .Case("elf32loongarch", {ELF32LEKind, EM_LOONGARCH})
           .Case("elf64btsmip", {ELF64BEKind, EM_MIPS})
           .Case("elf64ltsmip", {ELF64LEKind, EM_MIPS})
           .Case("elf64lriscv", {ELF64LEKind, EM_RISCV})
@@ -184,6 +193,7 @@ static std::tuple<ELFKind, uint16_t, uint8_t> parseEmulation(StringRef emul) {
           .Case("msp430elf", {ELF32LEKind, EM_MSP430})
           .Case("elf64_amdgpu", {ELF64LEKind, EM_AMDGPU})
           .Case("elf32_v810", {ELF32LEKind, EM_V810})
+          .Case("elf64loongarch", {ELF64LEKind, EM_LOONGARCH})
           .Default({ELFNoneKind, EM_NONE});
 
   if (ret.first == ELFNoneKind)
@@ -345,6 +355,22 @@ static void checkOptions() {
   // table which is a relatively new feature.
   if (config->emachine == EM_MIPS && config->gnuHash)
     error("the .gnu.hash section is not compatible with the MIPS target");
+
+  if (config->emachine == EM_ARM) {
+    if (!config->cmseImplib) {
+      if (!config->cmseInputLib.empty())
+        error("--in-implib may not be used without --cmse-implib");
+      if (!config->cmseOutputLib.empty())
+        error("--out-implib may not be used without --cmse-implib");
+    }
+  } else {
+    if (config->cmseImplib)
+      error("--cmse-implib is only supported on ARM targets");
+    if (!config->cmseInputLib.empty())
+      error("--in-implib is only supported on ARM targets");
+    if (!config->cmseOutputLib.empty())
+      error("--out-implib is only supported on ARM targets");
+  }
 
   if (config->fixCortexA53Errata843419 && config->emachine != EM_AARCH64)
     error("--fix-cortex-a53-843419 is only supported on AArch64 targets");
@@ -998,21 +1024,19 @@ template <class ELFT> static void readCallGraphsFromObjectFiles() {
   }
 }
 
-static DebugCompressionType getCompressDebugSections(opt::InputArgList &args) {
-  StringRef s = args.getLastArgValue(OPT_compress_debug_sections, "none");
-  if (s == "zlib") {
-    if (!compression::zlib::isAvailable())
-      error("--compress-debug-sections: zlib is not available");
-    return DebugCompressionType::Zlib;
+static DebugCompressionType getCompressionType(StringRef s, StringRef option) {
+  DebugCompressionType type = StringSwitch<DebugCompressionType>(s)
+                                  .Case("zlib", DebugCompressionType::Zlib)
+                                  .Case("zstd", DebugCompressionType::Zstd)
+                                  .Default(DebugCompressionType::None);
+  if (type == DebugCompressionType::None) {
+    if (s != "none")
+      error("unknown " + option + " value: " + s);
+  } else if (const char *reason = compression::getReasonIfUnsupported(
+                 compression::formatFor(type))) {
+    error(option + ": " + reason);
   }
-  if (s == "zstd") {
-    if (!compression::zstd::isAvailable())
-      error("--compress-debug-sections: zstd is not available");
-    return DebugCompressionType::Zstd;
-  }
-  if (s != "none")
-    error("unknown --compress-debug-sections value: " + s);
-  return DebugCompressionType::None;
+  return type;
 }
 
 static StringRef getAliasSpelling(opt::Arg *arg) {
@@ -1064,8 +1088,9 @@ static bool getIsRela(opt::InputArgList &args) {
 
   // Otherwise use the psABI defined relocation entry format.
   uint16_t m = config->emachine;
-  return m == EM_AARCH64 || m == EM_AMDGPU || m == EM_HEXAGON || m == EM_PPC ||
-         m == EM_PPC64 || m == EM_RISCV || m == EM_X86_64;
+  return m == EM_AARCH64 || m == EM_AMDGPU || m == EM_HEXAGON ||
+         m == EM_LOONGARCH || m == EM_PPC || m == EM_PPC64 || m == EM_RISCV ||
+         m == EM_X86_64;
 }
 
 static void parseClangOption(StringRef opt, const Twine &msg) {
@@ -1133,7 +1158,9 @@ static void readConfigs(opt::InputArgList &args) {
   config->checkSections =
       args.hasFlag(OPT_check_sections, OPT_no_check_sections, true);
   config->chroot = args.getLastArgValue(OPT_chroot);
-  config->compressDebugSections = getCompressDebugSections(args);
+  config->compressDebugSections = getCompressionType(
+      args.getLastArgValue(OPT_compress_debug_sections, "none"),
+      "--compress-debug-sections");
   config->cref = args.hasArg(OPT_cref);
   config->optimizeBBJumps =
       args.hasFlag(OPT_optimize_bb_jumps, OPT_no_optimize_bb_jumps, false);
@@ -1166,6 +1193,9 @@ static void readConfigs(opt::InputArgList &args) {
   config->fini = args.getLastArgValue(OPT_fini, "_fini");
   config->fixCortexA53Errata843419 = args.hasArg(OPT_fix_cortex_a53_843419) &&
                                      !args.hasArg(OPT_relocatable);
+  config->cmseImplib = args.hasArg(OPT_cmse_implib);
+  config->cmseInputLib = args.getLastArgValue(OPT_in_implib);
+  config->cmseOutputLib = args.getLastArgValue(OPT_out_implib);
   config->fixCortexA8 =
       args.hasArg(OPT_fix_cortex_a8) && !args.hasArg(OPT_relocatable);
   config->fortranCommon =
@@ -1463,6 +1493,19 @@ static void readConfigs(opt::InputArgList &args) {
     config->mllvmOpts.emplace_back(arg->getValue());
   }
 
+  config->ltoKind = LtoKind::Default;
+  if (auto *arg = args.getLastArg(OPT_lto)) {
+    StringRef s = arg->getValue();
+    if (s == "thin")
+      config->ltoKind = LtoKind::UnifiedThin;
+    else if (s == "full")
+      config->ltoKind = LtoKind::UnifiedRegular;
+    else if (s == "default")
+      config->ltoKind = LtoKind::Default;
+    else
+      error("unknown LTO mode: " + s);
+  }
+
   // --threads= takes a positive integer and provides the default value for
   // --thinlto-jobs=. If unspecified, cap the number of threads since
   // overhead outweighs optimization for used parallel algorithms for the
@@ -1654,8 +1697,9 @@ static void setConfigs(opt::InputArgList &args) {
   // have support for reading Elf_Rel addends, so we only enable for a subset.
 #ifndef NDEBUG
   bool checkDynamicRelocsDefault = m == EM_AARCH64 || m == EM_ARM ||
-                                   m == EM_386 || m == EM_MIPS ||
-                                   m == EM_X86_64 || m == EM_RISCV;
+                                   m == EM_386 || m == EM_LOONGARCH ||
+                                   m == EM_MIPS || m == EM_RISCV ||
+                                   m == EM_X86_64;
 #else
   bool checkDynamicRelocsDefault = false;
 #endif
@@ -1742,6 +1786,12 @@ void LinkerDriver::createFiles(opt::InputArgList &args) {
         files.push_back(createObjFile(*mb));
         files.back()->justSymbols = true;
       }
+      break;
+    case OPT_in_implib:
+      if (armCmseImpLib)
+        error("multiple CMSE import libraries not supported");
+      else if (std::optional<MemoryBufferRef> mb = readFile(arg->getValue()))
+        armCmseImpLib = createObjFile(*mb);
       break;
     case OPT_start_group:
       if (InputFile::isInGroup)
@@ -1958,7 +2008,7 @@ static void writeArchiveStats() {
     return;
 
   std::error_code ec;
-  raw_fd_ostream os(config->printArchiveStats, ec, sys::fs::OF_None);
+  raw_fd_ostream os = ctx.openAuxiliaryFile(config->printArchiveStats, ec);
   if (ec) {
     error("--print-archive-stats=: cannot open " + config->printArchiveStats +
           ": " + ec.message());
@@ -1988,7 +2038,7 @@ static void writeWhyExtract() {
     return;
 
   std::error_code ec;
-  raw_fd_ostream os(config->whyExtract, ec, sys::fs::OF_None);
+  raw_fd_ostream os = ctx.openAuxiliaryFile(config->whyExtract, ec);
   if (ec) {
     error("cannot open --why-extract= file " + config->whyExtract + ": " +
           ec.message());
@@ -2047,7 +2097,7 @@ static void reportBackrefs() {
 // easily.
 static void writeDependencyFile() {
   std::error_code ec;
-  raw_fd_ostream os(config->dependencyFile, ec, sys::fs::OF_None);
+  raw_fd_ostream os = ctx.openAuxiliaryFile(config->dependencyFile, ec);
   if (ec) {
     error("cannot open " + config->dependencyFile + ": " + ec.message());
     return;
@@ -2622,6 +2672,8 @@ void LinkerDriver::link(opt::InputArgList &args) {
       llvm::TimeTraceScope timeScope("Parse input files", files[i]->getName());
       parseFile(files[i]);
     }
+    if (armCmseImpLib)
+      parseArmCMSEImportLib(*armCmseImpLib);
   }
 
   // Now that we have every file, we can decide if we will need a
@@ -2785,6 +2837,9 @@ void LinkerDriver::link(opt::InputArgList &args) {
   // versionId set by scanVersionScript().
   if (args.hasArg(OPT_exclude_libs))
     excludeLibs(args);
+
+  // Record [__acle_se_<sym>, <sym>] pairs for later processing.
+  processArmCmseSymbols();
 
   // Apply symbol renames for --wrap and combine foo@v1 and foo@@v1.
   redirectSymbols(wrapped);

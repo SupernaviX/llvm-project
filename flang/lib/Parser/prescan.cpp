@@ -726,6 +726,11 @@ void Prescanner::QuotedCharacterLiteral(
         break;
       }
       inCharLiteral_ = true;
+      if (insertASpace_) {
+        Say(GetProvenanceRange(at_, end),
+            "Repeated quote mark in character literal continuation line should have been preceded by '&'"_port_en_US);
+        insertASpace_ = false;
+      }
     }
   }
   inCharLiteral_ = false;
@@ -847,12 +852,25 @@ const char *Prescanner::IsFreeFormComment(const char *p) const {
 
 std::optional<std::size_t> Prescanner::IsIncludeLine(const char *start) const {
   const char *p{SkipWhiteSpace(start)};
-  for (char ch : "include"s) {
-    if (ToLowerCaseLetter(*p++) != ch) {
+  if (*p == '0' && inFixedForm_ && p == start + 5) {
+    // Accept "     0INCLUDE" in fixed form.
+    p = SkipWhiteSpace(p + 1);
+  }
+  for (const char *q{"include"}; *q; ++q) {
+    if (ToLowerCaseLetter(*p) != *q) {
       return std::nullopt;
     }
+    p = SkipWhiteSpace(p + 1);
   }
-  p = SkipWhiteSpace(p);
+  if (IsDecimalDigit(*p)) { // accept & ignore a numeric kind prefix
+    for (p = SkipWhiteSpace(p + 1); IsDecimalDigit(*p);
+         p = SkipWhiteSpace(p + 1)) {
+    }
+    if (*p != '_') {
+      return std::nullopt;
+    }
+    p = SkipWhiteSpace(p + 1);
+  }
   if (*p == '"' || *p == '\'') {
     return {p - start};
   }
@@ -1022,7 +1040,11 @@ const char *Prescanner::FixedFormContinuationLine(bool mightNeedSpace) {
         nextLine_[3] == ' ' && nextLine_[4] == ' ') {
       char col6{nextLine_[5]};
       if (col6 != '\n' && col6 != '\t' && col6 != ' ' && col6 != '0') {
-        return nextLine_ + 6;
+        if ((col6 == 'i' || col6 == 'I') && IsIncludeLine(nextLine_)) {
+          // It's An INCLUDE line, not a continuation
+        } else {
+          return nextLine_ + 6;
+        }
       }
     }
     if (IsImplicitContinuation()) {
