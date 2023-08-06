@@ -7,7 +7,7 @@ def R0  : V810Reg< 0, "r0">, DwarfRegNum<[0]> {
   let isConstant = true;
 }
 def R1  : V810Reg< 1, "r1">, DwarfRegNum<[1]>;
-def R2  : V810Reg< 2, "r2", ["hp"]>, DwarfRegNum<[2]>;
+def R2  : V810Reg< 2, "r2", ["hp", "fp"]>, DwarfRegNum<[2]>;
 def R3  : V810Reg< 3, "r3", ["sp"]>, DwarfRegNum<[3]>;
 def R4  : V810Reg< 4, "r4", ["gp"]>, DwarfRegNum<[4]>;
 def R5  : V810Reg< 5, "r5", ["tp"]>, DwarfRegNum<[5]>;
