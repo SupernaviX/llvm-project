@@ -3,6 +3,8 @@
 #include "V810TargetMachine.h"
 #include "TargetInfo/V810TargetInfo.h"
 #include "llvm/CodeGen/AsmPrinter.h"
+#include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCExpr.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/TargetRegistry.h"
 using namespace llvm;
@@ -21,12 +23,18 @@ namespace {
 
     bool PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
                          const char *ExtraCode, raw_ostream &O) override;
+    void LowerCallIndirect(const MachineInstr *MI);
   };
 } // end of anonymous namespace
 
 void V810AsmPrinter::emitInstruction(const MachineInstr *MI) {
   V810_MC::verifyInstructionPredicates(MI->getOpcode(),
                                        getSubtargetInfo().getFeatureBits());
+
+  if (MI->getOpcode() == V810::CALL_INDIRECT) {
+    LowerCallIndirect(MI);
+    return;
+  }
 
   MCInst TmpInst;
   LowerV810MachineInstrToMCInst(MI, TmpInst, *this);
@@ -54,6 +62,34 @@ bool V810AsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
   assert(MO.getType() == MachineOperand::MO_Register);
   O << StringRef(V810InstPrinter::getRegisterName(MO.getReg()));
   return false;
+}
+
+#include <iostream>
+void V810AsmPrinter::LowerCallIndirect(const MachineInstr *MI) {
+  //   jal .+4
+  //   add 4, lp
+  //   jmp [r?]
+
+  assert(MI->getNumOperands() >= 1);
+  assert(MI->getOperand(0).isReg());
+  unsigned CalleeReg = MI->getOperand(0).getReg();
+
+  MCInst LinkInst;
+  LinkInst.setOpcode(V810::JAL);
+  LinkInst.addOperand(MCOperand::createImm(4));
+  OutStreamer->emitInstruction(LinkInst, getSubtargetInfo());
+
+  MCInst AddInst;
+  AddInst.setOpcode(V810::ADDri);
+  AddInst.addOperand(MCOperand::createReg(V810::R31));
+  AddInst.addOperand(MCOperand::createReg(V810::R31));
+  AddInst.addOperand(MCOperand::createImm(4));
+  OutStreamer->emitInstruction(AddInst, getSubtargetInfo());
+  
+  MCInst CallInst;
+  CallInst.setOpcode(V810::JMP);
+  CallInst.addOperand(MCOperand::createReg(CalleeReg));
+  OutStreamer->emitInstruction(CallInst, getSubtargetInfo());
 }
 
 // Force static initialization.

@@ -523,28 +523,12 @@ let isCodeGenOnly = 1 in {
     []
   >;
 
-  // We can't jal from a register, so fake it with labels
-  let isCall = 1, Defs = [R31], usesCustomInserter = 1 in
+  // We can't jal from a register, so emit
+  // code to set the LP before jumping
+  let isCall = 1, Size = 8, Defs = [R31] in
   def CALL_INDIRECT: Pseudo<
     (outs), (ins GenRegs:$r1, variable_ops),
     "!CALL_INDIRECT",
-    []
-  >;
-
-  // JAL to immediately after this instruction.
-  // After execution, r31 will contain the current PC.
-  let Defs = [R31], disp = 4 in
-  def LINK : FormatIV<0b101011,
-    (outs), (ins),
-    "jal .+4",
-    []
-  >;
-
-  // Perform an indirect call, assuming that r31 is already set correctly
-  let isCall = 1, Uses = [R31], r2 = 0 in
-  def INDIRECT_CALL_PRELINKED : FormatI<0b000110,
-    (outs), (ins GenRegs:$r1, variable_ops),
-    "jmp [$r1]",
     []
   >;
 

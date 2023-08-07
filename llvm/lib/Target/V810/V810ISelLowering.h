@@ -64,9 +64,6 @@ namespace llvm {
     MachineBasicBlock *
     ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *MBB) const;
 
-    MachineBasicBlock *
-    ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *MBB) const;
-
 
     bool IsEligibleForTailCallOptimization(CCState &CCInfo,
                                            CallLoweringInfo &CLI,

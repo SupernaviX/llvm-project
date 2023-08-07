@@ -570,8 +570,6 @@ V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case V810::SELECT_CC_Int:
   case V810::SELECT_CC_Float:
     return ExpandSelectCC(MI, BB);
-  case V810::CALL_INDIRECT:
-    return ExpandCallIndirect(MI, BB);
   }  
 }
 
@@ -634,31 +632,6 @@ V810TargetLowering::ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *BB) cons
 
   MI.eraseFromParent(); // The pseudo instruction is gone.
   return SinkMBB;
-}
-
-// Turns the target-specific CALL_INDIRECT into a "set r31 to the return address and JMP"
-MachineBasicBlock *
-V810TargetLowering::ExpandCallIndirect(MachineInstr &MI, MachineBasicBlock *BB) const {
-  const V810InstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
-
-  MachineBasicBlock *ThisMBB = BB;
-  MachineBasicBlock::instr_iterator I = std::next(MachineBasicBlock::instr_iterator(MI));
-
-  // JAL to right after this instr
-  BuildMI(*ThisMBB, I, dl, TII.get(V810::LINK));
-  // Fix lp to point to after this + the next instruction
-  BuildMI(*ThisMBB, I, dl, TII.get(V810::ADDri), V810::R31)
-    .addReg(V810::R31)
-    .addImm(4);
-  // And jump!
-  auto Call = BuildMI(*ThisMBB, I, dl, TII.get(V810::INDIRECT_CALL_PRELINKED));
-  for (unsigned int i = 0; i < MI.getNumOperands(); ++i) {
-    Call.add(MI.getOperand(i));
-  }
-
-  MI.eraseFromParent(); // The pseudo instruction is gone.
-  return ThisMBB;
 }
 
 V810TargetLowering::ConstraintType
