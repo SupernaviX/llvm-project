@@ -72,9 +72,13 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SRL_PARTS, MVT::i32, Expand);
 
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
+  setOperationAction(ISD::SMUL_LOHI, MVT::i32, Custom);
+  setOperationAction(ISD::UMUL_LOHI, MVT::i32, Custom);
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
   setOperationAction(ISD::MULHS, MVT::i32, Expand);
   setOperationAction(ISD::MUL,   MVT::i32, Expand);
+  setOperationAction(ISD::SDIVREM, MVT::i32, Custom);
+  setOperationAction(ISD::UDIVREM, MVT::i32, Custom);
   setOperationAction(ISD::SDIV,  MVT::i32, Expand);
   setOperationAction(ISD::UDIV,  MVT::i32, Expand);
   setOperationAction(ISD::SREM,  MVT::i32, Expand);
@@ -132,6 +136,10 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::TAIL_CALL:    return "V810ISD::TAIL_CALL";
   case V810ISD::RET_GLUE:     return "V810ISD::RET_GLUE";
   case V810ISD::RETI_GLUE:    return "V810ISD::RETI_GLUE";
+  case V810ISD::SMUL_LOHI:    return "V810ISD::SMUL_LOHI";
+  case V810ISD::UMUL_LOHI:    return "V810ISD::UMUL_LOHI";
+  case V810ISD::SDIVREM:      return "V810ISD::SDIVREM";
+  case V810ISD::UDIVREM:      return "V810ISD::UDIVREM";
   }
   return nullptr;
 }
@@ -547,6 +555,37 @@ static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG, const V810TargetLower
                       MachinePointerInfo(SV));
 }
 
+static SDValue LowerIntBinHiLo(SDValue Op, SelectionDAG &DAG, unsigned Opc) {
+  SDLoc DL(Op);
+  SDVTList RealVT = DAG.getVTList(MVT::i32, MVT::Glue);
+  SDValue Ops[] = {Op.getOperand(0), Op.getOperand(1)};
+  SDValue MAD = DAG.getNode(Opc, DL, RealVT, Ops);
+
+  SDValue NormalRes = MAD.getValue(0);
+  SDValue Glue = MAD.getValue(1);
+
+  SDValue R30Res = DAG.getCopyFromReg(DAG.getEntryNode(), DL, V810::R30, MVT::i32, Glue);
+
+  SDValue Vals[] = { NormalRes, R30Res };
+  return DAG.getMergeValues(Vals, DL);
+}
+
+static SDValue LowerSMUL_LOHI(SDValue Op, SelectionDAG &DAG) {
+  return LowerIntBinHiLo(Op, DAG, V810ISD::SMUL_LOHI);
+}
+
+static SDValue LowerUMUL_LOHI(SDValue Op, SelectionDAG &DAG) {
+  return LowerIntBinHiLo(Op, DAG, V810ISD::UMUL_LOHI);
+}
+
+static SDValue LowerSDIVREM(SDValue Op, SelectionDAG &DAG) {
+  return LowerIntBinHiLo(Op, DAG, V810ISD::SDIVREM);
+}
+
+static SDValue LowerUDIVREM(SDValue Op, SelectionDAG &DAG) {
+  return LowerIntBinHiLo(Op, DAG, V810ISD::UDIVREM);
+}
+
 SDValue V810TargetLowering::
 LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -559,6 +598,10 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::SELECT_CC:        return LowerSELECT_CC(Op, DAG);
   case ISD::SETCC:            return LowerSETCC(Op, DAG);
   case ISD::VASTART:          return LowerVASTART(Op, DAG, *this);
+  case ISD::SMUL_LOHI:        return LowerSMUL_LOHI(Op, DAG);
+  case ISD::UMUL_LOHI:        return LowerUMUL_LOHI(Op, DAG);
+  case ISD::SDIVREM:          return LowerSDIVREM(Op, DAG);
+  case ISD::UDIVREM:          return LowerUDIVREM(Op, DAG);
   }
 }
 

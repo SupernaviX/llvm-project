@@ -21,6 +21,10 @@ namespace llvm {
     RET_GLUE,
     RETI_GLUE,
     TAIL_CALL,
+    SMUL_LOHI,
+    UMUL_LOHI,
+    SDIVREM,
+    UDIVREM,
   };
   }
 

@@ -90,6 +90,11 @@ def condcode : Operand<i32> {
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
 
+def V810Smullohi      : SDNode<"V810ISD::SMUL_LOHI", SDTIntBinOp, [SDNPCommutative, SDNPOutGlue]>;
+def V810Umullohi      : SDNode<"V810ISD::UMUL_LOHI", SDTIntBinOp, [SDNPCommutative, SDNPOutGlue]>;
+def V810Sdivrem       : SDNode<"V810ISD::SDIVREM", SDTIntBinOp, [SDNPOutGlue]>;
+def V810Udivrem       : SDNode<"V810ISD::UDIVREM", SDTIntBinOp, [SDNPOutGlue]>;
+
 def SDT_V810Cmp       : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
 def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain, SDNPOutGlue]>;
 def SDT_V810FCmp      : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisFP<0>]>;
@@ -376,24 +381,24 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mul $r1, $r2",
-    []
+    [(set i32:$r2, (V810Smullohi GenRegs:$r2_, GenRegs:$r1))]
   >;
   def MULU: FormatI<0b001010,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mulu $r1, $r2",
-    []
+    [(set i32:$r2, (V810Umullohi GenRegs:$r2_, GenRegs:$r1))]
   >;
 }
 let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "div $r1, $r2",
-    []
+    [(set i32:$r2, (V810Sdivrem GenRegs:$r2_, GenRegs:$r1))]
   >;
   def DIVU : FormatI<0b001011,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "divu $r1, $r2",
-    []
+    [(set i32:$r2, (V810Udivrem GenRegs:$r2_, GenRegs:$r1))]
   >;
 }
 
