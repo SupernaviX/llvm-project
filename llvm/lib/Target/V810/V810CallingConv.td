@@ -13,6 +13,8 @@ def RetCC_V810 : CallingConv<[
   CCIfType<[i8, i16, i32, f32], CCAssignToReg<[R10, R11]>>
 ]>;
 
-def CSR : CalleeSavedRegs<(add R31, (sequence "R%u", 2, 5))>;
+// Don't mark R3 as callee-saved because it messes up stack frames
+// This is Fine because only stack frame code ever edits that
+def CSR : CalleeSavedRegs<(add R31, R2, R4, R5)>;
 
-def CSR_Interrupt : CalleeSavedRegs<(sequence "R%u", 2, 31)>;
+def CSR_Interrupt : CalleeSavedRegs<(add R2, (sequence "R%u", 4, 31))>;
