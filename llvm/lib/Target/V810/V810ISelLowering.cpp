@@ -377,6 +377,8 @@ bool V810TargetLowering::IsEligibleForTailCallOptimization(
     CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF) const {
   if (MF.getFunction().hasFnAttribute("interrupt"))
     return false;
+  if (CCInfo.getStackSize() > 0)
+    return false; // can't tail call if we pass things on the stack
   return true;
 }
 
