@@ -150,6 +150,7 @@ SDValue V810TargetLowering::LowerFormalArguments(
     const SDLoc &DL, SelectionDAG &DAG,
     SmallVectorImpl<SDValue> &InVals) const {
   MachineFunction &MF = DAG.getMachineFunction();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
   V810MachineFunctionInfo *FuncInfo = MF.getInfo<V810MachineFunctionInfo>();
 
   // Figure out where the calling convention sez all the arguments live
@@ -192,8 +193,8 @@ SDValue V810TargetLowering::LowerFormalArguments(
 
   // If this function is variadic, the varargs are on the stack, after any fixed arguments.
   if (IsVarArg) {
-    unsigned VarArgOffset = CCInfo.getStackSize();
-    FuncInfo->setVarArgsFrameIndex(VarArgOffset);
+    int VarFI = MFI.CreateFixedObject(4, CCInfo.getStackSize(), true);
+    FuncInfo->setVarArgsFrameIndex(VarFI);
   }
 
   return Chain;
@@ -542,15 +543,11 @@ static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG, const V810TargetLower
   MachineFunction &MF = DAG.getMachineFunction();
   V810MachineFunctionInfo *FuncInfo = MF.getInfo<V810MachineFunctionInfo>();
 
-  MF.getFrameInfo().setFrameAddressIsTaken(true);
-
   // vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
   SDLoc DL(Op);
   MVT PtrVT = TLI.getPointerTy(DAG.getDataLayout());
-  SDValue StackPtr = DAG.getRegister(V810::R3, PtrVT);
-  SDValue StackOffset = DAG.getIntPtrConstant(FuncInfo->getVarArgsFrameIndex(), DL);
-  SDValue FI = DAG.getNode(ISD::ADD, DL, PtrVT, StackPtr, StackOffset);
+  SDValue FI = DAG.getFrameIndex(FuncInfo->getVarArgsFrameIndex(), PtrVT);
 
   const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
   return DAG.getStore(Op.getOperand(0), DL, FI, Op.getOperand(1),
