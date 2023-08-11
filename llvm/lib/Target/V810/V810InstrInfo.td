@@ -29,10 +29,11 @@ def HI16 : SDNodeXForm<imm, [{
                                    MVT::i32);
 }]>;
 
-def uimm5 : PatLeaf<(imm), [{ return isInt<5>(N->getZExtValue()); }]>;
+def uimm5 : PatLeaf<(imm), [{ return isUInt<5>(N->getZExtValue()); }]>;
 def simm5 : PatLeaf<(imm), [{ return isInt<5>(N->getSExtValue()); }]>;
-def uimm16 : PatLeaf<(imm), [{ return isInt<16>(N->getZExtValue()); }]>;
+def uimm16 : PatLeaf<(imm), [{ return isUInt<16>(N->getZExtValue()); }]>;
 def simm16 : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+def imm32 : PatLeaf<(imm), [{ return isUInt<32>(N->getZExtValue()) || isInt<32>(N->getSExtValue()); }]>;
 def MOVHIimm : PatLeaf<(imm), [{
   return isShiftedUInt<16, 16>(N->getZExtValue());
 }], HI16>;
@@ -716,7 +717,7 @@ def : Pat<(i32 simm16:$val),
 def : Pat<(i32 MOVHIimm:$val),
           (MOVHI (i32 R0), (HI16 imm:$val))>;
 // Lorg immediate (up to 32 bits).
-def : Pat<(i32 imm:$val),
+def : Pat<(i32 imm32:$val),
           (MOVEA (MOVHI (i32 R0), (IMM32_HI16 imm:$val)), (IMM32_LO16 imm:$val))>;
 
 // loads that aren't explicitly sign-extended or zero-extended will sign-extend

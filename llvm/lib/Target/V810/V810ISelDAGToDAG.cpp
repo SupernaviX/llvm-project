@@ -61,11 +61,12 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
         Base = Addr.getOperand(0);
       }
       Offset =
-          CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), MVT::i32);
+          CurDAG->getTargetConstant(CN->getSExtValue(), SDLoc(Addr), MVT::i32);
       return true;
     }
   }
   if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr)) {
+    assert(isInt<32>(CN->getSExtValue()));
     // When working with constant addresses, MOVHI the high bits and stick the low bits in the offset
     uint64_t lo = CN->getSExtValue() & 0xffff;
     uint64_t hi = ((CN->getSExtValue() >> 16) & 0xffff) + ((lo & 0x8000) != 0);
