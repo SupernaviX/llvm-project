@@ -74,9 +74,14 @@ void V810InstPrinter::printBranchOperand(const MCInst *MI, uint64_t Address,
   const MCOperand &MO = MI->getOperand(opNum);
   if (MO.isImm()) {
     int64_t Val = SignExtend64<N>(MO.getImm());
-    O << ".";
-    if (Val > 0) O << '+';
-    O << formatImm(Val);
+    if (PrintBranchImmAsAddress) {
+      uint64_t Target = Address + Val;
+      O << formatHex(Target);
+    } else {
+      O << ".";
+      if (Val > 0) O << '+';
+      O << formatImm(Val);
+    }
     return;
   }
 
