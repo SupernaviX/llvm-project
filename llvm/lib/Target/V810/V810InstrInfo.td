@@ -60,6 +60,11 @@ def V810CondAsmOperand : AsmOperandClass {
   let ParserMethod = "parseCondOperand";
 }
 
+def uimm5Op : Operand<i32> { let DecoderMethod = "DecodeUIMM<5>"; }
+def simm5Op : Operand<i32> { let DecoderMethod = "DecodeSIMM<5>"; }
+def uimm16Op : Operand<i32> { let DecoderMethod = "DecodeUIMM<16>"; }
+def simm16Op : Operand<i32> { let DecoderMethod = "DecodeSIMM<16>"; }
+
 def MEMri : Operand<iPTR> {
   let PrintMethod = "printMemOperand";
   let MIOperandInfo = (ops GenRegs, i16imm);
@@ -222,7 +227,7 @@ let mayStore = 1 in {
 
 let isMoveImm = 1, isAsCheapAsAMove = 1 in
 def MOVi : FormatII<0b010000,
-  (outs GenRegs:$r2), (ins i32imm:$imm),
+  (outs GenRegs:$r2), (ins simm5Op:$imm),
   "mov $imm, $r2",
   [(set i32:$r2, simm5:$imm)]
 >;
@@ -234,12 +239,12 @@ def MOVr : FormatI<0b000000,
 >;
 let isMoveImm = 1, isMoveReg = 1, isAsCheapAsAMove = 1 in {
   def MOVHI : FormatV<0b101111,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "movhi $imm, $r1, $r2",
     [] // no pattern matching because this is very situational
   >;
   def MOVEA : FormatV<0b101000,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "movea $imm, $r1, $r2",
     [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
   >;
@@ -248,7 +253,7 @@ let isMoveImm = 1, isMoveReg = 1, isAsCheapAsAMove = 1 in {
 // Bit ops
 let Defs = [SR5] in {
   def ANDI : FormatV<0b101101,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "andi $imm, $r1, $r2",
     [(set i32:$r2, (and GenRegs:$r1, uimm16:$imm))]
   >;
@@ -260,7 +265,7 @@ let Defs = [SR5] in {
   >;
 
   def ORI : FormatV<0b101100,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "ori $imm, $r1, $r2",
     [(set i32:$r2, (or GenRegs:$r1, uimm16:$imm))]
   >;
@@ -272,7 +277,7 @@ let Defs = [SR5] in {
   >;
 
   def XORI : FormatV<0b101110,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "xori $imm, $r1, $r2",
     [(set i32:$r2, (xor GenRegs:$r1, uimm16:$imm))]
   >;
@@ -291,7 +296,7 @@ let Defs = [SR5] in {
 
   let Constraints = "$r2 = $r1" in
   def SHLi : FormatII<0b010100,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "shl $imm, $r2",
     [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))]
   >;
@@ -304,7 +309,7 @@ let Defs = [SR5] in {
 
   let Constraints = "$r2 = $r1" in
   def SHRi : FormatII<0b010101,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "shr $imm, $r2",
     [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))]
   >;
@@ -317,7 +322,7 @@ let Defs = [SR5] in {
 
   let Constraints = "$r2 = $r1" in
   def SARi : FormatII<0b010111,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "sar $imm, $r2",
     [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))]
   >;
@@ -340,12 +345,12 @@ let Defs = [SR5] in {
   >;
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
     "add $imm, $r2",
     [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))]
   >;
   def ADDI : FormatV<0b101001,
-    (outs GenRegs:$r2), (ins GenRegs:$r1, i32imm:$imm),
+    (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "addi $imm, $r1, $r2",
     [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
   >;
@@ -358,7 +363,7 @@ let Defs = [SR5] in {
   >;
 
   def CMPri : FormatII<0b010011,
-    (outs), (ins GenRegs:$r2, i32imm:$imm),
+    (outs), (ins GenRegs:$r2, simm5Op:$imm),
     "cmp $imm, $r2",
     [(V810CMP GenRegs:$r2, simm5:$imm)]
   >;
@@ -607,7 +612,7 @@ let r2 = 0, imm = 0 in {
 
 let r2 = 0 in
 def TRAP : FormatII<0b011000,
-  (outs), (ins i32imm:$imm),
+  (outs), (ins uimm5Op:$imm),
   "trap $imm",
   []
 >;

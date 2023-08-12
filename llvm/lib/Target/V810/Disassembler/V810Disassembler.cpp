@@ -79,6 +79,13 @@ static DecodeStatus DecodeSysRegsRegisterClass(MCInst &Inst, unsigned RegNo,
   return MCDisassembler::Success;
 }
 
+template <unsigned N>
+static DecodeStatus DecodeSIMM(MCInst &Inst, unsigned insn, uint64_t Address,
+                               const MCDisassembler *Decoder);
+template <unsigned N>
+static DecodeStatus DecodeUIMM(MCInst &Inst, unsigned insn, uint64_t Address,
+                               const MCDisassembler *Decoder);
+
 #include "V810GenDisassemblerTables.inc"
 
 uint64_t V810Disassembler::suggestBytesToSkip(ArrayRef<uint8_t> Bytes,
@@ -115,4 +122,20 @@ DecodeStatus V810Disassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   }
 
   return DecodeStatus::Fail;
+}
+
+template <unsigned N>
+static DecodeStatus DecodeSIMM(MCInst &MI, unsigned insn, uint64_t Address,
+                               const MCDisassembler *Decoder) {
+  int64_t tgt = SignExtend64<N>(insn);
+  MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
+}
+
+template <unsigned N>
+static DecodeStatus DecodeUIMM(MCInst &MI, unsigned insn, uint64_t Address,
+                               const MCDisassembler *Decoder) {
+  uint64_t tgt = insn & maskTrailingOnes<uint64_t>(N);
+  MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
 }
