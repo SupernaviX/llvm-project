@@ -64,7 +64,6 @@ bool V810AsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
   return false;
 }
 
-#include <iostream>
 void V810AsmPrinter::LowerCallIndirect(const MachineInstr *MI) {
   //   jal .+4
   //   add 4, lp
