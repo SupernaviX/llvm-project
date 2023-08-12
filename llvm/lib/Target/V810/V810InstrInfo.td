@@ -73,6 +73,7 @@ def MEMri : Operand<iPTR> {
 def calltarget : Operand<iPTR> {
   let PrintMethod = "printBranchOperand<26>";
   let OperandType = "OPERAND_PCREL";
+  let DecoderMethod = "DecodeCall";
   let EncoderMethod = "getBranchTargetOpValue";
   let ParserMatchClass = V810BranchTargetAsmOperand;
 }

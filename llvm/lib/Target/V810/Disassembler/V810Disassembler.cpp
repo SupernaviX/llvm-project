@@ -86,6 +86,9 @@ template <unsigned N>
 static DecodeStatus DecodeUIMM(MCInst &Inst, unsigned insn, uint64_t Address,
                                const MCDisassembler *Decoder);
 
+static DecodeStatus DecodeCall(MCInst &Inst, unsigned insn, uint64_t Address,
+                               const MCDisassembler *Decoder);
+
 #include "V810GenDisassemblerTables.inc"
 
 uint64_t V810Disassembler::suggestBytesToSkip(ArrayRef<uint8_t> Bytes,
@@ -137,5 +140,14 @@ static DecodeStatus DecodeUIMM(MCInst &MI, unsigned insn, uint64_t Address,
                                const MCDisassembler *Decoder) {
   uint64_t tgt = insn & maskTrailingOnes<uint64_t>(N);
   MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeCall(MCInst &MI, unsigned insn, uint64_t Address,
+                                const MCDisassembler *Decoder) {
+  int64_t tgt = SignExtend64<26>(insn);
+  uint64_t CalleeAddress = Address + tgt;
+  if (!Decoder->tryAddingSymbolicOperand(MI, CalleeAddress, false, Address, 0, 0, 32))
+    MI.addOperand(MCOperand::createImm(tgt));
   return MCDisassembler::Success;
 }
