@@ -20,6 +20,7 @@ V810RegisterInfo::V810RegisterInfo() : V810GenRegisterInfo(V810::R31) {}
 const MCPhysReg*
 V810RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (MF->getFunction().hasFnAttribute("interrupt")) {
+    // An interrupt function needs to preserve essentially every register
     return CSR_Interrupt_SaveList;
   }
   return CSR_SaveList;
@@ -29,9 +30,15 @@ const uint32_t *
 V810RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const {
   if (MF.getFunction().hasFnAttribute("interrupt")) {
-    return CSR_Interrupt_RegMask;
+    // When an interrupt function makes a call, assume that call clobbers everything
+    return getNoPreservedMask();
   }
   return CSR_RegMask;
+}
+
+const uint32_t *
+V810RegisterInfo::getNoPreservedMask() const {
+  return CSR_NoRegs_RegMask;
 }
 
 BitVector
