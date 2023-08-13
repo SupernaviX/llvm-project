@@ -62,6 +62,8 @@ namespace llvm {
 
     SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 
+    bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const override;
+
     MachineBasicBlock *
     EmitInstrWithCustomInserter(MachineInstr &MI,
                                 MachineBasicBlock *MBB) const override;

@@ -604,6 +604,12 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   }
 }
 
+bool V810TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
+  // Folding offsets into global addresses makes us generate bad memcpy code,
+  // because we generate one MOVHI+MOVEA pair for every word to copy.
+  return false;
+}
+
 MachineBasicBlock *
 V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                 MachineBasicBlock *BB) const {
