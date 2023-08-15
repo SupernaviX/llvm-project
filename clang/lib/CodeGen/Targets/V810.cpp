@@ -9,7 +9,34 @@ class V810ABIInfo : public DefaultABIInfo {
 public:
   V810ABIInfo(CodeGenTypes &CGT)
       : DefaultABIInfo(CGT) {}
+  
+  ABIArgInfo classifyArgumentType(QualType Ty) const;
+  ABIArgInfo classifyReturnType(QualType Ty) const;
+  void computeInfo(CGFunctionInfo &FI) const override;
 };
+
+ABIArgInfo
+V810ABIInfo::classifyArgumentType(QualType Ty) const {
+  if (Ty->isStructureOrClassType()) {
+    return ABIArgInfo::getDirect();
+  }
+  return DefaultABIInfo::classifyArgumentType(Ty);
+}
+
+ABIArgInfo
+V810ABIInfo::classifyReturnType(QualType Ty) const {
+  if (Ty->isStructureOrClassType()) {
+    return ABIArgInfo::getDirect();
+  }
+  return DefaultABIInfo::classifyReturnType(Ty);
+}
+
+void V810ABIInfo::computeInfo(CGFunctionInfo &FI) const {
+  if (!getCXXABI().classifyReturnType(FI))
+    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+  for (auto &Arg : FI.arguments())
+    Arg.info = classifyArgumentType(Arg.type);
+}
 
 class V810TargetCodeGenInfo : public TargetCodeGenInfo {
 public:
