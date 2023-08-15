@@ -29,6 +29,8 @@ public:
   MachineFunctionInfo *
   createMachineFunctionInfo(BumpPtrAllocator &Allocator, const Function &F,
                             const TargetSubtargetInfo *STI) const override;
+
+  TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
 };
 
 } // end namespace llvm

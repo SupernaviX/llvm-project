@@ -27,6 +27,7 @@ add_llvm_target(V810CodeGen
   V810Subtarget.cpp
   V810TargetMachine.cpp
   V810TargetObjectFile.cpp
+  V810TargetTransformInfo.cpp
 
   LINK_COMPONENTS
   AsmPrinter

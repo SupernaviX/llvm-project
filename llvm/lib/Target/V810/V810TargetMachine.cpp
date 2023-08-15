@@ -3,6 +3,7 @@
 #include "V810MachineFunctionInfo.h"
 #include "V810TargetMachine.h"
 #include "V810TargetObjectFile.h"
+#include "V810TargetTransformInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -54,6 +55,11 @@ MachineFunctionInfo *V810TargetMachine::createMachineFunctionInfo(
     BumpPtrAllocator &Allocator, const Function &F,
     const TargetSubtargetInfo *STI) const {
   return V810MachineFunctionInfo::create<V810MachineFunctionInfo>(Allocator, F, STI);
+}
+
+TargetTransformInfo
+V810TargetMachine::getTargetTransformInfo(const Function &F) const {
+  return TargetTransformInfo(V810TTIImpl(this, F));
 }
 
 namespace {
