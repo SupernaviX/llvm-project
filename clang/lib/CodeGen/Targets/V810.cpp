@@ -10,14 +10,23 @@ public:
   V810ABIInfo(CodeGenTypes &CGT)
       : DefaultABIInfo(CGT) {}
   
+  void computeInfo(CGFunctionInfo &FI) const override;
+private:
   ABIArgInfo classifyArgumentType(QualType Ty) const;
   ABIArgInfo classifyReturnType(QualType Ty) const;
-  void computeInfo(CGFunctionInfo &FI) const override;
+  bool mustBeIndirect(QualType Ty) const;
 };
+
+void V810ABIInfo::computeInfo(CGFunctionInfo &FI) const {
+  if (!getCXXABI().classifyReturnType(FI))
+    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+  for (auto &Arg : FI.arguments())
+    Arg.info = classifyArgumentType(Arg.type);
+}
 
 ABIArgInfo
 V810ABIInfo::classifyArgumentType(QualType Ty) const {
-  if (Ty->isStructureOrClassType()) {
+  if (Ty->isStructureOrClassType() && !mustBeIndirect(Ty)) {
     return ABIArgInfo::getDirect();
   }
   return DefaultABIInfo::classifyArgumentType(Ty);
@@ -31,11 +40,11 @@ V810ABIInfo::classifyReturnType(QualType Ty) const {
   return DefaultABIInfo::classifyReturnType(Ty);
 }
 
-void V810ABIInfo::computeInfo(CGFunctionInfo &FI) const {
-  if (!getCXXABI().classifyReturnType(FI))
-    FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
-  for (auto &Arg : FI.arguments())
-    Arg.info = classifyArgumentType(Arg.type);
+bool V810ABIInfo::mustBeIndirect(QualType Ty) const {
+  // Determine whether this must be indirect due to it being
+  // a C++ move-constructed instance (among possibly other reasons).
+  const CGCXXABI::RecordArgABI RAA = getRecordArgABI(Ty, getCXXABI());
+  return RAA == CGCXXABI::RAA_Indirect;
 }
 
 class V810TargetCodeGenInfo : public TargetCodeGenInfo {
