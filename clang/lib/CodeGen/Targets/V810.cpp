@@ -8,11 +8,11 @@ using namespace clang::CodeGen;
 
 namespace {
 
-// r6-r10 could theoretically be used to pass the struct.
+// r6-r9 could theoretically be used to pass the struct.
 // This will still spill onto the stack if there are more arguments.
 constexpr int MAX_FIELDS_PER_ARG = 4;
 
-// r10+r30 for return values.
+// r10+r11 for return values.
 constexpr int MAX_FIELDS_PER_RETURN_VALUE = 2;
 
 class V810ABIInfo : public DefaultABIInfo {
