@@ -24,6 +24,7 @@ add_llvm_target(V810CodeGen
   V810MachineFunctionInfo.cpp
   V810MCInstLower.cpp
   V810RegisterInfo.cpp
+  V810SelectionDAGInfo.cpp
   V810Subtarget.cpp
   V810TargetMachine.cpp
   V810TargetObjectFile.cpp

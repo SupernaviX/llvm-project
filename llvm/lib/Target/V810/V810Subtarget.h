@@ -4,6 +4,7 @@
 #include "V810FrameLowering.h"
 #include "V810InstrInfo.h"
 #include "V810ISelLowering.h"
+#include "V810SelectionDAGInfo.h"
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 
@@ -19,7 +20,7 @@ private:
 
   V810InstrInfo InstrInfo;
   V810TargetLowering TLInfo;
-  SelectionDAGTargetInfo TSInfo;
+  V810SelectionDAGInfo TSInfo;
   V810FrameLowering FrameLowering;
 public:
   V810Subtarget(const Triple &TT, const std::string &CPU,
@@ -35,7 +36,7 @@ public:
   const V810TargetLowering *getTargetLowering() const override {
     return &TLInfo;
   }
-  const SelectionDAGTargetInfo *getSelectionDAGInfo() const override {
+  const V810SelectionDAGInfo *getSelectionDAGInfo() const override {
     return &TSInfo;
   }
 

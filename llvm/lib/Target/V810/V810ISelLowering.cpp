@@ -119,6 +119,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 
   setMinStackArgumentAlignment(Align(4));
 
+  MaxStoresPerMemcpy = 3;
+
   computeRegisterProperties(Subtarget->getRegisterInfo());
 }
 

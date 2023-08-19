@@ -479,7 +479,7 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-lc");
     CmdArgs.push_back("-lm");
   }
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
+  if (!Args.hasArg(options::OPT_nodefaultlibs)) {
     TC.AddLinkRuntimeLib(Args, CmdArgs);
   }
 
