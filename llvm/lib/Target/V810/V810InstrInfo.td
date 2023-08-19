@@ -226,19 +226,19 @@ let mayStore = 1 in {
   >;
 }
 
-let isMoveImm = 1, isAsCheapAsAMove = 1 in
+let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def MOVi : FormatII<0b010000,
   (outs GenRegs:$r2), (ins simm5Op:$imm),
   "mov $imm, $r2",
   [(set i32:$r2, simm5:$imm)]
 >;
-let isMoveReg = 1, isAsCheapAsAMove = 1  in
+let isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1  in
 def MOVr : FormatI<0b000000,
   (outs GenRegs:$r2), (ins GenRegs:$r1),
   "mov $r1, $r2",
   [] // no pattern matching needed because copyPhysReg handles it
 >;
-let isMoveImm = 1, isMoveReg = 1, isAsCheapAsAMove = 1 in {
+let isMoveImm = 1, isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in {
   def MOVHI : FormatV<0b101111,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "movhi $imm, $r1, $r2",
