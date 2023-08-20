@@ -10,8 +10,9 @@ class InstV810<dag outs, dag ins, string asmstr, list<dag> pattern> : Instructio
 }
 
 // register-to-register
-class FormatI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<16> Inst;
   let Size = 2;
 
@@ -24,8 +25,9 @@ class FormatI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 // immediate-to-register
-class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<16> Inst;
   let Size = 2;
 
@@ -38,8 +40,9 @@ class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 // conditional branch
-class FormatIII<bits<3> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatIII<bits<3> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<16> Inst;
   let Size = 2;
 
@@ -52,8 +55,9 @@ class FormatIII<bits<3> op, dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 // middle-distance jump
-class FormatIV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatIV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<32> Inst;
   let Size = 4;
 
@@ -65,8 +69,9 @@ class FormatIV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 // three-operand
-class FormatV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<32> Inst;
   let Size = 4;
 
@@ -81,8 +86,9 @@ class FormatV<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
 }
 
 // load/store
-class FormatVI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatVI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<32> Inst;
   let Size = 4;
 
@@ -96,8 +102,9 @@ class FormatVI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern>
   let Inst{4-0} = r1;
 }
 
-class FormatVII<bits<6> subop, dag outs, dag ins, string asmstr, list<dag> pattern>
-    : InstV810<outs, ins, asmstr, pattern> {
+class FormatVII<bits<6> subop, dag outs, dag ins, string asmstr, list<dag> pattern, list<SchedReadWrite> schedrw>
+    : InstV810<outs, ins, asmstr, pattern>,
+      Sched<schedrw> {
   field bits<32> Inst;
   let Size = 4;
 

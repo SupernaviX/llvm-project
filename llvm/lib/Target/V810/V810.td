@@ -6,6 +6,7 @@ def FeatureNintendo
 
 include "V810RegisterInfo.td"
 include "V810CallingConv.td"
+include "V810Schedule.td"
 include "V810InstrInfo.td"
 
 def V810InstrInfo : InstrInfo;
@@ -15,7 +16,7 @@ def V810AsmParser : AsmParser {
 }
 
 class Proc<string Name, list<SubtargetFeature> Features>
- : Processor<Name, NoItineraries, Features>;
+ : ProcessorModel<Name, V810Model, Features>;
 
 def : Proc<"generic", []>;
 def : Proc<"vb", [FeatureNintendo]>;

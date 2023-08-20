@@ -138,6 +138,7 @@ class Pseudo<dag outs, dag ins, string asmstr, list<dag> pattern>
     : InstV810<outs, ins, asmstr, pattern> {
   let isCodeGenOnly = 1;
   let isPseudo = 1;
+  let hasNoSchedulingInfo = 1;
 }
 
 // Conditions
@@ -164,32 +165,38 @@ let mayLoad = 1 in {
   def LD_W : FormatVI<0b110011,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "ld.w $addr, $r2",
-    [(set i32:$r2, (load ADDRri:$addr))]
+    [(set i32:$r2, (load ADDRri:$addr))],
+    [WriteLoad]
   >;
   def IN_W : FormatVI<0b111011,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "in.w $addr, $r2",
-    [(set i32:$r2, (load ADDRri:$addr))]
+    [(set i32:$r2, (load ADDRri:$addr))],
+    [WriteLoad]
   >;
   def LD_H : FormatVI<0b110001,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "ld.h $addr, $r2",
-    [(set i32:$r2, (sextloadi16 ADDRri:$addr))]
+    [(set i32:$r2, (sextloadi16 ADDRri:$addr))],
+    [WriteLoad]
   >;
   def IN_H : FormatVI<0b111001,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "in.h $addr, $r2",
-    [(set i32:$r2, (zextloadi16 ADDRri:$addr))]
+    [(set i32:$r2, (zextloadi16 ADDRri:$addr))],
+    [WriteLoad]
   >;
   def LD_B : FormatVI<0b110000,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "ld.b $addr, $r2",
-    [(set i32:$r2, (sextloadi8 ADDRri:$addr))]
+    [(set i32:$r2, (sextloadi8 ADDRri:$addr))],
+    [WriteLoad]
   >;
   def IN_B : FormatVI<0b111000,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "in.b $addr, $r2",
-    [(set i32:$r2, (zextloadi8 ADDRri:$addr))]
+    [(set i32:$r2, (zextloadi8 ADDRri:$addr))],
+    [WriteLoad]
   >;
 }
 
@@ -197,32 +204,38 @@ let mayStore = 1 in {
   def ST_W : FormatVI<0b110111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "st.w $r2, $addr",
-    [(store i32:$r2, ADDRri:$addr)]
+    [(store i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
   def OUT_W : FormatVI<0b111111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "out.w $r2, $addr",
-    [(store i32:$r2, ADDRri:$addr)]
+    [(store i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
   def ST_H : FormatVI<0b110101,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "st.h $r2, $addr",
-    [(truncstorei16 i32:$r2, ADDRri:$addr)]
+    [(truncstorei16 i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
   def OUT_H : FormatVI<0b111101,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "out.h $r2, $addr",
-    [(truncstorei16 i32:$r2, ADDRri:$addr)]
+    [(truncstorei16 i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
   def ST_B : FormatVI<0b110100,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "st.b $r2, $addr",
-    [(truncstorei8 i32:$r2, ADDRri:$addr)]
+    [(truncstorei8 i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
   def OUT_B : FormatVI<0b111100,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "out.b $r2, $addr",
-    [(truncstorei8 i32:$r2, ADDRri:$addr)]
+    [(truncstorei8 i32:$r2, ADDRri:$addr)],
+    [WriteStore]
   >;
 }
 
@@ -230,24 +243,28 @@ let isMoveImm = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in
 def MOVi : FormatII<0b010000,
   (outs GenRegs:$r2), (ins simm5Op:$imm),
   "mov $imm, $r2",
-  [(set i32:$r2, simm5:$imm)]
+  [(set i32:$r2, simm5:$imm)],
+  [WriteI]
 >;
 let isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1  in
 def MOVr : FormatI<0b000000,
   (outs GenRegs:$r2), (ins GenRegs:$r1),
   "mov $r1, $r2",
-  [] // no pattern matching needed because copyPhysReg handles it
+  [], // no pattern matching needed because copyPhysReg handles it
+  [WriteI]
 >;
 let isMoveImm = 1, isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 in {
   def MOVHI : FormatV<0b101111,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "movhi $imm, $r1, $r2",
-    [] // no pattern matching because this is very situational
+    [], // no pattern matching because this is very situational
+    [WriteI]
   >;
   def MOVEA : FormatV<0b101000,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "movea $imm, $r1, $r2",
-    [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
+    [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))],
+    [WriteI]
   >;
 }
 
@@ -256,82 +273,95 @@ let Defs = [SR5] in {
   def ANDI : FormatV<0b101101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "andi $imm, $r1, $r2",
-    [(set i32:$r2, (and GenRegs:$r1, uimm16:$imm))]
+    [(set i32:$r2, (and GenRegs:$r1, uimm16:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def AND : FormatI<0b001101,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "and $r1, $r2",
-    [(set i32:$r2, (and GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (and GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   def ORI : FormatV<0b101100,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "ori $imm, $r1, $r2",
-    [(set i32:$r2, (or GenRegs:$r1, uimm16:$imm))]
+    [(set i32:$r2, (or GenRegs:$r1, uimm16:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def OR : FormatI<0b001100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "or $r1, $r2",
-    [(set i32:$r2, (or GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (or GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   def XORI : FormatV<0b101110,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "xori $imm, $r1, $r2",
-    [(set i32:$r2, (xor GenRegs:$r1, uimm16:$imm))]
+    [(set i32:$r2, (xor GenRegs:$r1, uimm16:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def XOR : FormatI<0b001110,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "xor $r1, $r2",
-    [(set i32:$r2, (xor GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (xor GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   def NOT : FormatI<0b001111,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "not $r1, $r2",
-    [(set i32:$r2, (not GenRegs:$r1))]
+    [(set i32:$r2, (not GenRegs:$r1))],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r1" in
   def SHLi : FormatII<0b010100,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "shl $imm, $r2",
-    [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))]
+    [(set i32:$r2, (shl GenRegs:$r1, uimm5:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def SHLr : FormatI<0b000100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "shl $r1, $r2",
-    [(set i32:$r2, (shl GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (shl GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r1" in
   def SHRi : FormatII<0b010101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "shr $imm, $r2",
-    [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))]
+    [(set i32:$r2, (srl GenRegs:$r1, uimm5:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def SHRr : FormatI<0b000101,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "shr $r1, $r2",
-    [(set i32:$r2, (srl GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (srl GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r1" in
   def SARi : FormatII<0b010111,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm5Op:$imm),
     "sar $imm, $r2",
-    [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))]
+    [(set i32:$r2, (sra GenRegs:$r1, uimm5:$imm))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r2_" in
   def SARr : FormatI<0b000111,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "sar $r1, $r2",
-    [(set i32:$r2, (sra GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (sra GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 }
 
@@ -342,36 +372,42 @@ let Defs = [SR5] in {
   def ADDrr : FormatI<0b000001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "add $r1, $r2",
-    [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
     "add $imm, $r2",
-    [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))]
+    [(set i32:$r2, (add GenRegs:$r1, simm5:$imm))],
+    [WriteALU]
   >;
   def ADDI : FormatV<0b101001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "addi $imm, $r1, $r2",
-    [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))]
+    [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r2_" in
   def SUB : FormatI<0b000010,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "sub $r1, $r2",
-    [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (sub GenRegs:$r2_, GenRegs:$r1))],
+    [WriteALU]
   >;
 
   def CMPri : FormatII<0b010011,
     (outs), (ins GenRegs:$r2, simm5Op:$imm),
     "cmp $imm, $r2",
-    [(V810CMP GenRegs:$r2, simm5:$imm)]
+    [(V810CMP GenRegs:$r2, simm5:$imm)],
+    [WriteALU]
   >;
   def CMPrr : FormatI<0b000011,
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmp $r1, $r2",
-    [(V810CMP GenRegs:$r2, GenRegs:$r1)]
+    [(V810CMP GenRegs:$r2, GenRegs:$r1)],
+    [WriteALU]
   >;
 
   // Support loading addresses into a register
@@ -379,7 +415,8 @@ let Defs = [SR5] in {
   def ADDImem : FormatV<0b101001,
     (outs GenRegs:$r2), (ins (MEMri $r1, $imm):$addr),
     "addi $addr, $r2",
-    [(set iPTR:$r2, ADDRri:$addr)]
+    [(set iPTR:$r2, ADDRri:$addr)],
+    [WriteALU]
   >;
 }
 
@@ -388,24 +425,28 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mul $r1, $r2",
-    [(set i32:$r2, (V810Smullohi GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (V810Smullohi GenRegs:$r2_, GenRegs:$r1))],
+    [WriteIMul]
   >;
   def MULU: FormatI<0b001010,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mulu $r1, $r2",
-    [(set i32:$r2, (V810Umullohi GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (V810Umullohi GenRegs:$r2_, GenRegs:$r1))],
+    [WriteIMul]
   >;
 }
 let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "div $r1, $r2",
-    [(set i32:$r2, (V810Sdivrem GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (V810Sdivrem GenRegs:$r2_, GenRegs:$r1))],
+    [WriteIDiv]
   >;
   def DIVU : FormatI<0b001011,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "divu $r1, $r2",
-    [(set i32:$r2, (V810Udivrem GenRegs:$r2_, GenRegs:$r1))]
+    [(set i32:$r2, (V810Udivrem GenRegs:$r2_, GenRegs:$r1))],
+    [WriteIDiv]
   >;
 }
 
@@ -415,52 +456,60 @@ let Defs = [SR5] in {
   def ADDF_S : FormatVII<0b000100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "addf.s $r1, $r2",
-    [(set f32:$r2, (fadd GenRegs:$r2_, GenRegs:$r1))]
+    [(set f32:$r2, (fadd GenRegs:$r2_, GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   let Constraints = "$r2 = $r2_" in
   def SUBF_S : FormatVII<0b000101,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "subf.s $r1, $r2",
-    [(set f32:$r2, (fsub GenRegs:$r2_, GenRegs:$r1))]
+    [(set f32:$r2, (fsub GenRegs:$r2_, GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   def CMPF_S : FormatVII<0b000000,
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmpf.s $r1, $r2",
-    [(V810FCMP GenRegs:$r2, GenRegs:$r1)]
+    [(V810FCMP GenRegs:$r2, GenRegs:$r1)],
+    [WriteFPU]
   >;
 
   let Constraints = "$r2 = $r2_" in
   def MULF_S : FormatVII<0b000110,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mulf.s $r1, $r2",
-    [(set f32:$r2, (fmul GenRegs:$r2_, GenRegs:$r1))]
+    [(set f32:$r2, (fmul GenRegs:$r2_, GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   let Constraints = "$r2 = $r2_" in
   def DIVF_S : FormatVII<0b000111,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "subf.s $r1, $r2",
-    [(set f32:$r2, (fdiv GenRegs:$r2_, GenRegs:$r1))]
+    [(set f32:$r2, (fdiv GenRegs:$r2_, GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   def CVT_WS : FormatVII<0b000010,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "cvt.ws $r1, $r2",
-    [(set f32:$r2, (sint_to_fp GenRegs:$r1))]
+    [(set f32:$r2, (sint_to_fp GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   def CVT_SW : FormatVII<0b000011,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "cvt.sw $r1, $r2",
-    [(set i32:$r2, (fp_to_sint GenRegs:$r1))]
+    [(set i32:$r2, (fp_to_sint GenRegs:$r1))],
+    [WriteFPU]
   >;
 
   def TRNC_SW : FormatVII<0b001011,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "trnc.sw $r1, $r2",
-    [(set i32:$r2, (fp_to_sint (ftrunc GenRegs:$r1)))]
+    [(set i32:$r2, (fp_to_sint (ftrunc GenRegs:$r1)))],
+    [WriteFPU]
   >;
 }
 
@@ -486,13 +535,15 @@ let Uses = [SR5] in {
   def Bcond : FormatIII<0b100,
     (outs), (ins condcode:$cond, bcondtarget:$disp),
     "b$cond $disp",
-    [(V810Bcond imm:$cond, bb:$disp)]
+    [(V810Bcond imm:$cond, bb:$disp)],
+    [WriteBranch]
   >;
 
   def SETF : FormatII<0b010010,
     (outs GenRegs:$r2), (ins condcode:$imm),
     "setf $imm, $r2",
-    [(set i32:$r2, (V810Setf imm:$imm))]
+    [(set i32:$r2, (V810Setf imm:$imm))],
+    [WriteALU]
   >;
 }
 
@@ -501,20 +552,23 @@ let isTerminator = 1, isBarrier = 1, isBranch = 1 in {
   def JMP : FormatI<0b000110,
     (outs), (ins GenRegs:$r1),
     "jmp $r1",
-    []
+    [],
+    [WriteBranch]
   >;
 
   def JR : FormatIV<0b101010,
     (outs), (ins brtarget:$disp),
     "jr $disp",
-    [(br bb:$disp)]
+    [(br bb:$disp)],
+    [WriteBranch]
   >;
 
   let Defs=[R31] in
   def JAL : FormatIV<0b101011,
     (outs), (ins calltarget:$disp),
     "jal $disp",
-    []
+    [],
+    [WriteBranch]
   >;
 }
 
@@ -525,14 +579,16 @@ let isCodeGenOnly = 1 in {
   def CALL : FormatIV<0b101011,
     (outs), (ins calltarget:$disp, variable_ops),
     "jal $disp",
-    []
+    [],
+    [WriteBranch]
   >;
 
   let isCall = 1, isReturn = 1, isTerminator = 1, isBarrier = 1, Uses = [R31] in
   def TAIL_CALL : FormatIV<0b101010,
     (outs), (ins calltarget:$disp, variable_ops),
     "jr $disp",
-    []
+    [],
+    [WriteBranch]
   >;
 
   // We can't jal from a register, so emit
@@ -548,14 +604,16 @@ let isCodeGenOnly = 1 in {
   def TAIL_CALL_INDIRECT: FormatI<0b000110,
     (outs), (ins GenRegs:$r1, variable_ops),
     "jmp [$r1]",
-    []
+    [],
+    [WriteBranch]
   >;
 
   let isReturn = 1, isTerminator = 1, isBarrier = 1, r2 = 0, r1 = 31 in
   def RET : FormatI<0b000110,
     (outs), (ins),
     "jmp [r31]",
-    [(retglue)]
+    [(retglue)],
+    [WriteBranch]
   >;
 
   let Defs = [R3], Uses = [R3], hasSideEffects = 1 in {
@@ -589,25 +647,29 @@ def : Pat<(tailcall GenRegs:$dst),
 def LDSR : FormatII<0b011100,
   (outs SysRegs:$imm), (ins GenRegs:$r2),
   "ldsr $r2, $imm",
-  []
+  [],
+  [WriteALU]
 >;
 def STSR : FormatII<0b011101,
   (outs GenRegs:$r2), (ins SysRegs:$imm),
   "stsr $imm, $r2",
-  []
+  [],
+  [WriteALU]
 >;
 
 let r2 = 0, imm = 0 in {
   def HALT : FormatII<0b011010,
     (outs), (ins),
     "halt",
-    []
+    [],
+    [WriteBranch]
   >;
   let isReturn = 1, isTerminator = 1, isBarrier = 1 in 
   def RETI : FormatII<0b011001,
     (outs), (ins),
     "reti",
-    [(retiglue)]
+    [(retiglue)],
+    [WriteBranch]
   >;
 }
 
@@ -615,13 +677,14 @@ let r2 = 0 in
 def TRAP : FormatII<0b011000,
   (outs), (ins uimm5Op:$imm),
   "trap $imm",
-  []
+  [],
+  [WriteBranch]
 >;
 def : Pat<(trap), (TRAP 0)>;
 
 // bitstrings
 class BitstringInst<bits<5> subop, string asmstr>
-  : FormatII<0b011111, (outs), (ins), asmstr, []> {
+  : FormatII<0b011111, (outs), (ins), asmstr, [], [WriteLoad, WriteStore]> {
   let r2 = 0;
   let imm = subop;
   let Uses = [R26, R27, R28, R29, R30];
@@ -641,7 +704,7 @@ def XORNBSU : BitstringInst<0b01110, "xornbsu">;
 
 // and bitstring searches
 class BitstringSearchInst<bits<5> subop, string asmstr>
-  : FormatII<0b011111, (outs), (ins), asmstr, []> {
+  : FormatII<0b011111, (outs), (ins), asmstr, [], [WriteLoad]> {
   let r2 = 0;
   let imm = subop;
   let Uses = [R27, R28, R29, R30];
@@ -659,7 +722,8 @@ let mayLoad = 1, mayStore = 1, Uses = [R30], Defs = [R30] in
 def CAXI : FormatVI<0b111010,
   (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
   "caxi $addr, $r2",
-  []
+  [],
+  [WriteLoad, WriteStore]
 >;
 
 // VB-specific instructions
@@ -668,12 +732,14 @@ let Predicates = [IsNintendo] in {
     def CLI : FormatII<0b010110,
       (outs), (ins),
       "cli",
-      []
+      [],
+      [WriteI]
     >;
     def SEI : FormatII<0b011110,
       (outs), (ins),
       "sei",
-      []
+      [],
+      [WriteI]
     >;
   }
 
@@ -681,27 +747,31 @@ let Predicates = [IsNintendo] in {
   def MPYHW : FormatVII<0b001100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mpyhw $r1, $r2",
-    []
+    [],
+    [WriteALU]
   >;
 
   def REV : FormatVII<0b001010,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "rev $r1, $r2",
-    [(set i32:$r2, (bitreverse GenRegs:$r1))]
+    [(set i32:$r2, (bitreverse GenRegs:$r1))],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r2_", r1 = 0 in
   def XB : FormatVII<0b001000,
     (outs GenRegs:$r2), (ins GenRegs:$r2_),
     "xb $r2",
-    []
+    [],
+    [WriteALU]
   >;
 
   let Constraints = "$r2 = $r2_", r1 = 0 in
   def XH : FormatVII<0b001001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_),
     "xh $r2",
-    []
+    [],
+    [WriteALU]
   >;
 
   def : Pat<(i32 (bswap GenRegs:$r2)),
