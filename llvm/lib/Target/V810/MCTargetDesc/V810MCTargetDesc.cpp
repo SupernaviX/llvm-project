@@ -42,6 +42,9 @@ static MCRegisterInfo *createV810MCRegisterInfo(const Triple &TT) {
 
 static MCSubtargetInfo *
 createV810MCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
+  if (CPU.empty() && TT.getOSAndEnvironmentName() == "vb") {
+    CPU = "vb";
+  }
   return createV810MCSubtargetInfoImpl(TT, CPU, /*TuneCPU*/ CPU, FS);
 }
 

@@ -9,11 +9,14 @@ using namespace llvm;
 #define GET_SUBTARGETINFO_CTOR
 #include "V810GenSubtargetInfo.inc"
 
-V810Subtarget &V810Subtarget::initializeSubtargetDependencies(StringRef CPU,
+V810Subtarget &V810Subtarget::initializeSubtargetDependencies(const Triple &TT,
+                                                              StringRef CPU,
                                                               StringRef FS) {
   IsNintendo = false;
 
   std::string CPUName = std::string(CPU);
+  if (CPUName.empty() && TT.getOSAndEnvironmentName() == "vb")
+    CPUName = "vb";
   ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FS);
 
   return *this;
@@ -22,4 +25,4 @@ V810Subtarget &V810Subtarget::initializeSubtargetDependencies(StringRef CPU,
 V810Subtarget::V810Subtarget(const Triple &TT, const std::string &CPU,
                              const std::string &FS, const TargetMachine &TM)
     : V810GenSubtargetInfo(TT, CPU, /*TuneCPU*/ CPU, FS),
-      InstrInfo(), TLInfo(TM, initializeSubtargetDependencies(CPU, FS)), FrameLowering() {}
+      InstrInfo(), TLInfo(TM, initializeSubtargetDependencies(TT, CPU, FS)), FrameLowering() {}
