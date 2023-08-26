@@ -1,8 +1,10 @@
+#include "V810HazardRecognizer.h"
 #include "V810InstrInfo.h"
 #include "V810.h"
 #include "V810Subtarget.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineScheduler.h"
 
 using namespace llvm;
 
@@ -276,4 +278,23 @@ unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
 
   unsigned Opcode = MI.getOpcode();
   return get(Opcode).getSize();
+}
+
+ScheduleHazardRecognizer *
+V810InstrInfo::CreateTargetPostRAHazardRecognizer(const InstrItineraryData *II,
+                                                  const ScheduleDAG *DAG) const {
+  return new V810HazardRecognizer();
+}
+
+ScheduleHazardRecognizer *
+V810InstrInfo::CreateTargetPostRAHazardRecognizer(const MachineFunction &MF) const {
+  return new V810HazardRecognizer();
+}
+
+ScheduleHazardRecognizer*
+V810InstrInfo::CreateTargetMIHazardRecognizer(const InstrItineraryData *II,
+                                              const ScheduleDAGMI *DAG) const {
+  if (!DAG->hasVRegLiveness())
+    return new V810HazardRecognizer();
+  return TargetInstrInfo::CreateTargetMIHazardRecognizer(II, DAG);
 }
