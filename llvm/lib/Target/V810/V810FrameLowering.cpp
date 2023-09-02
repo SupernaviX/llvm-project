@@ -1,4 +1,6 @@
+#include "V810.h"
 #include "V810FrameLowering.h"
+#include "V810RegisterInfo.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
@@ -67,9 +69,23 @@ V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
   if (isInt<5>(bytes)) {
     BuildMI(MBB, MBBI, dl, TII.get(V810::ADDri), V810::R3)
       .addReg(V810::R3).addImm(bytes);
-  } else {
-    assert(isInt<16>(bytes));
+  } else if (isInt<16>(bytes)) {
     BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R3)
       .addReg(V810::R3).addImm(bytes);
+  } else {
+    assert(isInt<32>(bytes));
+
+    uint64_t lo = EvalLo(bytes);
+    uint64_t hi = EvalHi(bytes);
+    Register TempReg = MF.getRegInfo().createVirtualRegister(&V810::GenRegsRegClass);
+
+    BuildMI(MBB, MBBI, dl, TII.get(V810::MOVHI), TempReg)
+      .addReg(V810::R0).addImm(hi);
+    if (lo) {
+      BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), TempReg)
+        .addReg(TempReg).addImm(lo);
+    }
+    BuildMI(MBB, MBBI, dl, TII.get(V810::ADDrr), V810::R3)
+        .addReg(V810::R3).addReg(TempReg);
   }
 }
