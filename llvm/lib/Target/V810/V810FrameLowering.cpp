@@ -77,8 +77,13 @@ V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
 
     uint64_t lo = EvalLo(bytes);
     uint64_t hi = EvalHi(bytes);
-    Register TempReg = MF.getRegInfo().createVirtualRegister(&V810::GenRegsRegClass);
 
+    // We need a temporary register, but can't use virtual registers here.
+    // R1 is reserved, but mainly meant to be used by crt0 for interrupt handling, so we steal that.
+    // Turn off interrupts while we move this pointer, so that surprise interrupts don't break it.
+    Register TempReg = V810::R1;
+
+    BuildMI(MBB, MBBI, dl, TII.get(V810::SEI));
     BuildMI(MBB, MBBI, dl, TII.get(V810::MOVHI), TempReg)
       .addReg(V810::R0).addImm(hi);
     if (lo) {
@@ -87,5 +92,6 @@ V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
     }
     BuildMI(MBB, MBBI, dl, TII.get(V810::ADDrr), V810::R3)
         .addReg(V810::R3).addReg(TempReg);
+    BuildMI(MBB, MBBI, dl, TII.get(V810::CLI));
   }
 }
