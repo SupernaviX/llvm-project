@@ -356,6 +356,7 @@ bool BranchRelaxation::fixupConditionalBranch(MachineInstr &MI) {
 
   bool Fail = TII->analyzeBranch(*MBB, TBB, FBB, Cond);
   if (Fail) {
+    MBB->getParent()->dump();
     MBB->dump();
   }
   assert(!Fail && "branches to be relaxed must be analyzable");
