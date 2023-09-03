@@ -108,9 +108,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
     setOperationAction(ISD::BSWAP, MVT::i32, Expand);
   }
 
+  setOperationAction(ISD::ConstantFP, MVT::f32, Custom);
   setOperationAction(ISD::BITCAST, MVT::i32, Expand);
   setOperationAction(ISD::BITCAST, MVT::f32, Expand);
-  setOperationAction(ISD::UINT_TO_FP, MVT::i32, Expand);
+  setOperationAction(ISD::UINT_TO_FP, MVT::f32, Expand);
+  setOperationAction(ISD::FP_TO_UINT, MVT::i32, Expand);
   setOperationAction(ISD::FABS, MVT::f32, Expand);
   setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
   setOperationAction(ISD::FNEG, MVT::f32, Expand);
@@ -470,6 +472,30 @@ static SDValue LowerConstantPool(SDValue Op, SelectionDAG &DAG) {
   return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
 }
 
+static SDValue LowerConstantFP(SDValue Op, SelectionDAG &DAG) {
+  EVT ResType = Op.getValueType();
+  assert(ResType == MVT::f32);
+  ConstantFPSDNode *C = dyn_cast<ConstantFPSDNode>(Op);
+  assert(C);
+
+  SDLoc DL(Op);
+
+  uint64_t Value = C->getValueAPF().bitcastToAPInt().getZExtValue();
+  uint64_t ValueHi = EvalHi(Value);
+  uint64_t ValueLo = EvalLo(Value);
+
+  SDValue Result = DAG.getRegister(V810::R0, ResType);
+  if (ValueHi) {
+    SDValue SDValueHi = DAG.getTargetConstant(ValueHi, DL, MVT::i32);
+    Result = SDValue(DAG.getMachineNode(V810::MOVHI, DL, ResType, Result, SDValueHi), 0);
+  }
+  if (ValueLo) {
+    SDValue SDValueLo = DAG.getTargetConstant(ValueLo, DL, MVT::i32);
+    Result = SDValue(DAG.getMachineNode(V810::MOVEA, DL, ResType, Result, SDValueLo), 0);
+  }
+  return Result;
+}
+
 // Convert a BR_CC into a cmp+bcond pair
 static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDValue Chain = Op.getOperand(0);
@@ -595,6 +621,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG);
   case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG); // luckily no threads
   case ISD::ConstantPool:     return LowerConstantPool(Op, DAG);
+  case ISD::ConstantFP:       return LowerConstantFP(Op, DAG);
   case ISD::BR_CC:            return LowerBR_CC(Op, DAG);
   case ISD::SELECT_CC:        return LowerSELECT_CC(Op, DAG);
   case ISD::SETCC:            return LowerSETCC(Op, DAG);
