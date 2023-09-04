@@ -511,12 +511,12 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   SDValue Cond;
   SDValue Cmp;
   if (LHS.getValueType().isFloatingPoint()) {
-    Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
-    Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, Chain, LHS, RHS);
     if (LHS == RHS) {
       DAG.dump();
       llvm_unreachable("Why would you compare a thing to itself");
     }
+    Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
+    Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, Chain, LHS, RHS);
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, Chain, LHS, RHS);
