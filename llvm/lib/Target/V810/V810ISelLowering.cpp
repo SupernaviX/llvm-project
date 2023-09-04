@@ -513,6 +513,10 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG) {
   if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, Chain, LHS, RHS);
+    if (LHS == RHS) {
+      DAG.dump();
+      llvm_unreachable("Why would you compare a thing to itself");
+    }
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, Chain, LHS, RHS);
@@ -537,6 +541,10 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) {
   if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
+    if (LHS == RHS) {
+      DAG.dump();
+      llvm_unreachable("Why would you compare a thing to itself");
+    }
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
@@ -559,6 +567,10 @@ static SDValue LowerSETCC(SDValue Op, SelectionDAG &DAG) {
   if (LHS.getValueType().isFloatingPoint()) {
     Cond = DAG.getConstant(FloatCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::FCMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
+    if (LHS == RHS) {
+      DAG.dump();
+      llvm_unreachable("Why would you compare a thing to itself");
+    }
   } else {
     Cond = DAG.getConstant(IntCondCodeToCC(CC), DL, MVT::i32);
     Cmp = DAG.getNode(V810ISD::CMP, DL, VTWithGlue, DAG.getEntryNode(), LHS, RHS);
