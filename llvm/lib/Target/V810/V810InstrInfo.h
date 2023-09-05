@@ -67,6 +67,8 @@ class V810InstrInfo : public V810GenInstrInfo {
 
   bool isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) const override;
 
+  bool isUnpredicatedTerminatorBesidesNop(const MachineInstr &MI) const;
+
 public:
   explicit V810InstrInfo();
   const V810RegisterInfo &getRegisterInfo() const { return RI; }

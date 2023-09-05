@@ -110,14 +110,40 @@ static bool isUncondBranch(MachineInstr &MI) {
   }
 }
 
-static bool isCondBranch(MachineInstr &MI) {
+static bool isCondBranch(const MachineInstr &MI) {
   return MI.getOpcode() == V810::Bcond
     && MI.getOperand(0).getImm() != V810CC::CC_BR
     && MI.getOperand(0).getImm() != V810CC::CC_NOP;
 }
 
-static bool isIndirectBranch(MachineInstr &MI) {
+static bool isIndirectBranch(const MachineInstr &MI) {
   return MI.getOpcode() == V810::JMP;
+}
+
+static bool isNop(const MachineInstr &MI) {
+  return MI.getOpcode() == V810::Bcond
+    && MI.getOperand(0).getImm() == V810CC::CC_NOP;
+}
+
+static bool isUnintentionalNop(const MachineInstr &MI) {
+  // The canonical nop is a BCond where the condition is "never" and the target is 0.
+  // Any nop which doesn't look like that is just a branch-thatll-never-happen,
+  // and can be deleted as an optimization.
+  return isNop(MI) && MI.getOperand(1).isMBB();
+}
+
+static void stripUnintentionalNops(MachineBasicBlock &MBB) {
+  MachineBasicBlock::iterator I = MBB.getLastNonDebugInstr();
+  while (I != MBB.begin()) {
+    MachineInstr *Inst = &*I;
+    I--;
+    if (isUnintentionalNop(*Inst))
+      Inst->removeFromParent();
+  }
+}
+
+bool V810InstrInfo::isUnpredicatedTerminatorBesidesNop(const MachineInstr &MI) const {
+  return isUnpredicatedTerminator(MI) && !isNop(MI);
 }
 
 bool V810InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
@@ -129,13 +155,16 @@ bool V810InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   if (I == MBB.end())
     return false;
 
-  if (!isUnpredicatedTerminator(*I))
+  if (AllowModify)
+    stripUnintentionalNops(MBB);
+
+  if (!isUnpredicatedTerminatorBesidesNop(*I))
     return false;
   
   MachineInstr *LastInst = &*I;
 
   // function ends with only one terminator
-  if (I == MBB.begin() || !isUnpredicatedTerminator(*--I)) {
+  if (I == MBB.begin() || !isUnpredicatedTerminatorBesidesNop(*--I)) {
     if (isUncondBranch(*LastInst)) {
       TBB = getBranchDestBlock(*LastInst);
       return false;
@@ -156,7 +185,7 @@ bool V810InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     while (isUncondBranch(*SecondLastInst)) {
       LastInst->eraseFromParent();
       LastInst = SecondLastInst;
-      if (I == MBB.begin() || !isUnpredicatedTerminator(*--I)) {
+      if (I == MBB.begin() || !isUnpredicatedTerminatorBesidesNop(*--I)) {
         // NOW it just ends with one unconditional branch
         TBB = getBranchDestBlock(*LastInst);
         return false;
@@ -167,7 +196,7 @@ bool V810InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   }
 
   // Give up if there are more than three terminators
-  if (SecondLastInst && I != MBB.begin() && isUnpredicatedTerminator(*--I))
+  if (SecondLastInst && I != MBB.begin() && isUnpredicatedTerminatorBesidesNop(*--I))
     return true;
   
   // conditional branch followed by unconditional branch
