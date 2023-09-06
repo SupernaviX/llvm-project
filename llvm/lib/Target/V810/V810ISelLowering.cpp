@@ -111,7 +111,7 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::ConstantFP, MVT::f32, Custom);
   setOperationAction(ISD::BITCAST, MVT::i32, Expand);
   setOperationAction(ISD::BITCAST, MVT::f32, Expand);
-  setOperationAction(ISD::UINT_TO_FP, MVT::f32, Expand);
+  setOperationAction(ISD::UINT_TO_FP, MVT::i32, Expand);
   setOperationAction(ISD::FP_TO_UINT, MVT::i32, Expand);
   setOperationAction(ISD::FABS, MVT::f32, Expand);
   setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
