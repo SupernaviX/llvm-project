@@ -10,6 +10,7 @@
 #include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/ValueTypes.h"
+#include "llvm/Support/KnownBits.h"
 
 using namespace llvm;
 
@@ -146,6 +147,89 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::UDIVREM:      return "V810ISD::UDIVREM";
   }
   return nullptr;
+}
+
+void V810TargetLowering::computeKnownBitsForTargetNode(
+                                       const SDValue Op,
+                                       KnownBits &Known,
+                                       const APInt &DemandedElts,
+                                       const SelectionDAG &DAG,
+                                       unsigned Depth) const {
+  KnownBits Known2(32);
+  Known.resetAll();
+
+  switch (Op.getOpcode()) {
+  default: break;
+  case V810ISD::HI:
+    Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    Known2 = KnownBits::makeConstant(APInt(32, 16));
+    Known = KnownBits::shl(Known, Known2);
+    break;
+  case V810ISD::LO:
+    Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+    Known = KnownBits::computeForAddSub(true, false, Known, Known2);
+    break;
+  case V810ISD::SETF: {
+    auto CC = (V810CC::CondCodes) cast<ConstantSDNode>(Op.getOperand(0).getNode())->getZExtValue();
+    if (CC == V810CC::CC_BR) // always true
+      Known = KnownBits::makeConstant(APInt(32, 1));
+    else if (CC == V810CC::CC_NOP) // always false
+      Known = KnownBits::makeConstant(APInt(32, 0));
+    else // dunno the bottom bit, but everything else is 0
+      Known.Zero.setBitsFrom(1);
+    break;
+  }
+  case V810ISD::SELECT_CC: {
+    auto CC = (V810CC::CondCodes) cast<ConstantSDNode>(Op.getOperand(2).getNode())->getZExtValue();
+    if (CC == V810CC::CC_BR) // always true
+      Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    else if (CC == V810CC::CC_NOP) // always false
+      Known = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+    else {
+      Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+      Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+      Known = Known.intersectWith(Known2);
+    }
+    break;
+  }
+  case V810ISD::SMUL_LOHI:
+  case V810ISD::UMUL_LOHI: {
+    assert((Op.getResNo() == 0 || Op.getResNo() == 1) && "Unknown result");
+    Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+    if (Op.getResNo() == 0) {
+      bool SelfMultiply = Op.getOperand(0) == Op.getOperand(1);
+      Known = KnownBits::mul(Known, Known2, SelfMultiply);
+    } else {
+      if (Op.getOpcode() == V810ISD::UMUL_LOHI)
+        Known = KnownBits::mulhu(Known, Known2);
+      else
+        Known = KnownBits::mulhs(Known, Known2);
+    }
+    break;
+  }
+  case V810ISD::SDIVREM: {
+    assert((Op.getResNo() == 0 || Op.getResNo() == 1) && "Unknown result");
+    Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+    if (Op.getResNo() == 0)
+      Known = KnownBits::sdiv(Known, Known2, Op->getFlags().hasExact());
+    else
+      Known = KnownBits::srem(Known, Known2);
+    break;
+  }
+  case V810ISD::UDIVREM: {
+    assert((Op.getResNo() == 0 || Op.getResNo() == 1) && "Unknown result");
+    Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
+    Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
+    if (Op.getResNo() == 0)
+      Known = KnownBits::udiv(Known, Known2, Op->getFlags().hasExact());
+    else
+      Known = KnownBits::urem(Known, Known2);
+    break;
+  }
+  }
 }
 
 SDValue V810TargetLowering::LowerFormalArguments(
