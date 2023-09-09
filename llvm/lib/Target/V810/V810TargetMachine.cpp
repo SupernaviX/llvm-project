@@ -72,6 +72,7 @@ public:
     return getTM<V810TargetMachine>();
   }
 
+  void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
   void addPreEmitPass2() override;
@@ -80,6 +81,12 @@ public:
 
 TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
   return new V810PassConfig(*this, PM);
+}
+
+void V810PassConfig::addIRPasses() {
+  addPass(createAtomicExpandPass());
+
+  TargetPassConfig::addIRPasses();
 }
 
 bool V810PassConfig::addInstSelector() {

@@ -85,6 +85,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SREM,  MVT::i32, Expand);
   setOperationAction(ISD::UREM,  MVT::i32, Expand);
 
+  setMaxAtomicSizeInBitsSupported(32);
+  setMinCmpXchgSizeInBits(32);
   setOperationAction(ISD::ATOMIC_CMP_SWAP, MVT::i32, Custom);
   setOperationAction(ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS, MVT::i32, Custom);
 
@@ -473,6 +475,13 @@ bool V810TargetLowering::IsEligibleForTailCallOptimization(
   if (CCInfo.getStackSize() > 0)
     return false; // can't tail call if we pass things on the stack
   return true;
+}
+
+TargetLowering::AtomicExpansionKind V810TargetLowering::shouldExpandAtomicRMWInIR(AtomicRMWInst *AI) const {
+  if (AI->getOperation() == AtomicRMWInst::Xchg &&
+      AI->getType()->getPrimitiveSizeInBits() == 32)
+    return AtomicExpansionKind::None; // Uses xchg instruction
+  return AtomicExpansionKind::CmpXChg;
 }
 
 static V810CC::CondCodes IntCondCodeToCC(ISD::CondCode CC) {
