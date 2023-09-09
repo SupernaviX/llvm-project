@@ -89,6 +89,7 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setMinCmpXchgSizeInBits(32);
   setOperationAction(ISD::ATOMIC_CMP_SWAP, MVT::i32, Custom);
   setOperationAction(ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS, MVT::i32, Custom);
+  setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
@@ -738,6 +739,12 @@ static SDValue LowerATOMIC_CMP_SWAP_WITH_SUCCESS(SDValue Op, SelectionDAG &DAG) 
   return DAG.getMergeValues(Vals, DL);
 }
 
+static SDValue LowerATOMIC_FENCE(SDValue Op, SelectionDAG &DAG) {
+  // Lower it to nothing, just return the input chain.
+  // Don't need fences cuz we're single threaded bay-bee
+  return Op.getOperand(0);
+}
+
 SDValue V810TargetLowering::
 LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -758,6 +765,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::ATOMIC_CMP_SWAP:  return LowerATOMIC_CMP_SWAP(Op, DAG);
   case ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS:
                               return LowerATOMIC_CMP_SWAP_WITH_SUCCESS(Op, DAG);
+  case ISD::ATOMIC_FENCE:     return LowerATOMIC_FENCE(Op, DAG);
   }
 }
 
