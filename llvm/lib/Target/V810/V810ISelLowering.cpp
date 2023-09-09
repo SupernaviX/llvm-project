@@ -85,6 +85,9 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SREM,  MVT::i32, Expand);
   setOperationAction(ISD::UREM,  MVT::i32, Expand);
 
+  setOperationAction(ISD::ATOMIC_CMP_SWAP, MVT::i32, Custom);
+  setOperationAction(ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS, MVT::i32, Custom);
+
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
@@ -145,6 +148,7 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::UMUL_LOHI:    return "V810ISD::UMUL_LOHI";
   case V810ISD::SDIVREM:      return "V810ISD::SDIVREM";
   case V810ISD::UDIVREM:      return "V810ISD::UDIVREM";
+  case V810ISD::CAXI:         return "V810ISD::CAXI";
   }
   return nullptr;
 }
@@ -697,6 +701,34 @@ static SDValue LowerUDIVREM(SDValue Op, SelectionDAG &DAG) {
   return LowerIntBinHiLo(Op, DAG, V810ISD::UDIVREM);
 }
 
+static SDValue LowerATOMIC_CMP_SWAP(SDValue Op, SelectionDAG &DAG) {
+  SDValue Chain = Op.getOperand(0);
+  SDValue Ptr = Op.getOperand(1);
+  SDValue Cmp = Op.getOperand(2);
+  SDValue Swap = Op.getOperand(3);
+  SDLoc DL(Op);
+
+  Chain = DAG.getCopyToReg(Chain, DL, V810::R30, Swap);
+  SDValue Reg30 = DAG.getRegister(V810::R30, MVT::i32);
+
+  SDVTList ValAndChainVT = DAG.getVTList(MVT::i32, MVT::Other);
+  return DAG.getNode(V810ISD::CAXI, DL, ValAndChainVT, Chain, Ptr, Cmp, Reg30);
+}
+
+static SDValue LowerATOMIC_CMP_SWAP_WITH_SUCCESS(SDValue Op, SelectionDAG &DAG) {
+  SDValue CmpSwap = LowerATOMIC_CMP_SWAP(Op, DAG);
+  SDValue Val = CmpSwap.getValue(0);
+  SDValue Chain = CmpSwap.getValue(1);
+
+  SDLoc DL(Op);
+
+  SDValue Cond = DAG.getConstant(V810CC::CC_E, DL, MVT::i32);
+  SDValue Success = DAG.getNode(V810ISD::SETF, DL, MVT::i32, Cond);
+
+  SDValue Vals[] = { Val, Success, Chain };
+  return DAG.getMergeValues(Vals, DL);
+}
+
 SDValue V810TargetLowering::
 LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -714,6 +746,9 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::UMUL_LOHI:        return LowerUMUL_LOHI(Op, DAG);
   case ISD::SDIVREM:          return LowerSDIVREM(Op, DAG);
   case ISD::UDIVREM:          return LowerUDIVREM(Op, DAG);
+  case ISD::ATOMIC_CMP_SWAP:  return LowerATOMIC_CMP_SWAP(Op, DAG);
+  case ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS:
+                              return LowerATOMIC_CMP_SWAP_WITH_SUCCESS(Op, DAG);
   }
 }
 

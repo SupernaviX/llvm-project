@@ -25,6 +25,7 @@ namespace llvm {
     UMUL_LOHI,
     SDIVREM,
     UDIVREM,
+    CAXI,
   };
   }
 

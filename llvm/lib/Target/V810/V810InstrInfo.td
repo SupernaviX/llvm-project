@@ -101,6 +101,7 @@ def V810Smullohi      : SDNode<"V810ISD::SMUL_LOHI", SDTIntBinOp, [SDNPCommutati
 def V810Umullohi      : SDNode<"V810ISD::UMUL_LOHI", SDTIntBinOp, [SDNPCommutative, SDNPOutGlue]>;
 def V810Sdivrem       : SDNode<"V810ISD::SDIVREM", SDTIntBinOp, [SDNPOutGlue]>;
 def V810Udivrem       : SDNode<"V810ISD::UDIVREM", SDTIntBinOp, [SDNPOutGlue]>;
+def V810Caxi          : SDNode<"V810ISD::CAXI", SDTAtomic3, [SDNPHasChain, SDNPMayStore, SDNPMayLoad, SDNPMemOperand]>;
 
 def SDT_V810Cmp       : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisInt<0>]>;
 def V810CMP           : SDNode<"V810ISD::CMP", SDT_V810Cmp, [SDNPHasChain, SDNPOutGlue]>;
@@ -718,11 +719,14 @@ def SCH1BSD : BitstringSearchInst<0b00011, "sch1bsd">;
 def SCH1BSU : BitstringSearchInst<0b00010, "sch1bsu">;
 
 // the one atomic operator
-let mayLoad = 1, mayStore = 1, Uses = [R30], Defs = [R30] in
+// $rcmp is always the same as r2, and rswap is always R30.
+// The latter is guaranteed by using custom lowering for ATOMIC_CMP_SWAP.
+let mayLoad = 1, mayStore = 1, Uses = [R30], Defs = [SR5],
+    Constraints = "$r2 = $rcmp", DisableEncoding = "$rcmp,$rswap" in
 def CAXI : FormatVI<0b111010,
-  (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
+  (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr, GenRegs:$rcmp, GenRegs:$rswap),
   "caxi $addr, $r2",
-  [],
+  [(set i32:$r2, (V810Caxi ADDRri:$addr, GenRegs:$rcmp, GenRegs:$rswap))],
   [WriteLoad, WriteStore]
 >;
 

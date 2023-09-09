@@ -18,6 +18,7 @@ public:
   V810TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
     : TargetInfo(Triple) {
       resetDataLayout("e-p:32:16-i32:32");
+      MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
   }
 
   void getTargetDefines(const LangOptions &Opts, MacroBuilder &Builder) const override;
