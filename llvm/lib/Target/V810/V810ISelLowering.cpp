@@ -479,9 +479,6 @@ bool V810TargetLowering::IsEligibleForTailCallOptimization(
 }
 
 TargetLowering::AtomicExpansionKind V810TargetLowering::shouldExpandAtomicRMWInIR(AtomicRMWInst *AI) const {
-  if (AI->getOperation() == AtomicRMWInst::Xchg &&
-      AI->getType()->getPrimitiveSizeInBits() == 32)
-    return AtomicExpansionKind::None; // Uses xchg instruction
   return AtomicExpansionKind::CmpXChg;
 }
 
