@@ -674,7 +674,7 @@ let r2 = 0, imm = 0 in {
   >;
 }
 
-let r2 = 0 in
+let isBarrier = 1, isTerminator = 1, r2 = 0 in
 def TRAP : FormatII<0b011000,
   (outs), (ins uimm5Op:$imm),
   "trap $imm",
@@ -682,6 +682,7 @@ def TRAP : FormatII<0b011000,
   [WriteBranch]
 >;
 def : Pat<(trap), (TRAP 0)>;
+def : Pat<(debugtrap), (TRAP 1)>;
 
 // bitstrings
 class BitstringInst<bits<5> subop, string asmstr>

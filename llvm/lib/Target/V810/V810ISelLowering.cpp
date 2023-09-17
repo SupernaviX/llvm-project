@@ -91,6 +91,9 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::ATOMIC_CMP_SWAP_WITH_SUCCESS, MVT::i32, Custom);
   setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
+  setOperationAction(ISD::TRAP, MVT::Other, Legal);
+  setOperationAction(ISD::DEBUGTRAP, MVT::Other, Legal);
+
   // Sign-extend smol types in registers with bitshifts
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
