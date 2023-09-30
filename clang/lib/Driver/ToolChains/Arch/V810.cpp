@@ -28,3 +28,13 @@ std::string v810::getV810TargetCPU(const Driver &D, const ArgList &Args,
   return "";
 
 }
+
+void v810::getV810TargetFeatures(const Driver &D, const ArgList &Args,
+                                 std::vector<StringRef> &Features) {
+  if (Arg *A = Args.getLastArg(options::OPT_mgprel, options::OPT_mno_gprel)) {
+    if (A->getOption().matches(options::OPT_mgprel))
+      Features.push_back("+gprel");
+    else
+      Features.push_back("-gprel");
+  }
+}

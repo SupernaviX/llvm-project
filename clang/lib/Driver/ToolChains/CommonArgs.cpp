@@ -556,6 +556,9 @@ void tools::getTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   case llvm::Triple::msp430:
     msp430::getMSP430TargetFeatures(D, Args, Features);
     break;
+  case llvm::Triple::v810:
+    v810::getV810TargetFeatures(D, Args, Features);
+    break;
   case llvm::Triple::ve:
     ve::getVETargetFeatures(D, Args, Features);
     break;

@@ -2,7 +2,11 @@ include "llvm/Target/Target.td"
 
 def FeatureNintendo
   : SubtargetFeature<"nintendo", "IsNintendo", "true",
-                     "Enable Nintendo instsructions">;
+                     "Enable Nintendo instructions">;
+
+def FeatureGPRelativeRAM
+  : SubtargetFeature<"gprel", "EnableGPRelativeRAM", "true",
+                     "Use gp-relative addressing for all values in RAM">;
 
 include "V810RegisterInfo.td"
 include "V810CallingConv.td"

@@ -542,9 +542,13 @@ static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
 }
 
 // Convert a global address into HI/LO pairs
-static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG) {
-  GlobalAddressSDNode *GN = dyn_cast<GlobalAddressSDNode>(Op);
-  assert(GN);
+static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Subtarget *Subtarget) {
+  GlobalAddressSDNode *GN = cast<GlobalAddressSDNode>(Op);
+
+  const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GN->getGlobal());
+  if (GVar && Subtarget->enableGPRelativeRAM()) {
+    llvm_unreachable("GP-relative addressing not implemented yet");
+  }
 
   SDLoc DL(Op);
   SDValue HiTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_HI);
@@ -750,8 +754,8 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   default: llvm_unreachable("Should not custom lower this!");
 
-  case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG);
-  case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG); // luckily no threads
+  case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG, Subtarget);
+  case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG, Subtarget); // luckily no threads
   case ISD::ConstantPool:     return LowerConstantPool(Op, DAG);
   case ISD::ConstantFP:       return LowerConstantFP(Op, DAG);
   case ISD::BR_CC:            return LowerBR_CC(Op, DAG);

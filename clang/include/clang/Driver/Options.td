@@ -182,6 +182,8 @@ def m_mips_Features_Group : OptionGroup<"<mips features group>">,
                             Group<m_Group>, DocName<"MIPS">;
 def m_ppc_Features_Group : OptionGroup<"<ppc features group>">,
                            Group<m_Group>, DocName<"PowerPC">;
+def m_v810_Features_Group : OptionGroup<"<v810 features group>">,
+                            Group<m_Group>, DocName<"V810">;
 def m_wasm_Features_Group : OptionGroup<"<wasm features group>">,
                             Group<m_Group>, DocName<"WebAssembly">;
 // The features added by this group will not be added to target features.
@@ -4861,6 +4863,12 @@ def mvis3 : Flag<["-"], "mvis3">, Group<m_sparc_Features_Group>;
 def mno_vis3 : Flag<["-"], "mno-vis3">, Group<m_sparc_Features_Group>;
 def mhard_quad_float : Flag<["-"], "mhard-quad-float">, Group<m_sparc_Features_Group>;
 def msoft_quad_float : Flag<["-"], "msoft-quad-float">, Group<m_sparc_Features_Group>;
+} // let Flags = [TargetSpecific]
+
+// V810 feature flags
+let Flags = [TargetSpecific] in {
+def mgprel : Flag<["-"], "mgprel">, Group<m_v810_Features_Group>;
+def mno_gprel: Flag<["-"], "mno-gprel">, Group<m_v810_Features_Group>;
 } // let Flags = [TargetSpecific]
 
 // M68k features flags
