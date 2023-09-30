@@ -155,9 +155,9 @@ static Defined *addOptionalRegular(StringRef name, SectionBase *sec,
   return cast<Defined>(s);
 }
 
-static Defined *addAbsolute(StringRef name) {
+static Defined *addAbsolute(StringRef name, uint64_t value = 0) {
   Symbol *sym = symtab.addSymbol(Defined{nullptr, name, STB_GLOBAL, STV_HIDDEN,
-                                         STT_NOTYPE, 0, 0, nullptr});
+                                         STT_NOTYPE, value, 0, nullptr});
   sym->isUsedInRegularObj = true;
   return cast<Defined>(sym);
 }
@@ -191,7 +191,7 @@ void elf::addReservedSymbols() {
   } else if (config->emachine == EM_PPC64) {
     addPPC64SaveRestore();
   } else if (config->emachine == EM_V810) {
-    ElfSym::v810Gp = addAbsolute("__gp");
+    ElfSym::v810Gp = addAbsolute("__gp", 0x05008000);
   }
 
   // The Power Architecture 64-bit v2 ABI defines a TableOfContents (TOC) which

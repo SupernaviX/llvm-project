@@ -96,6 +96,7 @@ def condcode : Operand<i32> {
 
 def V810Hi  : SDNode<"V810ISD::HI", SDTIntUnaryOp>;
 def V810Lo  : SDNode<"V810ISD::LO", SDTIntBinOp>;
+def V810RegRelative : SDNode<"V810ISD::REG_RELATIVE", SDTIntBinOp>;
 
 def V810Smullohi      : SDNode<"V810ISD::SMUL_LOHI", SDTIntBinOp, [SDNPCommutative, SDNPOutGlue]>;
 def V810Umullohi      : SDNode<"V810ISD::UMUL_LOHI", SDTIntBinOp, [SDNPCommutative, SDNPOutGlue]>;
@@ -369,13 +370,6 @@ let Defs = [SR5] in {
 // Maths
 
 let Defs = [SR5] in {
-  let Constraints = "$r2 = $r2_" in
-  def ADDrr : FormatI<0b000001,
-    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-    "add $r1, $r2",
-    [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))],
-    [WriteALU]
-  >;
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
@@ -387,6 +381,13 @@ let Defs = [SR5] in {
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm16Op:$imm),
     "addi $imm, $r1, $r2",
     [(set i32:$r2, (add GenRegs:$r1, simm16:$imm))],
+    [WriteALU]
+  >;
+  let Constraints = "$r2 = $r2_" in
+  def ADDrr : FormatI<0b000001,
+    (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
+    "add $r1, $r2",
+    [(set i32:$r2, (add GenRegs:$r2_, GenRegs:$r1))],
     [WriteALU]
   >;
 
@@ -841,5 +842,14 @@ def : Pat<(V810Lo (V810Hi texternalsym:$inhi), texternalsym:$inlo),
           (MOVEA (MOVHI (i32 R0), texternalsym:$inhi), texternalsym:$inlo)>;
 def : Pat<(V810Lo (V810Hi tconstpool:$inhi), tconstpool:$inlo),
           (MOVEA (MOVHI (i32 R0), tconstpool:$inhi), tconstpool:$inlo)>;
+// Including register-relative addresses
+def : Pat<(V810RegRelative tglobaladdr:$inrel, GenRegs:$reg),
+          (MOVEA (i32 $reg), tglobaladdr:$inrel)>;
+def : Pat<(V810RegRelative tglobaltlsaddr:$inrel, GenRegs:$reg),
+          (MOVEA (i32 $reg), tglobaltlsaddr:$inrel)>;
+def : Pat<(V810RegRelative texternalsym:$inrel, GenRegs:$reg),
+          (MOVEA (i32 $reg), texternalsym:$inrel)>;
+def : Pat<(V810RegRelative tconstpool:$inrel, GenRegs:$reg),
+          (MOVEA (i32 $reg), tconstpool:$inrel)>;
 
 include "V810InstrAliases.td"

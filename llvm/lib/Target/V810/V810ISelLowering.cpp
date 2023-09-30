@@ -141,6 +141,7 @@ const char *V810TargetLowering::getTargetNodeName(unsigned Opcode) const {
   case V810ISD::FIRST_NUMBER: break;
   case V810ISD::HI:           return "V810ISD::HI";
   case V810ISD::LO:           return "V810ISD::LO";
+  case V810ISD::REG_RELATIVE: return "V810ISD::REG_RELATIVE";
   case V810ISD::CMP:          return "V810ISD::CMP";
   case V810ISD::FCMP:         return "V810ISD::FCMP";
   case V810ISD::BCOND:        return "V810ISD::BCOND";
@@ -180,6 +181,19 @@ void V810TargetLowering::computeKnownBitsForTargetNode(
     Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
     Known = KnownBits::computeForAddSub(true, false, Known, Known2);
     break;
+  case V810ISD::REG_RELATIVE: {
+    // The first operand has the exact value that this node should return
+    SDValue Value = Op.getOperand(0);
+    Known = DAG.computeKnownBits(Value, DemandedElts, Depth + 1);
+
+    // If it's relative to GP, the value is 0x0500****
+    Register Reg = cast<RegisterSDNode>(Op.getOperand(1))->getReg();
+    if (Reg == V810::R4 && Subtarget->enableGPRelativeRAM()) {
+      Known2 = KnownBits::makeConstant(APInt(16, 0x0500));
+      Known.insertBits(Known2, 16);
+    }
+    break;
+  }
   case V810ISD::SETF: {
     auto CC = (V810CC::CondCodes) cast<ConstantSDNode>(Op.getOperand(0).getNode())->getZExtValue();
     if (CC == V810CC::CC_BR) // always true
@@ -541,20 +555,25 @@ static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
   }
 }
 
-// Convert a global address into HI/LO pairs
+// Convert a global address into a GP-relative offset or a HI/LO pair
 static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Subtarget *Subtarget) {
   GlobalAddressSDNode *GN = cast<GlobalAddressSDNode>(Op);
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
 
   const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GN->getGlobal());
-  if (GVar && Subtarget->enableGPRelativeRAM()) {
-    llvm_unreachable("GP-relative addressing not implemented yet");
+  if (GVar && !GVar->isConstant() && Subtarget->enableGPRelativeRAM()) {
+    // Every mutable global variable is stored in RAM, and every address in RAM
+    // can be expressed by a 16-bit signed offset from the GP register (R4).
+    SDValue RelTarget = DAG.getTargetGlobalAddress(GVar, DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_SDAOFF);
+    SDValue Reg = DAG.getRegister(V810::R4, GN->getValueType(0));
+    return DAG.getNode(V810ISD::REG_RELATIVE, DL, VT, RelTarget, Reg);
   }
 
-  SDLoc DL(Op);
+  // Fall back to a MOVHI/MOVEA pair for any other addresses
   SDValue HiTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_HI);
   SDValue LoTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_LO);
 
-  EVT VT = Op.getValueType();
   SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
   return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
 }

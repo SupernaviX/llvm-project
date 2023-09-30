@@ -50,6 +50,12 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
       Addr.getOpcode() == ISD::TargetGlobalAddress ||
       Addr.getOpcode() == ISD::TargetGlobalTLSAddress)
     return false; // direct calls.
+  if (Addr.getOpcode() == V810ISD::REG_RELATIVE) {
+    // This address is directly expressible as a register plus a 16-bit immediate offset.
+    Base = Addr.getOperand(1);
+    Offset = Addr.getOperand(0);
+    return true;
+  }
   if (CurDAG->isBaseWithConstantOffset(Addr)) {
     ConstantSDNode *CN = cast<ConstantSDNode>(Addr.getOperand(1));
     if (isInt<16>(CN->getSExtValue())) {
