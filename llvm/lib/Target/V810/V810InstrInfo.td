@@ -5,28 +5,18 @@ def IsNintendo : Predicate<"Subtarget->isNintendo()">,
 
 // split a 32-bit immediate into low and high bits
 def IMM32_LO16 : SDNodeXForm<imm, [{
-  unsigned sextValue = (unsigned)N->getSExtValue();
-  return CurDAG->getTargetConstant(sextValue & 0xffff, SDLoc(N), MVT::i32);
+  int64_t lo = EvalLo(N->getSExtValue());
+  return CurDAG->getTargetConstant(lo, SDLoc(N), MVT::i32);
 }]>;
 def IMM32_HI16 : SDNodeXForm<imm, [{
-  unsigned sextValue = (unsigned)N->getSExtValue();
-  // it's implementation-dependent whether right-shifting a negative is sext or zext,
-  // but we don't care because we're truncating it anyway.
-  unsigned hiBits = (sextValue >> 16) & 0xffff;
-  if (sextValue & 0x00008000) {
-    // Low bits are sign-extended, high bits are not.
-    // If the low 16 bits would sign-extend negative, compensate by incrementing high.
-    hiBits = (hiBits + 1) & 0xffff;
-  }
-  return CurDAG->getTargetConstant(hiBits, SDLoc(N), MVT::i32);
+  int64_t hi = EvalHi(N->getSExtValue());
+  return CurDAG->getTargetConstant(hi, SDLoc(N), MVT::i32);
 }]>;
 
 // grab the high 16 bits from a 32-bit immediate
 def HI16 : SDNodeXForm<imm, [{
-  // it's implementation-dependent whether right-shifting a negative is sext or zext,
-  // but we don't care because we're truncating it anyway.
-  return CurDAG->getTargetConstant(((unsigned)N->getSExtValue() >> 16) & 0xffff, SDLoc(N),
-                                   MVT::i32);
+  int64_t hi = EvalHi0(N->getSExtValue());
+  return CurDAG->getTargetConstant(hi, SDLoc(N), MVT::i32);
 }]>;
 
 def uimm5 : PatLeaf<(imm), [{ return isUInt<5>(N->getZExtValue()); }]>;
