@@ -602,6 +602,13 @@ static SDValue LowerConstantFP(SDValue Op, SelectionDAG &DAG) {
   SDLoc DL(Op);
 
   uint64_t Value = C->getValueAPF().bitcastToAPInt().getZExtValue();
+
+  if (isUInt<16>(Value) && !isInt<16>(Value)) {
+    SDValue R0 = DAG.getRegister(V810::R0, ResType);
+    SDValue SDValueLo = DAG.getTargetConstant(Value, DL, MVT::i32);
+    return SDValue(DAG.getMachineNode(V810::ADDI, DL, ResType, R0, SDValueLo), 0);
+  }
+
   uint64_t ValueHi = EvalHi(Value);
   uint64_t ValueLo = EvalLo(Value);
 

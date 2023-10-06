@@ -785,6 +785,9 @@ def : Pat<(i32 simm5:$val),
 // Med immediate (up to 16 bits).
 def : Pat<(i32 simm16:$val),
           (MOVEA (i32 R0), imm:$val)>;
+// Med immediate (unsigned, up to 16 bits).
+def : Pat<(i32 uimm16:$val),
+          (ORI (i32 R0), imm:$val)>;
 // Immediate that only uses the top 16 bits
 def : Pat<(i32 MOVHIimm:$val),
           (MOVHI (i32 R0), (HI16 imm:$val))>;
