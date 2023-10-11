@@ -35,16 +35,16 @@ InstructionCost V810TTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
   if (Imm == 0)
     return TTI::TCC_Free;
   // Can be loaded in a two-byte MOV
-  if (isInt<5>(Imm.getSExtValue()))
+  if (Imm.isSignedIntN(5))
     return 1;
   // Can be loaded in a four-byte MOVEA
-  if (isInt<16>(Imm.getSExtValue()))
+  if (Imm.isSignedIntN(16))
     return 2;
   // Can be loaded in a four-byte ORI
-  if (isUInt<16>(Imm.getSExtValue()))
+  if (Imm.isIntN(16))
     return 2;
   // Can be loaded in a four-byte MOVHI
-  if (isShiftedInt<16, 16>(Imm.getSExtValue()))
+  if (Imm.isSingleWord() && isShiftedInt<16, 16>(Imm.getSExtValue()))
     return 2;
   // gotta be an 8-byte MOVHI/MOVEA pair
   return 4;
@@ -62,21 +62,21 @@ InstructionCost V810TTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
   case Instruction::Shl:
   case Instruction::LShr:
   case Instruction::AShr:
-    if (isUInt<5>(Imm.getSExtValue()))
+    if (Imm.isIntN(5))
       return TTI::TCC_Free;
     break;
   case Instruction::ICmp:
-    if (isInt<5>(Imm.getSExtValue()))
+    if (Imm.isSignedIntN(5))
       return TTI::TCC_Free;
     break;
   case Instruction::And:
   case Instruction::Or:
   case Instruction::Xor:
-    if (isUInt<16>(Imm.getSExtValue()))
+    if (Imm.isIntN(16))
       return TTI::TCC_Free;
     break;
   case Instruction::Add:
-    if (isInt<16>(Imm.getSExtValue()))
+    if (Imm.isSignedIntN(16))
       return TTI::TCC_Free;
     break;
   }
