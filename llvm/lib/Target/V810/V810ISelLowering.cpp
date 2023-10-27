@@ -555,6 +555,11 @@ static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
   }
 }
 
+static bool CanBeGPRelative(const GlobalVariable *GVar) {
+  if (GVar->isConstant()) return false;
+  return !GVar->hasSection() || GVar->getSection().startswith(".sdata");
+}
+
 // Convert a global address into a GP-relative offset or a HI/LO pair
 static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Subtarget *Subtarget) {
   GlobalAddressSDNode *GN = cast<GlobalAddressSDNode>(Op);
@@ -562,7 +567,7 @@ static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Subta
   EVT VT = Op.getValueType();
 
   const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GN->getGlobal());
-  if (GVar && !GVar->isConstant() && Subtarget->enableGPRelativeRAM()) {
+  if (GVar && CanBeGPRelative(GVar) && Subtarget->enableGPRelativeRAM()) {
     // Every mutable global variable is stored in RAM, and every address in RAM
     // can be expressed by a 16-bit signed offset from the GP register (R4).
     SDValue RelTarget = DAG.getTargetGlobalAddress(GVar, DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_SDAOFF);
