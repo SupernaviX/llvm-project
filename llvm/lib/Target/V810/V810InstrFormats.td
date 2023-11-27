@@ -16,6 +16,9 @@ class FormatI<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, l
   field bits<16> Inst;
   let Size = 2;
 
+  // Prefer 16-bit instructions by increasing the match priority.
+  let AddedComplexity = 1;
+
   bits<5> r2;
   bits<5> r1;
 
@@ -31,6 +34,9 @@ class FormatII<bits<6> op, dag outs, dag ins, string asmstr, list<dag> pattern, 
   field bits<16> Inst;
   let Size = 2;
 
+  // Prefer 16-bit instructions by increasing the match priority.
+  let AddedComplexity = 1;
+
   bits<5> r2;
   bits<5> imm;
 
@@ -45,6 +51,9 @@ class FormatIII<bits<3> op, dag outs, dag ins, string asmstr, list<dag> pattern,
       Sched<schedrw> {
   field bits<16> Inst;
   let Size = 2;
+
+  // Prefer 16-bit instructions by increasing the match priority.
+  let AddedComplexity = 1;
 
   bits<4> cond;
   bits<9> disp;
