@@ -608,6 +608,12 @@ static SDValue LowerConstantFP(SDValue Op, SelectionDAG &DAG) {
 
   uint64_t Value = C->getValueAPF().bitcastToAPInt().getZExtValue();
 
+  if (Value == 0) {
+    // TODO: why does this need to return a virtual register?
+    // `return x > y ? x - y : 0.0;` seems to induce a need for it
+    return DAG.getCopyFromReg(DAG.getEntryNode(), DL, V810::R0, ResType);
+  }
+
   if (isUInt<16>(Value) && !isInt<16>(Value)) {
     SDValue R0 = DAG.getRegister(V810::R0, ResType);
     SDValue SDValueLo = DAG.getTargetConstant(Value, DL, MVT::i32);
