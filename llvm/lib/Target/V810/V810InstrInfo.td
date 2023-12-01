@@ -821,6 +821,12 @@ def : Pat<(store f32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
 // floats can be loaded just like ints, nothing special
 def : Pat<(f32 (load ADDRri:$addr)), (LD_W ADDRri:$addr)>;
 
+// floats can be bitcast to ints for free and vice-versa
+def : Pat<(i32 (bitconvert (f32 GenRegs:$val))),
+          (i32 GenRegs:$val)>;
+def : Pat<(f32 (bitconvert (i32 GenRegs:$val))),
+          (f32 GenRegs:$val)>;
+
 // It's not safe to convert u32 to f32, because a large enough value would become a negative float.
 // But if it was zero-extended from a smaller type, that can't happen, so it is safe after all.
 def : Pat<(uint_to_fp (assertzext GenRegs:$r1)),
