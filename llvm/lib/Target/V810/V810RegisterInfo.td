@@ -46,7 +46,7 @@ def SR1  : V810Reg< 1, "sr1",  ["eipsw"]>, DwarfRegNum<[33]>;
 def SR2  : V810Reg< 2, "sr2",  ["fepc"]>, DwarfRegNum<[34]>;
 def SR3  : V810Reg< 3, "sr3",  ["fepsw"]>, DwarfRegNum<[35]>;
 def SR4  : V810Reg< 4, "sr4",  ["ecr"]>, DwarfRegNum<[36]>;
-def SR5  : V810Reg< 5, "sr5",  ["psw"]>, DwarfRegNum<[37]>;
+def SR5  : V810Reg< 5, "sr5",  ["cc", "psw"]>, DwarfRegNum<[37]>;
 def SR6  : V810Reg< 6, "sr6",  ["pir"]>, DwarfRegNum<[38]>;
 def SR7  : V810Reg< 7, "sr7",  ["tkcw"]>, DwarfRegNum<[39]>;
 def SR24 : V810Reg<24, "sr24", ["chcw"]>, DwarfRegNum<[40]>;
