@@ -814,6 +814,12 @@ bool V810TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) con
   return false;
 }
 
+EVT V810TargetLowering::getSetCCResultType(const DataLayout &DL, LLVMContext &Context, EVT VT) const {
+  if (!VT.isVector())
+    return getPointerTy(DL);
+  return VT.changeVectorElementTypeToInteger();
+}
+
 MachineBasicBlock *
 V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                 MachineBasicBlock *BB) const {
