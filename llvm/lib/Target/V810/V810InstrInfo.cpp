@@ -348,7 +348,18 @@ static V810II::CCFlags PSWFlagsRequiredForCondCode(V810CC::CondCodes CC) {
   case V810CC::CC_GT:
     return V810II::V810_OVFlag | V810II::V810_SFlag | V810II::V810_ZFlag;
   }
+}
 
+static bool tryGetCondCode(MachineInstr &MI, V810CC::CondCodes &CC) {
+  switch (MI.getOpcode()) {
+  default: return false;
+  case V810::Bcond:
+    CC = (V810CC::CondCodes) MI.getOperand(0).getImm();
+    return true;
+  case V810::SETF:
+    CC = (V810CC::CondCodes) MI.getOperand(1).getImm();
+    return true;
+  }
 }
 
 bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
@@ -396,9 +407,8 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
     // Don't remove it unless we're sure that nothing uses those extra flags.
     bool FlagsMayLiveOut = true;
     for (MachineInstr &Instr : make_range(std::next(MachineBasicBlock::iterator(MI)), MI.getParent()->end())) {
-      if (Instr.hasRegisterImplicitUseOperand(V810::SR5)) {
-        // The two operations which implicitly use PSW also take a cond code as operand 0.
-        auto CC = (V810CC::CondCodes) Instr.getOperand(0).getImm();
+      V810CC::CondCodes CC;
+      if (tryGetCondCode(Instr, CC)) {
         V810II::CCFlags FlagsRequired = PSWFlagsRequiredForCondCode(CC);
         if ((FlagsRequired & FlagsDefined) != FlagsRequired) {
           // We care about a flag which doesn't get set without this CMP.
