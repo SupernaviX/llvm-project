@@ -11,6 +11,26 @@ namespace llvm {
 
 class V810Subtarget;
 
+namespace V810II {
+// V810 Instruction Flags. Keep this in sync with V810InstrFormats.td
+enum CCFlags {
+  V810_NoFlags = 0x0,
+  V810_ZFlag = 0x1,
+  V810_SFlag = 0x2,
+  V810_CYFlag = 0x4,
+  V810_OVFlag = 0x8,
+  V810_AllFlags = 0xf
+};
+
+inline CCFlags operator|(CCFlags a, CCFlags b) {
+  return static_cast<CCFlags>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline CCFlags operator&(CCFlags a, CCFlags b) {
+  return static_cast<CCFlags>(static_cast<int>(a) & static_cast<int>(b));
+}
+}
+
 class V810InstrInfo : public V810GenInstrInfo {
   const V810RegisterInfo RI;
   virtual void anchor();
@@ -66,6 +86,13 @@ class V810InstrInfo : public V810GenInstrInfo {
   reverseBranchCondition(SmallVectorImpl<MachineOperand> &Cond) const override;
 
   bool isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) const override;
+
+  bool analyzeCompare(const MachineInstr &MI, Register &SrcReg,
+                      Register &SrcReg2, int64_t &CmpMask,
+                      int64_t &CmpValue) const override;
+  bool optimizeCompareInstr(MachineInstr &CmpInstr, Register SrcReg,
+                            Register SrcReg2, int64_t CmpMask, int64_t CmpValue,
+                            const MachineRegisterInfo *MRI) const override;
 
   bool isUnpredicatedTerminatorBesidesNop(const MachineInstr &MI) const;
 

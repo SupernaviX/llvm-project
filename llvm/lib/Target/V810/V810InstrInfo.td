@@ -261,7 +261,7 @@ let isMoveImm = 1, isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 i
 }
 
 // Bit ops
-let Defs = [SR5] in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   def ANDI : FormatV<0b101101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "andi $imm, $r1, $r2",
@@ -359,7 +359,7 @@ let Defs = [SR5] in {
 
 // Maths
 
-let Defs = [SR5] in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1, V810_CYFlag = 1, V810_OVFlag = 1 in {
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
@@ -389,18 +389,20 @@ let Defs = [SR5] in {
     [WriteALU]
   >;
 
-  def CMPri : FormatII<0b010011,
-    (outs), (ins GenRegs:$r2, simm5Op:$imm),
-    "cmp $imm, $r2",
-    [(V810CMP GenRegs:$r2, simm5:$imm)],
-    [WriteALU]
-  >;
-  def CMPrr : FormatI<0b000011,
-    (outs), (ins GenRegs:$r2, GenRegs:$r1),
-    "cmp $r1, $r2",
-    [(V810CMP GenRegs:$r2, GenRegs:$r1)],
-    [WriteALU]
-  >;
+  let isCompare = 1 in {
+    def CMPri : FormatII<0b010011,
+      (outs), (ins GenRegs:$r2, simm5Op:$imm),
+      "cmp $imm, $r2",
+      [(V810CMP GenRegs:$r2, simm5:$imm)],
+      [WriteALU]
+    >;
+    def CMPrr : FormatI<0b000011,
+      (outs), (ins GenRegs:$r2, GenRegs:$r1),
+      "cmp $r1, $r2",
+      [(V810CMP GenRegs:$r2, GenRegs:$r1)],
+      [WriteALU]
+    >;
+  }
 
   // Support loading addresses into a register
   let isCodeGenOnly = 1 in
@@ -413,7 +415,7 @@ let Defs = [SR5] in {
 }
 
 // These hi+lo instructions have return values handled in code
-let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_", V810_ZFlag = 1, V810_SFlag = 1 in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mul $r1, $r2",
@@ -427,7 +429,7 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
     [WriteIMul]
   >;
 }
-let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_", V810_ZFlag = 1, V810_SFlag = 1 in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "div $r1, $r2",
@@ -443,7 +445,7 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
 }
 
 // Float ops
-let Defs = [SR5] in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   let Constraints = "$r2 = $r2_" in
   def ADDF_S : FormatVII<0b000100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
@@ -460,6 +462,7 @@ let Defs = [SR5] in {
     [WriteFPU]
   >;
 
+  let isCompare = 1 in
   def CMPF_S : FormatVII<0b000000,
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmpf.s $r1, $r2",

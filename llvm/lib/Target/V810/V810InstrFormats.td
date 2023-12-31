@@ -7,6 +7,16 @@ class InstV810<dag outs, dag ins, string asmstr, list<dag> pattern> : Instructio
   let Pattern = pattern;
 
   let DecoderNamespace = "V810";
+
+  bit V810_ZFlag = 0;
+  bit V810_SFlag = 0;
+  bit V810_OVFlag = 0;
+  bit V810_CYFlag = 0;
+
+  let TSFlags{0} = V810_ZFlag;
+  let TSFlags{1} = V810_SFlag;
+  let TSFlags{2} = V810_OVFlag;
+  let TSFlags{3} = V810_CYFlag;
 }
 
 // register-to-register

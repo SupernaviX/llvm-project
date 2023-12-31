@@ -298,6 +298,147 @@ bool V810InstrInfo::isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) co
   }
 }
 
+bool V810InstrInfo::analyzeCompare(const MachineInstr &MI, Register &SrcReg,
+                                   Register &SrcReg2, int64_t &CmpMask,
+                                   int64_t &CmpValue) const {
+  switch (MI.getOpcode()) {
+  default:
+    llvm_unreachable("Unknown compare instruction!");
+  case V810::CMPrr:
+  case V810::CMPF_S:
+    SrcReg = MI.getOperand(0).getReg();
+    SrcReg2 = MI.getOperand(1).getReg();
+    CmpMask = 0;
+    CmpValue = 0;
+    return true;
+  case V810::CMPri:
+    SrcReg = MI.getOperand(0).getReg();
+    SrcReg2 = Register();
+    CmpMask = 0x1f;
+    CmpValue = MI.getOperand(1).getImm();
+    return true;
+  }
+}
+
+static V810II::CCFlags PSWFlagsRequiredForCondCode(V810CC::CondCodes CC) {
+  switch (CC) {
+  default: llvm_unreachable("Unrecognized condition code");
+  case V810CC::CC_V:
+  case V810CC::CC_NV:
+    return V810II::V810_OVFlag;
+  case V810CC::CC_C:
+  case V810CC::CC_NC:
+    return V810II::V810_CYFlag;
+  case V810CC::CC_E:
+  case V810CC::CC_NE:
+    return V810II::V810_ZFlag;
+  case V810CC::CC_NH:
+  case V810CC::CC_H:
+    return V810II::V810_CYFlag | V810II::V810_ZFlag;
+  case V810CC::CC_N:
+  case V810CC::CC_P:
+    return V810II::V810_SFlag;
+  case V810CC::CC_BR:
+  case V810CC::CC_NOP:
+    return V810II::V810_NoFlags;
+  case V810CC::CC_LT:
+  case V810CC::CC_GE:
+    return V810II::V810_OVFlag | V810II::V810_SFlag;
+  case V810CC::CC_LE:
+  case V810CC::CC_GT:
+    return V810II::V810_OVFlag | V810II::V810_SFlag | V810II::V810_ZFlag;
+  }
+}
+
+static bool tryGetCondCode(MachineInstr &MI, V810CC::CondCodes &CC) {
+  switch (MI.getOpcode()) {
+  default: return false;
+  case V810::Bcond:
+    CC = (V810CC::CondCodes) MI.getOperand(0).getImm();
+    return true;
+  case V810::SETF:
+    CC = (V810CC::CondCodes) MI.getOperand(1).getImm();
+    return true;
+  }
+}
+
+bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
+                                         Register SrcReg2, int64_t CmpMask,
+                                         int64_t CmpValue, const MachineRegisterInfo *MRI) const {
+  // We only optimize CMP 0, <reg>
+  if (CmpMask == 0 || CmpValue != 0) {
+    return false;
+  }
+
+  // Find the operation which set <reg>. 
+  MachineInstr *SrcRegDef = NULL;
+  auto From = std::next(MachineBasicBlock::reverse_iterator(MI));
+  for (MachineBasicBlock *BB = MI.getParent();;) {
+    for (MachineInstr &Inst : make_range(From, BB->rend())) {
+      if (Inst.definesRegister(SrcReg)) {
+        SrcRegDef = &Inst;
+        break;
+      }
+      if (Inst.definesRegister(V810::SR5)) {
+        // Something besides the operation we cared about has messed with PSW.
+        // This compare-with-zero is not a no-op after all.
+        // TODO: maybe possible to rearrange instructions to MAKE it a no-op
+        return false;
+      }
+    }
+    if (SrcRegDef) {
+      break;
+    }
+    // <reg> was set in an earlier basic block.
+    // If control flow is linear, keep trying to find it.
+    if (BB->pred_size() != 1) {
+      return false;
+    }
+    BB = *BB->pred_begin();
+    From = BB->rbegin();
+  }
+
+  // Look up which PSW flags that operation sets.
+  assert(SrcRegDef);
+  V810II::CCFlags FlagsDefined = V810II::V810_AllFlags & (V810II::CCFlags) SrcRegDef->getDesc().TSFlags;
+
+  if (FlagsDefined != V810II::V810_AllFlags) {
+    // This CMP isn't a complete no-op; it sets PSW flags which the original operation hadn't.
+    // Don't remove it unless we're sure that nothing uses those extra flags.
+    bool FlagsMayLiveOut = true;
+    for (MachineInstr &Instr : make_range(std::next(MachineBasicBlock::iterator(MI)), MI.getParent()->end())) {
+      V810CC::CondCodes CC;
+      if (tryGetCondCode(Instr, CC)) {
+        V810II::CCFlags FlagsRequired = PSWFlagsRequiredForCondCode(CC);
+        if ((FlagsRequired & FlagsDefined) != FlagsRequired) {
+          // We care about a flag which doesn't get set without this CMP.
+          return false;
+        }
+      }
+      if (Instr.definesRegister(V810::SR5)) {
+        // PSW got clobbered, so the old value doesn't matter beyond this point.
+        FlagsMayLiveOut = false;
+        break;
+      }
+    }
+
+    // If PSW is live-out, some later basic block might on those extra flags.
+    if (FlagsMayLiveOut) {
+      for (MachineBasicBlock *Successor : MI.getParent()->successors()) {
+        if (Successor->isLiveIn(V810::SR5)) {
+          // Figuring out HOW this successor uses PSW would take graph traversal.
+          // Just skip the optimization instead of doing that.
+          return false;
+        }
+      }
+    }
+  }
+
+  // Finally, we're sure that this cmp is unnecessary.
+  MI.eraseFromParent();
+  return true;
+}
+
 unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   if (MI.isInlineAsm()) {
     const MachineFunction *MF = MI.getParent()->getParent();
