@@ -332,43 +332,75 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
   if (CmpMask == 0 || CmpValue != 0) {
     return false;
   }
-  auto BB = MI.getParent();
-  MachineBasicBlock::reverse_iterator RI = std::next(MI.getReverseIterator());
-  while (RI != BB->rend() && !RI->definesRegister(SrcReg)) {
-    if (RI->definesRegister(V810::SR5)) {
-      // Something besides the operation we cared about has messed with the PSW.
-      // This compare-with-zero is not a no-op after all.
-      // TODO: maybe possible to rearrange instructions to MAKE it a no-op
+
+  // Find the operation which set <reg>. 
+  MachineInstr *SrcRegDef = NULL;
+  auto From = std::next(MachineBasicBlock::reverse_iterator(MI));
+  for (MachineBasicBlock *BB = MI.getParent();;) {
+    for (MachineInstr &Inst : make_range(From, BB->rend())) {
+      if (Inst.definesRegister(SrcReg)) {
+        SrcRegDef = &Inst;
+        break;
+      }
+      if (Inst.definesRegister(V810::SR5)) {
+        // Something besides the operation we cared about has messed with PSW.
+        // This compare-with-zero is not a no-op after all.
+        // TODO: maybe possible to rearrange instructions to MAKE it a no-op
+        return false;
+      }
+    }
+    if (SrcRegDef) {
+      break;
+    }
+    // <reg> was set in an earlier basic block.
+    // If control flow is linear, keep trying to find it.
+    if (BB->pred_size() != 1) {
       return false;
     }
-    RI = std::next(RI);
+    BB = *BB->pred_begin();
+    From = BB->rbegin();
   }
-  if (RI == BB->rend()) {
-    // Whichever operation we care about was performed in a different basic block.
-    // TODO: would tracking across basic blocks be useful?
-    return false;
-  }
+
   // Look up which PSW flags that operation sets.
-  auto FlagsDefined = (V810II::CCFlags) RI->getDesc().TSFlags;
+  assert(SrcRegDef);
+  auto FlagsDefined = (V810II::CCFlags) V810II::V810_AllFlags & SrcRegDef->getDesc().TSFlags;
 
-  // Now, find any PSW flags which must be set to satisfy relevant condition(s).
-  auto FlagsRequired = V810II::V810_NoFlags;
-  MachineBasicBlock::iterator FI = std::next(MI.getIterator());
-  while (FI != BB->end() && !FI->definesRegister(V810::SR5)) {
-    if (FI->hasRegisterImplicitUseOperand(V810::SR5)) {
-      // The two operations which implicitly use PSW also take a cond code as operand 0.
-      auto CC = (V810CC::CondCodes) FI->getOperand(0).getImm();
-      FlagsRequired = (V810II::CCFlags) (FlagsRequired | PSWFlagsRequiredForCondCode(CC));
+  if (FlagsDefined != V810II::V810_AllFlags) {
+    // This CMP isn't a complete no-op; it sets PSW flags which the original operation hadn't.
+    // Don't remove it unless we're sure that nothing uses those extra flags.
+    bool FlagsMayLiveOut = true;
+    for (MachineInstr &Instr : make_range(std::next(MachineBasicBlock::iterator(MI)), MI.getParent()->end())) {
+      if (Instr.hasRegisterImplicitUseOperand(V810::SR5)) {
+        // The two operations which implicitly use PSW also take a cond code as operand 0.
+        auto CC = (V810CC::CondCodes) Instr.getOperand(0).getImm();
+        V810II::CCFlags FlagsRequired = PSWFlagsRequiredForCondCode(CC);
+        if ((FlagsRequired & FlagsDefined) != FlagsRequired) {
+          // We care about a flag which doesn't get set without this CMP.
+          return false;
+        }
+      }
+      if (Instr.definesRegister(V810::SR5)) {
+        // PSW got clobbered, so the old value doesn't matter beyond this point.
+        FlagsMayLiveOut = false;
+        break;
+      }
     }
-    FI = std::next(FI);
+
+    // If PSW is live-out, some later basic block might on those extra flags.
+    if (FlagsMayLiveOut) {
+      for (MachineBasicBlock *Successor : MI.getParent()->successors()) {
+        if (Successor->isLiveIn(V810::SR5)) {
+          // Figuring out HOW this successor uses PSW would take graph traversal.
+          // Just skip the optimization instead of doing that.
+          return false;
+        }
+      }
+    }
   }
 
-  // If every flag we care about was already set, we don't need this CMP.
-  if ((FlagsRequired & FlagsDefined) == FlagsRequired) {
-    MI.eraseFromParent();
-    return true;
-  }
-  return false;
+  // Finally, we're sure that this cmp is unnecessary.
+  MI.eraseFromParent();
+  return true;
 }
 
 unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
