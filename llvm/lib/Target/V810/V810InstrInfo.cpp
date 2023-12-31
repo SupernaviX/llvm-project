@@ -321,8 +321,34 @@ bool V810InstrInfo::analyzeCompare(const MachineInstr &MI, Register &SrcReg,
 }
 
 static V810II::CCFlags PSWFlagsRequiredForCondCode(V810CC::CondCodes CC) {
-  // TODO: this is too strict
-  return V810II::V810_AllFlags;
+  switch (CC) {
+  default: llvm_unreachable("Unrecognized condition code");
+  case V810CC::CC_V:
+  case V810CC::CC_NV:
+    return V810II::V810_OVFlag;
+  case V810CC::CC_C:
+  case V810CC::CC_NC:
+    return V810II::V810_CYFlag;
+  case V810CC::CC_E:
+  case V810CC::CC_NE:
+    return V810II::V810_ZFlag;
+  case V810CC::CC_NH:
+  case V810CC::CC_H:
+    return V810II::V810_CYFlag | V810II::V810_ZFlag;
+  case V810CC::CC_N:
+  case V810CC::CC_P:
+    return V810II::V810_SFlag;
+  case V810CC::CC_BR:
+  case V810CC::CC_NOP:
+    return V810II::V810_NoFlags;
+  case V810CC::CC_LT:
+  case V810CC::CC_GE:
+    return V810II::V810_OVFlag | V810II::V810_SFlag;
+  case V810CC::CC_LE:
+  case V810CC::CC_GT:
+    return V810II::V810_OVFlag | V810II::V810_SFlag | V810II::V810_ZFlag;
+  }
+
 }
 
 bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
@@ -363,7 +389,7 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
 
   // Look up which PSW flags that operation sets.
   assert(SrcRegDef);
-  auto FlagsDefined = (V810II::CCFlags) V810II::V810_AllFlags & SrcRegDef->getDesc().TSFlags;
+  V810II::CCFlags FlagsDefined = V810II::V810_AllFlags & (V810II::CCFlags) SrcRegDef->getDesc().TSFlags;
 
   if (FlagsDefined != V810II::V810_AllFlags) {
     // This CMP isn't a complete no-op; it sets PSW flags which the original operation hadn't.

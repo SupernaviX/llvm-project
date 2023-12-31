@@ -15,12 +15,20 @@ namespace V810II {
 // V810 Instruction Flags. Keep this in sync with V810InstrFormats.td
 enum CCFlags {
   V810_NoFlags = 0x0,
-  V810_SetsZ = 0x1,
-  V810_SetsS = 0x2,
-  V810_SetsCY = 0x4,
-  V810_SetsOV = 0x8,
+  V810_ZFlag = 0x1,
+  V810_SFlag = 0x2,
+  V810_CYFlag = 0x4,
+  V810_OVFlag = 0x8,
   V810_AllFlags = 0xf
 };
+
+inline CCFlags operator|(CCFlags a, CCFlags b) {
+  return static_cast<CCFlags>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline CCFlags operator&(CCFlags a, CCFlags b) {
+  return static_cast<CCFlags>(static_cast<int>(a) & static_cast<int>(b));
+}
 }
 
 class V810InstrInfo : public V810GenInstrInfo {

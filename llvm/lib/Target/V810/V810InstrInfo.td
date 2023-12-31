@@ -261,7 +261,7 @@ let isMoveImm = 1, isMoveReg = 1, isReMaterializable = 1, isAsCheapAsAMove = 1 i
 }
 
 // Bit ops
-let Defs = [SR5] in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   def ANDI : FormatV<0b101101,
     (outs GenRegs:$r2), (ins GenRegs:$r1, uimm16Op:$imm),
     "andi $imm, $r1, $r2",
@@ -359,7 +359,7 @@ let Defs = [SR5] in {
 
 // Maths
 
-let Defs = [SR5], V810_SetsZ = 1, V810_SetsS = 1, V810_SetsCY = 1, V810_SetsOV = 1 in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1, V810_CYFlag = 1, V810_OVFlag = 1 in {
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
@@ -415,7 +415,7 @@ let Defs = [SR5], V810_SetsZ = 1, V810_SetsS = 1, V810_SetsCY = 1, V810_SetsOV =
 }
 
 // These hi+lo instructions have return values handled in code
-let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_", V810_ZFlag = 1, V810_SFlag = 1 in {
   def MUL : FormatI<0b001000,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "mul $r1, $r2",
@@ -429,7 +429,7 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
     [WriteIMul]
   >;
 }
-let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
+let Defs = [R30, SR5], Constraints = "$r2 = $r2_", V810_ZFlag = 1, V810_SFlag = 1 in {
   def DIV : FormatI<0b001001,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
     "div $r1, $r2",
@@ -445,7 +445,7 @@ let Defs = [R30, SR5], Constraints = "$r2 = $r2_" in {
 }
 
 // Float ops
-let Defs = [SR5] in {
+let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   let Constraints = "$r2 = $r2_" in
   def ADDF_S : FormatVII<0b000100,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
