@@ -389,20 +389,20 @@ let Defs = [SR5], V810_SetsZ = 1, V810_SetsS = 1, V810_SetsCY = 1, V810_SetsOV =
     [WriteALU]
   >;
 
-  // CMPri uses a custom inserter because it may be possible to skip it
-  let usesCustomInserter = 1 in
-  def CMPri : FormatII<0b010011,
-    (outs), (ins GenRegs:$r2, simm5Op:$imm),
-    "cmp $imm, $r2",
-    [(V810CMP GenRegs:$r2, simm5:$imm)],
-    [WriteALU]
-  >;
-  def CMPrr : FormatI<0b000011,
-    (outs), (ins GenRegs:$r2, GenRegs:$r1),
-    "cmp $r1, $r2",
-    [(V810CMP GenRegs:$r2, GenRegs:$r1)],
-    [WriteALU]
-  >;
+  let isCompare = 1 in {
+    def CMPri : FormatII<0b010011,
+      (outs), (ins GenRegs:$r2, simm5Op:$imm),
+      "cmp $imm, $r2",
+      [(V810CMP GenRegs:$r2, simm5:$imm)],
+      [WriteALU]
+    >;
+    def CMPrr : FormatI<0b000011,
+      (outs), (ins GenRegs:$r2, GenRegs:$r1),
+      "cmp $r1, $r2",
+      [(V810CMP GenRegs:$r2, GenRegs:$r1)],
+      [WriteALU]
+    >;
+  }
 
   // Support loading addresses into a register
   let isCodeGenOnly = 1 in
@@ -462,6 +462,7 @@ let Defs = [SR5] in {
     [WriteFPU]
   >;
 
+  let isCompare = 1 in
   def CMPF_S : FormatVII<0b000000,
     (outs), (ins GenRegs:$r2, GenRegs:$r1),
     "cmpf.s $r1, $r2",

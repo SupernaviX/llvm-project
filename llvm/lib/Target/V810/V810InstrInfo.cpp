@@ -298,6 +298,79 @@ bool V810InstrInfo::isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) co
   }
 }
 
+bool V810InstrInfo::analyzeCompare(const MachineInstr &MI, Register &SrcReg,
+                                   Register &SrcReg2, int64_t &CmpMask,
+                                   int64_t &CmpValue) const {
+  switch (MI.getOpcode()) {
+  default:
+    llvm_unreachable("Unknown compare instruction!");
+  case V810::CMPrr:
+  case V810::CMPF_S:
+    SrcReg = MI.getOperand(0).getReg();
+    SrcReg2 = MI.getOperand(1).getReg();
+    CmpMask = 0;
+    CmpValue = 0;
+    return true;
+  case V810::CMPri:
+    SrcReg = MI.getOperand(0).getReg();
+    SrcReg2 = Register();
+    CmpMask = 0x1f;
+    CmpValue = MI.getOperand(1).getImm();
+    return true;
+  }
+}
+
+static V810II::CCFlags PSWFlagsRequiredForCondCode(V810CC::CondCodes CC) {
+  // TODO: this is too strict
+  return V810II::V810_AllFlags;
+}
+
+bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
+                                         Register SrcReg2, int64_t CmpMask,
+                                         int64_t CmpValue, const MachineRegisterInfo *MRI) const {
+  // We only optimize CMP 0, <reg>
+  if (CmpMask == 0 || CmpValue != 0) {
+    return false;
+  }
+  auto BB = MI.getParent();
+  MachineBasicBlock::reverse_iterator RI = std::next(MI.getReverseIterator());
+  while (RI != BB->rend() && !RI->definesRegister(SrcReg)) {
+    if (RI->definesRegister(V810::SR5)) {
+      // Something besides the operation we cared about has messed with the PSW.
+      // This compare-with-zero is not a no-op after all.
+      // TODO: maybe possible to rearrange instructions to MAKE it a no-op
+      return false;
+    }
+    RI = std::next(RI);
+  }
+  if (RI == BB->rend()) {
+    // Whichever operation we care about was performed in a different basic block.
+    // TODO: would tracking across basic blocks be useful?
+    return false;
+  }
+  // Look up which PSW flags that operation sets.
+  auto FlagsDefined = (V810II::CCFlags) RI->getDesc().TSFlags;
+
+  // Now, find any PSW flags which must be set to satisfy relevant condition(s).
+  auto FlagsRequired = V810II::V810_NoFlags;
+  MachineBasicBlock::iterator FI = std::next(MI.getIterator());
+  while (FI != BB->end() && !FI->definesRegister(V810::SR5)) {
+    if (FI->hasRegisterImplicitUseOperand(V810::SR5)) {
+      // The two operations which implicitly use PSW also take a cond code as operand 0.
+      auto CC = (V810CC::CondCodes) FI->getOperand(0).getImm();
+      FlagsRequired = (V810II::CCFlags) (FlagsRequired | PSWFlagsRequiredForCondCode(CC));
+    }
+    FI = std::next(FI);
+  }
+
+  // If every flag we care about was already set, we don't need this CMP.
+  if ((FlagsRequired & FlagsDefined) == FlagsRequired) {
+    MI.eraseFromParent();
+    return true;
+  }
+  return false;
+}
+
 unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   if (MI.isInlineAsm()) {
     const MachineFunction *MF = MI.getParent()->getParent();

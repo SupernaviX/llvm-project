@@ -79,6 +79,13 @@ class V810InstrInfo : public V810GenInstrInfo {
 
   bool isBranchOffsetInRange(unsigned BranchOpc, int64_t Offset) const override;
 
+  bool analyzeCompare(const MachineInstr &MI, Register &SrcReg,
+                      Register &SrcReg2, int64_t &CmpMask,
+                      int64_t &CmpValue) const override;
+  bool optimizeCompareInstr(MachineInstr &CmpInstr, Register SrcReg,
+                            Register SrcReg2, int64_t CmpMask, int64_t CmpValue,
+                            const MachineRegisterInfo *MRI) const override;
+
   bool isUnpredicatedTerminatorBesidesNop(const MachineInstr &MI) const;
 
 public:
