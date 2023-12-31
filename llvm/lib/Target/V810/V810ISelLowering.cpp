@@ -825,10 +825,65 @@ V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                 MachineBasicBlock *BB) const {
   switch (MI.getOpcode()) {
   default: llvm_unreachable("No custom inserter found for instruction");
+  case V810::CMPri:
+    return ExpandCompare(MI, BB);
   case V810::SELECT_CC_Int:
   case V810::SELECT_CC_Float:
     return ExpandSelectCC(MI, BB);
   }  
+}
+
+static V810II::CCFlags PSWFlagsRequiredForCondCode(V810CC::CondCodes CC) {
+  // TODO: this is too strict
+  return V810II::V810_AllFlags;
+}
+
+// "Expand" `CMP 0, reg` into nothing, if it's pointless
+// TODO: this would be more appropriate as an optimization pass.
+MachineBasicBlock *
+V810TargetLowering::ExpandCompare(MachineInstr &MI, MachineBasicBlock *BB) const {
+  if (!MI.getOperand(1).isImm() || MI.getOperand(1).getImm() != 0) {
+    return BB;
+  }
+
+  // Now we know this is comparing the result of some operation with 0.
+  // Find that operation.
+  auto RegToCompare = MI.getOperand(0).getReg();
+  MachineBasicBlock::reverse_iterator RI = std::next(MI.getReverseIterator());
+  while (RI != BB->rend() && !RI->definesRegister(RegToCompare)) {
+    if (RI->definesRegister(V810::SR5)) {
+      // Something besides the operation we cared about has messed with the PSW.
+      // This compare-with-zero is not a no-op after all.
+      // TODO: maybe possible to rearrange instructions to MAKE it a no-op
+      return BB;
+    }
+    RI = std::next(RI);
+  }
+  if (RI == BB->rend()) {
+    // Whichever operation we care about was performed in a different basic block.
+    // TODO: would tracking across basic blocks be useful?
+    return BB;
+  }
+  // Look up which PSW flags that operation sets.
+  auto FlagsDefined = (V810II::CCFlags) RI->getDesc().TSFlags;
+
+  // Now, find any PSW flags which must be set to satisfy relevant condition(s).
+  auto FlagsRequired = V810II::V810_NoFlags;
+  MachineBasicBlock::iterator FI = std::next(MI.getIterator());
+  while (FI != BB->end() && !FI->definesRegister(V810::SR5)) {
+    if (FI->hasRegisterImplicitUseOperand(V810::SR5)) {
+      // The two operations which implicitly use PSW also take a cond code as operand 0.
+      auto CC = (V810CC::CondCodes) FI->getOperand(0).getImm();
+      FlagsRequired = (V810II::CCFlags) (FlagsRequired | PSWFlagsRequiredForCondCode(CC));
+    }
+    FI = std::next(FI);
+  }
+
+  // If every flag we care about was already set, we don't need this CMP.
+  if ((FlagsRequired & FlagsDefined) == FlagsRequired) {
+    MI.eraseFromParent();
+  }
+  return BB;
 }
 
 // This is called after LowerSELECT_CC.

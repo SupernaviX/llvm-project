@@ -79,6 +79,8 @@ namespace llvm {
     EmitInstrWithCustomInserter(MachineInstr &MI,
                                 MachineBasicBlock *MBB) const override;
     MachineBasicBlock *
+    ExpandCompare(MachineInstr &MI, MachineBasicBlock *MBB) const;
+    MachineBasicBlock *
     ExpandSelectCC(MachineInstr &MI, MachineBasicBlock *MBB) const;
 
     AtomicExpansionKind shouldExpandAtomicRMWInIR(AtomicRMWInst *AI) const override;

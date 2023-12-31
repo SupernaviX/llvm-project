@@ -359,7 +359,7 @@ let Defs = [SR5] in {
 
 // Maths
 
-let Defs = [SR5] in {
+let Defs = [SR5], V810_SetsZ = 1, V810_SetsS = 1, V810_SetsCY = 1, V810_SetsOV = 1 in {
   let Constraints = "$r2 = $r1" in
   def ADDri : FormatII<0b010001,
     (outs GenRegs:$r2), (ins GenRegs:$r1, simm5Op:$imm),
@@ -389,6 +389,8 @@ let Defs = [SR5] in {
     [WriteALU]
   >;
 
+  // CMPri uses a custom inserter because it may be possible to skip it
+  let usesCustomInserter = 1 in
   def CMPri : FormatII<0b010011,
     (outs), (ins GenRegs:$r2, simm5Op:$imm),
     "cmp $imm, $r2",

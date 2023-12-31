@@ -11,6 +11,18 @@ namespace llvm {
 
 class V810Subtarget;
 
+namespace V810II {
+// V810 Instruction Flags. Keep this in sync with V810InstrFormats.td
+enum CCFlags {
+  V810_NoFlags = 0x0,
+  V810_SetsZ = 0x1,
+  V810_SetsS = 0x2,
+  V810_SetsCY = 0x4,
+  V810_SetsOV = 0x8,
+  V810_AllFlags = 0xf
+};
+}
+
 class V810InstrInfo : public V810GenInstrInfo {
   const V810RegisterInfo RI;
   virtual void anchor();
