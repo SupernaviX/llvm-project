@@ -22,6 +22,8 @@ public:
                                 MachineBasicBlock::iterator I) const override;
 
   bool hasFP(const MachineFunction &MF) const override;
+  void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
+                            RegScavenger *RS) const override;
 private:
   void moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
                         MachineBasicBlock::iterator MBBI, int bytes) const;
