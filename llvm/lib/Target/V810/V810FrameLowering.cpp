@@ -29,6 +29,9 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
   int bytes = (int) MF.getFrameInfo().getStackSize();
   MachineBasicBlock::iterator MBBI = MBB.begin();
   moveStackPointer(MF, MBB, MBBI, -bytes);
+
+  assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
+
   if (hasFP(MF)) {
     // Find the instruction where we store FP...
     while (MBBI != MBB.getFirstTerminator() && !isFPSave(MBBI)) {
@@ -43,12 +46,13 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
 
     // and set FP to the address of that frame index.
     ++MBBI;
+
     DebugLoc dl;
-    BuildMI(MBB, MBBI, dl, MF.getSubtarget().getInstrInfo()->get(V810::MOVEA), V810::R2)
+    const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+
+    BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R2)
       .addFrameIndex(FPIndex).addImm(0).setMIFlag(MachineInstr::FrameSetup);
   }
-
-  assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
 }
 
 void
