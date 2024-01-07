@@ -80,7 +80,6 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 
 bool
 V810FrameLowering::hasFP(const MachineFunction &MF) const {
-  const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
          MFI.hasVarSizedObjects() ||
@@ -93,6 +92,9 @@ V810FrameLowering::determineCalleeSaves(MachineFunction &MF, BitVector &SavedReg
   if (hasFP(MF)) {
     // If we need to use FP, we always store the old value
     SavedRegs.set(V810::R2);
+    // And even in leaf functions, store LP for ease of debugging.
+    // (In non-leaf functions, it already had to be saved anyway)
+    SavedRegs.set(V810::R31);
   }
 }
 
