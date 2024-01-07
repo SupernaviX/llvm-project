@@ -47,6 +47,8 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
     BuildMI(MBB, MBBI, dl, MF.getSubtarget().getInstrInfo()->get(V810::MOVEA), V810::R2)
       .addFrameIndex(FPIndex).addImm(0).setMIFlag(MachineInstr::FrameSetup);
   }
+
+  assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
 }
 
 void
@@ -81,7 +83,7 @@ V810FrameLowering::hasFP(const MachineFunction &MF) const {
   const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
-         RegInfo->hasStackRealignment(MF) || MFI.hasVarSizedObjects() ||
+         MFI.hasVarSizedObjects() ||
          MFI.isFrameAddressTaken();
 }
 
