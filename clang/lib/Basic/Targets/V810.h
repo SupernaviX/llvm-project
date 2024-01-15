@@ -17,7 +17,7 @@ class LLVM_LIBRARY_VISIBILITY V810TargetInfo : public TargetInfo {
 public:
   V810TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
     : TargetInfo(Triple) {
-      resetDataLayout("e-p:32:32-i32:32-f32:32-a:0:32-n32:32-S32");
+      resetDataLayout("e-p:32:32-i32:32-i64:32-f32:32-a:0:32-n32:32-S32");
       MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
   }
 
