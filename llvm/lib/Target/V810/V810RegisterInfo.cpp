@@ -46,9 +46,9 @@ V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   Reserved.set(V810::R0); // zero register
   Reserved.set(V810::R1); // useful for ASM things
-  if (getFrameLowering(MF)->hasFP(MF)) {
+  // if (getFrameLowering(MF)->hasFP(MF)) {
     Reserved.set(V810::R2); // frame pointer
-  }
+  // }
   Reserved.set(V810::R3); // stack pointer
   Reserved.set(V810::R4); // global pointer
   Reserved.set(V810::R31); // return address
