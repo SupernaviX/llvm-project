@@ -21,6 +21,7 @@ public:
                                 MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I) const override;
 
+  bool hasReservedCallFrame(const MachineFunction &MF) const override;
   bool hasFP(const MachineFunction &MF) const override;
   void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
                             RegScavenger *RS) const override;

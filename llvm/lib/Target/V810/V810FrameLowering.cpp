@@ -83,6 +83,12 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 }
 
 bool
+V810FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
+  // Reserve call frame if there are no variable sized objects on the stack.
+  return !MF.getFrameInfo().hasVarSizedObjects();
+}
+
+bool
 V810FrameLowering::hasFP(const MachineFunction &MF) const {
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
