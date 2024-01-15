@@ -100,13 +100,13 @@ V810FrameLowering::hasFP(const MachineFunction &MF) const {
 void
 V810FrameLowering::determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs, RegScavenger *RS) const {
   TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
-  if (hasFP(MF)) {
+  //if (hasFP(MF)) {
     // If we need to use FP, we always store the old value
     SavedRegs.set(V810::R2);
     // And even in leaf functions, store LP for ease of debugging.
     // (In non-leaf functions, it already had to be saved anyway)
     SavedRegs.set(V810::R31);
-  }
+  //}
 }
 
 void
