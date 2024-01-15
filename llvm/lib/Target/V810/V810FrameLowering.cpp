@@ -30,6 +30,13 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
   MachineBasicBlock::iterator MBBI = MBB.begin();
   moveStackPointer(MF, MBB, MBBI, -bytes);
 
+  if (MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF)) {
+    MF.dump();
+    std::string Buffer;
+    raw_string_ostream Out(Buffer);
+    MF.print(Out);
+    llvm_unreachable(Buffer.c_str());
+  }
   assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
 
   if (hasFP(MF)) {
