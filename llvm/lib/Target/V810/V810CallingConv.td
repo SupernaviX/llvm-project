@@ -15,6 +15,6 @@ def RetCC_V810 : CallingConv<[
 
 // Don't mark R3 as callee-saved because it messes up stack frames
 // This is Fine because only stack frame code ever edits that
-def CSR : CalleeSavedRegs<(add R31, R2, R4, R5)>;
+def CSR : CalleeSavedRegs<(add R4, R5, R31, R2)>;
 def CSR_NoRegs : CalleeSavedRegs<(add)>;
-def CSR_Interrupt : CalleeSavedRegs<(add R2, (sequence "R%u", 4, 31))>;
+def CSR_Interrupt : CalleeSavedRegs<(add (sequence "R%u", 4, 31), R2)>;

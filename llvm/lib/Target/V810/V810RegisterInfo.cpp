@@ -46,6 +46,9 @@ V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   Reserved.set(V810::R0); // zero register
   Reserved.set(V810::R1); // useful for ASM things
+  if (getFrameLowering(MF)->hasFP(MF)) {
+    Reserved.set(V810::R2); // frame pointer
+  }
   Reserved.set(V810::R3); // stack pointer
   Reserved.set(V810::R4); // global pointer
   Reserved.set(V810::R31); // return address
@@ -58,17 +61,27 @@ V810RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                            RegScavenger *RS) const {
   MachineInstr &MI = *II;
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
-  MachineFunction &MF = *MI.getParent()->getParent();
+  MachineBasicBlock &MBB = *MI.getParent();
+  MachineFunction &MF = *MBB.getParent();
   const V810FrameLowering *TFI = getFrameLowering(MF);
+  const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
 
   Register FrameReg;
   int Offset = TFI->getFrameIndexReference(MF, FrameIndex, FrameReg).getFixed();
   Offset += MI.getOperand(FIOperandNum + 1).getImm();
 
-  MI.getOperand(FIOperandNum).ChangeToRegister(FrameReg, false);
-  MI.getOperand(FIOperandNum + 1).setImm(Offset);
-
-  return false;
+  if (MI.getOpcode() == V810::MOVEA && Offset == 0) {
+    assert(FIOperandNum == 1);
+    DebugLoc dl;
+    BuildMI(MBB, II, dl, TII->get(V810::MOVr), MI.getOperand(0).getReg())
+      .addReg(FrameReg);
+    II->removeFromParent();
+    return true;
+  } else {
+    MI.getOperand(FIOperandNum).ChangeToRegister(FrameReg, false);
+    MI.getOperand(FIOperandNum + 1).setImm(Offset);
+    return false;
+  }
 }
 
 Register

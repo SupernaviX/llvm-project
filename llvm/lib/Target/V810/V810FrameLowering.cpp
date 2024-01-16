@@ -15,13 +15,45 @@
 using namespace llvm;
 
 V810FrameLowering::V810FrameLowering()
-    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4)) {}
+    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4), false) {}
+
+static bool isFPSave(MachineBasicBlock::iterator I) {
+  return I->getOpcode() == V810::ST_W
+    && I->getOperand(0).isFI()
+    && I->getOperand(2).isReg()
+    && I->getOperand(2).getReg() == V810::R2;
+}
 
 void
 V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const {
   int bytes = (int) MF.getFrameInfo().getStackSize();
   MachineBasicBlock::iterator MBBI = MBB.begin();
   moveStackPointer(MF, MBB, MBBI, -bytes);
+
+  assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
+  assert(!MF.getFrameInfo().hasVarSizedObjects() && "Dynamic stack allocation is not supported");
+
+  if (hasFP(MF)) {
+    // Find the instruction where we store FP...
+    while (MBBI != MBB.getFirstTerminator() && !isFPSave(MBBI)) {
+      ++MBBI;
+      if (MBBI == MBB.getFirstTerminator()) {
+        // If we don't store FP, don't worry about it.
+        return;
+      }
+    }
+    // Grab the frame index where we stored it...
+    int FPIndex = MBBI->getOperand(0).getIndex();
+
+    // and set FP to the address of that frame index.
+    ++MBBI;
+
+    DebugLoc dl;
+    const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+
+    BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R2)
+      .addFrameIndex(FPIndex).addImm(0).setMIFlag(MachineInstr::FrameSetup);
+  }
 }
 
 void
@@ -52,8 +84,29 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 }
 
 bool
+V810FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
+  // Reserve call frame if there are no variable sized objects on the stack.
+  return !MF.getFrameInfo().hasVarSizedObjects();
+}
+
+bool
 V810FrameLowering::hasFP(const MachineFunction &MF) const {
-  return false;
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  return MF.getTarget().Options.DisableFramePointerElim(MF) ||
+         MFI.hasVarSizedObjects() ||
+         MFI.isFrameAddressTaken();
+}
+
+void
+V810FrameLowering::determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs, RegScavenger *RS) const {
+  TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
+  if (hasFP(MF)) {
+    // If we need to use FP, we always store the old value
+    SavedRegs.set(V810::R2);
+    // And even in leaf functions, store LP for ease of debugging.
+    // (In non-leaf functions, it already had to be saved anyway)
+    SavedRegs.set(V810::R31);
+  }
 }
 
 void

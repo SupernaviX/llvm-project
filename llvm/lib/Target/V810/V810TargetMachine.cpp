@@ -15,7 +15,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeV810Target() {
 }
 
 static std::string computeDataLayout(const Triple &T) {
-  return "e-p:32:32-i32:32-f32:32-n32:32";
+  return "e-p:32:32-i32:32-i64:32-f32:32-a:0:32-n32:32-S32";
 }
 
 V810TargetMachine::V810TargetMachine(

@@ -41,7 +41,7 @@ ABIArgInfo V810ABIInfo::classifyArgumentType(QualType Ty) const {
   if (Ty->isStructureOrClassType() && !mustBeIndirect(Ty)) {
     const std::optional<int> FieldCount = countLeafFields(Ty);
     if (FieldCount && *FieldCount <= MAX_FIELDS_PER_ARG) {
-      return ABIArgInfo::getDirect();
+      return ABIArgInfo::getDirect(CGT.ConvertType(Ty));
     }
   }
   return DefaultABIInfo::classifyArgumentType(Ty);
@@ -51,7 +51,7 @@ ABIArgInfo V810ABIInfo::classifyReturnType(QualType Ty) const {
   if (Ty->isStructureOrClassType()) {
     const std::optional<int> FieldCount = countLeafFields(Ty);
     if (FieldCount && *FieldCount <= MAX_FIELDS_PER_RETURN_VALUE) {
-      return ABIArgInfo::getDirect();
+      return ABIArgInfo::getDirect(CGT.ConvertType(Ty));
     }
   }
   return DefaultABIInfo::classifyReturnType(Ty);
