@@ -19,6 +19,12 @@ public:
     : TargetInfo(Triple) {
       resetDataLayout("e-p:32:32-i32:32-i64:32-f32:32-a:0:32-n32:32-S32");
       MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
+      DoubleAlign = 32;
+      LongAccumAlign = 32;
+      LongDoubleAlign = 32;
+      LongLongAlign = 32;
+      SuitableAlign = 32;
+      NewAlign = 32;
   }
 
   void getTargetDefines(const LangOptions &Opts, MacroBuilder &Builder) const override;
@@ -59,6 +65,10 @@ public:
     return CPU != CK_GENERIC;
   }
 
+  /// Whether target allows to overalign ABI-specified preferred alignment
+  bool allowsLargerPreferedTypeAlignment() const override { return false; }
+
+  bool hasBitIntType() const override { return true; }
 };
 }
 }

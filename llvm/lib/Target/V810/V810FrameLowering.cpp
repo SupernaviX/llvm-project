@@ -15,7 +15,7 @@
 using namespace llvm;
 
 V810FrameLowering::V810FrameLowering()
-    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4)) {}
+    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4), false) {}
 
 static bool isFPSave(MachineBasicBlock::iterator I) {
   return I->getOpcode() == V810::ST_W
@@ -31,6 +31,7 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
   moveStackPointer(MF, MBB, MBBI, -bytes);
 
   assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
+  assert(!MF.getFrameInfo().hasVarSizedObjects() && "Dynamic stack allocation is not supported");
 
   if (hasFP(MF)) {
     // Find the instruction where we store FP...
