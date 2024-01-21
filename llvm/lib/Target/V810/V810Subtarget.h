@@ -18,6 +18,7 @@ class V810Subtarget : public V810GenSubtargetInfo {
 private:
   bool IsNintendo;
   bool EnableGPRelativeRAM;
+  bool EnableAppRegisters;
 
   V810InstrInfo InstrInfo;
   V810TargetLowering TLInfo;
@@ -44,6 +45,8 @@ public:
   bool isNintendo() const { return IsNintendo; }
 
   bool enableGPRelativeRAM() const { return EnableGPRelativeRAM; }
+
+  bool enableAppRegisters() const { return EnableAppRegisters; }
 
   bool enableMachineScheduler() const override { return true; }
 

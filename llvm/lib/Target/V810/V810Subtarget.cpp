@@ -14,6 +14,7 @@ V810Subtarget &V810Subtarget::initializeSubtargetDependencies(const Triple &TT,
                                                               StringRef FS) {
   IsNintendo = false;
   EnableGPRelativeRAM = false;
+  EnableAppRegisters = false;
 
   std::string CPUName = std::string(CPU);
   if (CPUName.empty() && TT.getOSAndEnvironmentName() == "vb")

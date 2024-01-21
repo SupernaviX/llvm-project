@@ -4869,6 +4869,8 @@ def msoft_quad_float : Flag<["-"], "msoft-quad-float">, Group<m_sparc_Features_G
 let Flags = [TargetSpecific] in {
 def mgprel : Flag<["-"], "mgprel">, Group<m_v810_Features_Group>;
 def mno_gprel: Flag<["-"], "mno-gprel">, Group<m_v810_Features_Group>;
+def mapp_regs: Flag<["-"], "mapp-regs">, Group<m_v810_Features_Group>;
+def mno_app_regs: Flag<["-"], "mno-app-regs">, Group<m_v810_Features_Group>;
 } // let Flags = [TargetSpecific]
 
 // M68k features flags

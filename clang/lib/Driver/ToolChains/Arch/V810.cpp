@@ -37,4 +37,10 @@ void v810::getV810TargetFeatures(const Driver &D, const ArgList &Args,
     else
       Features.push_back("-gprel");
   }
+  if (Arg *A = Args.getLastArg(options::OPT_mapp_regs, options::OPT_mno_app_regs)) {
+    if (A->getOption().matches(options::OPT_mapp_regs))
+      Features.push_back("+app-regs");
+    else
+      Features.push_back("-app-regs");
+  }
 }

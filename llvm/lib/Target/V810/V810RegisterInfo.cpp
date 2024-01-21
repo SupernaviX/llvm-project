@@ -1,5 +1,6 @@
 #include "V810RegisterInfo.h"
 #include "V810FrameLowering.h"
+#include "V810Subtarget.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -40,13 +41,23 @@ V810RegisterInfo::getNoPreservedMask() const {
 BitVector
 V810RegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
+  const V810Subtarget &Subtarget = MF.getSubtarget<V810Subtarget>();
+  bool reserveAppRegs = !Subtarget.enableAppRegisters();
+
   Reserved.set(V810::R0); // zero register
-  Reserved.set(V810::R1); // useful for ASM things
-  if (getFrameLowering(MF)->hasFP(MF)) {
+  if (reserveAppRegs) {
+    Reserved.set(V810::R1); // useful for ASM things
+  }
+  if (reserveAppRegs || getFrameLowering(MF)->hasFP(MF)) {
     Reserved.set(V810::R2); // frame pointer
   }
   Reserved.set(V810::R3); // stack pointer
-  Reserved.set(V810::R4); // global pointer
+  if (reserveAppRegs || Subtarget.enableGPRelativeRAM()) {
+    Reserved.set(V810::R4); // global pointer
+  }
+  if (reserveAppRegs) {
+    Reserved.set(V810::R5); // text pointer
+  }
   Reserved.set(V810::R31); // return address
   return Reserved;
 }
