@@ -29,10 +29,6 @@ V810RegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 const uint32_t *
 V810RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                        CallingConv::ID CC) const {
-  if (MF.getFunction().hasFnAttribute("interrupt")) {
-    // When an interrupt function makes a call, assume that call clobbers everything
-    return getNoPreservedMask();
-  }
   return CSR_RegMask;
 }
 
