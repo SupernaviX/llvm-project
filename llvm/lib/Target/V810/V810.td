@@ -8,6 +8,11 @@ def FeatureGPRelativeRAM
   : SubtargetFeature<"gprel", "EnableGPRelativeRAM", "true",
                      "Use gp-relative addressing for all values in RAM">;
 
+def FeatureAppRegisters
+  : SubtargetFeature<"app-regs", "EnableAppRegisters", "true",
+                     "Allow r1, r2, r4, and r5 to be allocated if not otherwise used.">;
+
+
 include "V810RegisterInfo.td"
 include "V810CallingConv.td"
 include "V810Schedule.td"
