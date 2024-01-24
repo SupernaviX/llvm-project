@@ -129,6 +129,8 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
 
   setMinStackArgumentAlignment(Align(4));
 
+  setTargetDAGCombine({ISD::LOAD, ISD::STORE});
+
   MaxStoresPerMemcpy = 3;
 
   computeRegisterProperties(Subtarget->getRegisterInfo());
@@ -553,32 +555,42 @@ static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
   }
 }
 
-static bool CanBeGPRelative(const GlobalVariable *GVar) {
+static bool CanBeGPRelative(const GlobalValue *GVal) {
+  const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GVal);
+  if (!GVar) return false;
   if (GVar->isConstant()) return false;
   return !GVar->hasSection() || GVar->getSection().startswith(".sdata");
 }
 
+bool V810TargetLowering::IsGPRelative(const GlobalValue *GVal) const {
+  return CanBeGPRelative(GVal) && Subtarget->enableGPRelativeRAM();
+}
+
+static SDValue BuildMovhiMoveaPair(SelectionDAG &DAG, const GlobalValue *GV, SDLoc DL, EVT VT, int64_t Offset) {
+  SDValue HiTarget = DAG.getTargetGlobalAddress(GV, DL, VT, Offset, V810MCExpr::VK_V810_HI);
+  SDValue LoTarget = DAG.getTargetGlobalAddress(GV, DL, VT, Offset, V810MCExpr::VK_V810_LO);
+
+  SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
+  return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
+}
+
 // Convert a global address into a GP-relative offset or a HI/LO pair
-static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Subtarget *Subtarget) {
+static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810TargetLowering *TLI) {
   GlobalAddressSDNode *GN = cast<GlobalAddressSDNode>(Op);
   SDLoc DL(Op);
   EVT VT = Op.getValueType();
 
-  const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GN->getGlobal());
-  if (GVar && CanBeGPRelative(GVar) && Subtarget->enableGPRelativeRAM()) {
+  const GlobalValue *GV = GN->getGlobal();
+  if (TLI->IsGPRelative(GV)) {
     // Every mutable global variable is stored in RAM, and every address in RAM
     // can be expressed by a 16-bit signed offset from the GP register (R4).
-    SDValue RelTarget = DAG.getTargetGlobalAddress(GVar, DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_SDAOFF);
+    SDValue RelTarget = DAG.getTargetGlobalAddress(GV, DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_SDAOFF);
     SDValue Reg = DAG.getRegister(V810::R4, GN->getValueType(0));
     return DAG.getNode(V810ISD::REG_RELATIVE, DL, VT, RelTarget, Reg);
   }
 
   // Fall back to a MOVHI/MOVEA pair for any other addresses
-  SDValue HiTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_HI);
-  SDValue LoTarget = DAG.getTargetGlobalAddress(GN->getGlobal(), DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_LO);
-
-  SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
-  return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);
+  return BuildMovhiMoveaPair(DAG, GN->getGlobal(), DL, VT, GN->getOffset());
 }
 
 static SDValue LowerConstantPool(SDValue Op, SelectionDAG &DAG) {
@@ -789,8 +801,8 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
   default: llvm_unreachable("Should not custom lower this!");
 
-  case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG, Subtarget);
-  case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG, Subtarget); // luckily no threads
+  case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG, this);
+  case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG, this); // luckily no threads
   case ISD::ConstantPool:     return LowerConstantPool(Op, DAG);
   case ISD::ConstantFP:       return LowerConstantFP(Op, DAG);
   case ISD::BR_CC:            return LowerBR_CC(Op, DAG);
@@ -808,10 +820,58 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   }
 }
 
-bool V810TargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
-  // Folding offsets into global addresses makes us generate bad memcpy code,
-  // because we generate one MOVHI+MOVEA pair for every word to copy.
-  return false;
+// Instead of generating code like:
+//    movhi hi(<globalvar> + 4), r0, r6
+//    movea lo(<globalvar> + 4), r6, r6
+//    ld.w  0[r6], r7
+//    movhi hi(<globalvar> + 8), r0, r6
+//    movea lo(<globalvar> + 8), r6, r6
+//    ld.w  0[r6], r8
+// fold those offsets into the load instruction:
+//    movhi hi(<globalvar>), r0, r6
+//    movea lo(<globalvar>), r6, r6
+//    ld.w  4[r6], r7
+//    ld.w  8[r6], r8
+static SDValue PerformLoadCombine(SDNode *N,
+                                  TargetLowering::DAGCombinerInfo &DCI,
+                                  const V810TargetLowering *TLI) {
+  SelectionDAG &DAG = DCI.DAG;
+  SDLoc DL(N);
+  EVT VT = N->getValueType(0);
+  LoadSDNode *LD = cast<LoadSDNode>(N);
+  
+  const GlobalValue *GA;
+  int64_t Offset = 0;
+  if (!TLI->isGAPlusOffset(LD->getBasePtr().getNode(), GA, Offset)) {
+    return SDValue();
+  }
+  if (Offset == 0 || TLI->IsGPRelative(GA)) {
+    return SDValue();
+  }
+
+  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, VT, 0);
+  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, VT);
+  SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, LD->getFlags());
+  return DAG.getLoad(VT, DL, LD->getChain(), BasePtr,
+    LD->getPointerInfo(), LD->getAlign(),
+    LD->getMemOperand()->getFlags(), LD->getAAInfo());
+}
+
+static SDValue PerformStoreCombine(SDNode *N,
+                                   TargetLowering::DAGCombinerInfo &DCI) {
+  // TODO: optimize stores too
+  return SDValue();
+}
+
+SDValue V810TargetLowering::
+PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const {
+  switch (N->getOpcode()) {
+  default: return SDValue();
+  case ISD::LOAD:
+    return PerformLoadCombine(N, DCI, this);
+  case ISD::STORE:
+    return PerformStoreCombine(N, DCI);
+  }
 }
 
 EVT V810TargetLowering::getSetCCResultType(const DataLayout &DL, LLVMContext &Context, EVT VT) const {

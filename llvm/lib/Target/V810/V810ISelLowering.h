@@ -70,7 +70,7 @@ namespace llvm {
 
     SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
 
-    bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const override;
+    SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
 
     EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
                            EVT VT) const override;
@@ -94,6 +94,8 @@ namespace llvm {
     bool isLegalAddImmediate(int64_t Value) const override {
       return isInt<16>(Value);
     }
+
+    bool IsGPRelative(const GlobalValue *GVal) const;
   };
 }
 
