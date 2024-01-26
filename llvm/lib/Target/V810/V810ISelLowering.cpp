@@ -858,9 +858,28 @@ static SDValue PerformLoadCombine(SDNode *N,
 }
 
 static SDValue PerformStoreCombine(SDNode *N,
-                                   TargetLowering::DAGCombinerInfo &DCI) {
-  // TODO: optimize stores too
-  return SDValue();
+                                   TargetLowering::DAGCombinerInfo &DCI,
+                                   const V810TargetLowering *TLI) {
+  SelectionDAG &DAG = DCI.DAG;
+  SDLoc DL(N);
+  StoreSDNode *ST = cast<StoreSDNode>(N);
+  EVT VT = ST->getValue().getValueType();
+  
+  const GlobalValue *GA;
+  int64_t Offset = 0;
+  if (!TLI->isGAPlusOffset(ST->getBasePtr().getNode(), GA, Offset)) {
+    return SDValue();
+  }
+  if (Offset == 0 || TLI->IsGPRelative(GA)) {
+    return SDValue();
+  }
+
+  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, VT, 0);
+  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, VT);
+  SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, ST->getFlags());
+  return DAG.getStore(ST->getChain(), DL, ST->getValue(), BasePtr,
+    ST->getPointerInfo(), ST->getAlign(),
+    ST->getMemOperand()->getFlags(), ST->getAAInfo());
 }
 
 SDValue V810TargetLowering::
@@ -870,7 +889,7 @@ PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const {
   case ISD::LOAD:
     return PerformLoadCombine(N, DCI, this);
   case ISD::STORE:
-    return PerformStoreCombine(N, DCI);
+    return PerformStoreCombine(N, DCI, this);
   }
 }
 
