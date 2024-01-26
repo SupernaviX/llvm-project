@@ -837,7 +837,6 @@ static SDValue PerformLoadCombine(SDNode *N,
                                   const V810TargetLowering *TLI) {
   SelectionDAG &DAG = DCI.DAG;
   SDLoc DL(N);
-  EVT VT = N->getValueType(0);
   LoadSDNode *LD = cast<LoadSDNode>(N);
   
   const GlobalValue *GA;
@@ -849,21 +848,34 @@ static SDValue PerformLoadCombine(SDNode *N,
     return SDValue();
   }
 
-  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, VT, 0);
-  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, VT);
+  EVT PtrType = LD->getBasePtr().getValueType();
+
+  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, PtrType, 0);
+  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, PtrType);
   SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, LD->getFlags());
-  return DAG.getLoad(VT, DL, LD->getChain(), BasePtr,
+  return DAG.getLoad(LD->getValueType(0), DL, LD->getChain(), BasePtr,
     LD->getPointerInfo(), LD->getAlign(),
     LD->getMemOperand()->getFlags(), LD->getAAInfo());
 }
 
+// Instead of generating code like:
+//    movhi hi(<globalvar> + 4), r0, r6
+//    movea lo(<globalvar> + 4), r6, r6
+//    st.w  r7, 0[r6]
+//    movhi hi(<globalvar> + 8), r0, r6
+//    movea lo(<globalvar> + 8), r6, r6
+//    ld.w  r8, 0[r6]
+// fold those offsets into the store instruction:
+//    movhi hi(<globalvar>), r0, r6
+//    movea lo(<globalvar>), r6, r6
+//    ld.w  r7, 4[r6]
+//    ld.w  r8, 8[r6]
 static SDValue PerformStoreCombine(SDNode *N,
                                    TargetLowering::DAGCombinerInfo &DCI,
                                    const V810TargetLowering *TLI) {
   SelectionDAG &DAG = DCI.DAG;
   SDLoc DL(N);
   StoreSDNode *ST = cast<StoreSDNode>(N);
-  EVT VT = ST->getValue().getValueType();
   
   const GlobalValue *GA;
   int64_t Offset = 0;
@@ -874,8 +886,10 @@ static SDValue PerformStoreCombine(SDNode *N,
     return SDValue();
   }
 
-  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, VT, 0);
-  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, VT);
+  EVT PtrType = ST->getBasePtr().getValueType();
+
+  SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, PtrType, 0);
+  SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, PtrType);
   SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, ST->getFlags());
   return DAG.getStore(ST->getChain(), DL, ST->getValue(), BasePtr,
     ST->getPointerInfo(), ST->getAlign(),
