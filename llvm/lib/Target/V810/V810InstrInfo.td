@@ -814,9 +814,9 @@ def : Pat<(i32 (atomic_load_16 ADDRri:$addr)), (LD_H ADDRri:$addr)>;
 def : Pat<(i32 (atomic_load_8 ADDRri:$addr)), (LD_B ADDRri:$addr)>;
 
 // i8, i16, and i32 stores ARE atomic stores
-def : Pat<(atomic_store_32 i32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
-def : Pat<(atomic_store_16 i32:$r2, ADDRri:$addr), (ST_H ADDRri:$addr, GenRegs:$r2)>;
-def : Pat<(atomic_store_8 i32:$r2, ADDRri:$addr), (ST_B ADDRri:$addr, GenRegs:$r2)>;
+def : Pat<(atomic_store_32 ADDRri:$addr, i32:$r1), (ST_W ADDRri:$addr, GenRegs:$r1)>;
+def : Pat<(atomic_store_16 ADDRri:$addr, i32:$r1), (ST_H ADDRri:$addr, GenRegs:$r1)>;
+def : Pat<(atomic_store_8 ADDRri:$addr, i32:$r1), (ST_B ADDRri:$addr, GenRegs:$r1)>;
 
 // floats can be stored just like ints, nothing special
 def : Pat<(store f32:$r2, ADDRri:$addr), (ST_W ADDRri:$addr, GenRegs:$r2)>;
