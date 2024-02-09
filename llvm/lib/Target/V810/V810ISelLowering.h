@@ -85,7 +85,7 @@ namespace llvm {
 
     bool IsEligibleForTailCallOptimization(CCState &CCInfo,
                                            CallLoweringInfo &CLI,
-                                           MachineFunction &MF) const;
+                                           MachineFunction &MF, const SmallVector<CCValAssign, 16> &ArgLocs) const;
 
     bool isLegalICmpImmediate(int64_t Value) const override {
       return isInt<5>(Value);

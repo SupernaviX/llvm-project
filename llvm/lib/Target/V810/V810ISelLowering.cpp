@@ -377,7 +377,7 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
   V810CCState CCInfo(CLI.CallConv, CLI.IsVarArg, MF, ArgLocs, *DAG.getContext(), NumParams);
   CCInfo.AnalyzeCallOperands(CLI.Outs, CC_V810);
 
-  CLI.IsTailCall = CLI.IsTailCall && IsEligibleForTailCallOptimization(CCInfo, CLI, MF);
+  CLI.IsTailCall = CLI.IsTailCall && IsEligibleForTailCallOptimization(CCInfo, CLI, MF, ArgLocs);
 
   if (!CLI.IsTailCall) {
     Chain = DAG.getCALLSEQ_START(Chain, CCInfo.getStackSize(), 0, DL);
@@ -487,11 +487,25 @@ V810TargetLowering::LowerCall(CallLoweringInfo &CLI,
 }
 
 bool V810TargetLowering::IsEligibleForTailCallOptimization(
-    CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF) const {
+    CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF, const SmallVector<CCValAssign, 16> &ArgLocs) const {
   if (MF.getFunction().hasFnAttribute("interrupt"))
     return false;
   if (CCInfo.getStackSize() > 0)
     return false; // can't tail call if we pass things on the stack
+
+  // Do not tail call opt if any parameters need to be passed indirectly.
+  for (auto &VA : ArgLocs)
+    if (VA.getLocInfo() == CCValAssign::Indirect)
+      return false;
+
+  // Do not tail call if any parameters are passed `byval`, which actually
+  // passes the value via the stack.
+  // This bug was observed when passing a bitfield struct to a function with C
+  // linkage.
+  for (auto &Arg : CLI.Outs)
+    if (Arg.Flags.isByVal())
+      return false;
+
   return true;
 }
 
