@@ -122,9 +122,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::UINT_TO_FP, MVT::i32, Expand);
   setOperationAction(ISD::FP_TO_UINT, MVT::i32, Expand);
   setOperationAction(ISD::FABS, MVT::f32, Expand);
+  setOperationAction(ISD::FCOS, MVT::f32, Expand);
   setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
   setOperationAction(ISD::FNEG, MVT::f32, Expand);
   setOperationAction(ISD::FREM, MVT::f32, Expand);
+  setOperationAction(ISD::FSIN, MVT::f32, Expand);
   setOperationAction(ISD::FSQRT, MVT::f32, Expand);
 
   setMinStackArgumentAlignment(Align(4));
