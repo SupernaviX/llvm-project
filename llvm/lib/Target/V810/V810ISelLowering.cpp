@@ -927,6 +927,17 @@ EVT V810TargetLowering::getSetCCResultType(const DataLayout &DL, LLVMContext &Co
   return VT.changeVectorElementTypeToInteger();
 }
 
+EVT V810TargetLowering::getOptimalMemOpType(const MemOp &Op,
+                                            const AttributeList &FuncAttributes) const {
+  return MVT::i32;
+}
+
+// In case we ever use GISel
+LLT V810TargetLowering::getOptimalMemOpLLT(const MemOp &Op,
+                                           const AttributeList &FuncAttributes) const {
+  return LLT::scalar(32);
+}
+
 MachineBasicBlock *
 V810TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                 MachineBasicBlock *BB) const {
