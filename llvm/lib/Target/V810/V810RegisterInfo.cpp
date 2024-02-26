@@ -74,7 +74,9 @@ V810RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
 
   Register FrameReg;
-  int Offset = TFI->getFrameIndexReference(MF, FrameIndex, FrameReg).getFixed();
+  int Offset = MI.getFlag(MachineInstr::FrameSetup)
+    ? TFI->getFrameIndexReferencePreferSP(MF, FrameIndex, FrameReg, true).getFixed()
+    : TFI->getFrameIndexReference(MF, FrameIndex, FrameReg).getFixed();
   Offset += MI.getOperand(FIOperandNum + 1).getImm();
 
   if (MI.getOpcode() == V810::MOVEA && Offset == 0) {

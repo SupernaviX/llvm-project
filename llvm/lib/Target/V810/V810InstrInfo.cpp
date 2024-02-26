@@ -67,7 +67,8 @@ void V810InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
     MFI.getObjectSize(FrameIndex), MFI.getObjectAlign(FrameIndex));
 
   BuildMI(MBB, I, DL, get(V810::ST_W)).addFrameIndex(FrameIndex).addImm(0)
-    .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO);
+    .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO)
+    .setMIFlag(MachineInstr::FrameSetup);
 }
 
 void V810InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,

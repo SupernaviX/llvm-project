@@ -1,5 +1,6 @@
 #include "V810.h"
 #include "V810FrameLowering.h"
+#include "V810MachineFunctionInfo.h"
 #include "V810RegisterInfo.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
@@ -15,7 +16,7 @@
 using namespace llvm;
 
 V810FrameLowering::V810FrameLowering()
-    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4), false) {}
+    : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, Align(4), 0, Align(4), true) {}
 
 static bool isFPSave(MachineBasicBlock::iterator I) {
   return I->getOpcode() == V810::ST_W
@@ -24,13 +25,22 @@ static bool isFPSave(MachineBasicBlock::iterator I) {
     && I->getOperand(2).getReg() == V810::R2;
 }
 
+static bool isFPLoad(MachineBasicBlock::iterator I) {
+  return I->getOpcode() == V810::LD_W
+    && I->getOperand(1).isFI()
+    && I->getOperand(0).isReg()
+    && I->getOperand(0).getReg() == V810::R2;
+}
+
 void
 V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const {
   int bytes = (int) MF.getFrameInfo().getStackSize();
   MachineBasicBlock::iterator MBBI = MBB.begin();
   moveStackPointer(MF, MBB, MBBI, -bytes);
 
-  assert(!MF.getSubtarget().getRegisterInfo()->hasStackRealignment(MF) && "Stack realignment not supported");
+  DebugLoc dl;
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+
   assert(!MF.getFrameInfo().hasVarSizedObjects() && "Dynamic stack allocation is not supported");
 
   if (hasFP(MF)) {
@@ -48,19 +58,50 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
     // and set FP to the address of that frame index.
     ++MBBI;
 
-    DebugLoc dl;
-    const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
-
     BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R2)
       .addFrameIndex(FPIndex).addImm(0).setMIFlag(MachineInstr::FrameSetup);
+  }
+
+  const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
+  if (RegInfo->shouldRealignStack(MF)) {
+    // align the dang stack
+    // this will clobber r31, but we already saved it so that's fine
+    int BitsToClear = MF.getFrameInfo().getMaxAlign().value() - 1;
+
+    BuildMI(MBB, MBBI, dl, TII.get(V810::ANDI), V810::R31)
+      .addReg(V810::R3).addImm(BitsToClear);
+    BuildMI(MBB, MBBI, dl, TII.get(V810::SUB), V810::R3)
+      .addReg(V810::R3).addReg(V810::R31, RegState::Kill);
   }
 }
 
 void
 V810FrameLowering::emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const {
-  int bytes = (int) MF.getFrameInfo().getStackSize();
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
-  moveStackPointer(MF, MBB, MBBI, bytes);
+  const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
+  if (!TRI->shouldRealignStack(MF)) {
+    // If we know the exact size of the stack, just increase the SP by that amount
+    int bytes = (int) MF.getFrameInfo().getStackSize();
+    moveStackPointer(MF, MBB, MBBI, bytes);
+    return;
+  }
+
+  // We don't know the size of the stack, so we need to use special logic to restore fp (r2) and sp (r3)
+  DebugLoc dl;
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+
+  // Find the existing "restore fp" instruction and delete it
+  while (!isFPLoad(MBBI)) --MBBI;
+  MBBI->eraseFromParent();
+
+  // Restore r3 by just adding the right offset to r2
+  int FPOffset = MF.getInfo<V810MachineFunctionInfo>()->getFPOffset();
+  MBBI = MBB.getLastNonDebugInstr();
+  BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R3)
+    .addReg(V810::R2).addImm(-FPOffset);
+  // And restore r2 by loading the old value... from the address stored in r2!
+  BuildMI(MBB, MBBI, dl, TII.get(V810::LD_W), V810::R2)
+    .addReg(V810::R2).addImm(0);
 }
 
 MachineBasicBlock::iterator V810FrameLowering::
@@ -91,10 +132,58 @@ V810FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 
 bool
 V810FrameLowering::hasFP(const MachineFunction &MF) const {
+  const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||
-         MFI.hasVarSizedObjects() ||
+         RegInfo->hasStackRealignment(MF) || MFI.hasVarSizedObjects() ||
          MFI.isFrameAddressTaken();
+}
+
+StackOffset
+V810FrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
+                                          Register &FrameReg) const {
+  const TargetRegisterInfo *RI = MF.getSubtarget().getRegisterInfo();
+  const MachineFrameInfo &MFI = MF.getFrameInfo();
+  if (RI->hasStackRealignment(MF) && MFI.isFixedObjectIndex(FI)) {
+    FrameReg = V810::R2;
+    int FPOffset = MF.getInfo<V810MachineFunctionInfo>()->getFPOffset();
+    return StackOffset::getFixed(MFI.getObjectOffset(FI) - FPOffset);
+  }
+  return TargetFrameLowering::getFrameIndexReference(MF, FI, FrameReg);
+}
+
+StackOffset
+V810FrameLowering::getFrameIndexReferencePreferSP(const MachineFunction &MF, int FI,
+                                                  Register &FrameReg,
+                                                  bool IgnoreSPUpdates) const {
+  // Fall back to the default logic, which always uses SP
+  return TargetFrameLowering::getFrameIndexReference(MF, FI, FrameReg);
+}
+
+bool
+V810FrameLowering::assignCalleeSavedSpillSlots(MachineFunction &MF,
+                                               const TargetRegisterInfo *TRI,
+                                               std::vector<CalleeSavedInfo> &CSI) const {
+  if (!TRI->shouldRealignStack(MF)) {
+    return false;
+  }
+  int Offset = -4;
+  for (auto &CS : CSI) {
+    if (CS.isSpilledToReg()) {
+      continue;
+    }
+  
+    // Spilled registers should be spilled to fixed offsets,
+    // so that we can reference them relative to FP
+    int FrameIdx = MF.getFrameInfo().CreateFixedSpillStackObject(4, Offset);
+    CS.setFrameIdx(FrameIdx);
+    if (CS.getReg() == V810::R2) {
+      MF.getInfo<V810MachineFunctionInfo>()->setFPOffset(Offset);
+    }
+    Offset -= 4;
+  }
+
+  return true;
 }
 
 void
