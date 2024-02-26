@@ -10,4 +10,5 @@ V810AsmInfo::V810AsmInfo(const Triple &TheTriple) {
   MaxInstLength = 4;
   IsLittleEndian = true;
   SupportsDebugInformation = true;
+  UsesCFIWithoutEH = true;
 }
