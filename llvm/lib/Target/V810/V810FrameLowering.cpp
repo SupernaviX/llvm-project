@@ -41,8 +41,6 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
   DebugLoc dl;
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
 
-  assert(!MF.getFrameInfo().hasVarSizedObjects() && "Dynamic stack allocation is not supported");
-
   if (hasFP(MF)) {
     // Find the instruction where we store FP...
     while (MBBI != MBB.getFirstTerminator() && !isFPSave(MBBI)) {
@@ -63,7 +61,7 @@ V810FrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) con
   }
 
   const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
-  if (RegInfo->shouldRealignStack(MF)) {
+  if (RegInfo->shouldRealignStack(MF) && MF.getFrameInfo().getMaxAlign() > Align(4)) {
     // align the dang stack
     // this will clobber r31, but we already saved it so that's fine
     int BitsToClear = MF.getFrameInfo().getMaxAlign().value() - 1;
@@ -79,7 +77,7 @@ void
 V810FrameLowering::emitEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
-  if (!TRI->shouldRealignStack(MF)) {
+  if (!TRI->shouldRealignStack(MF) && !MF.getFrameInfo().hasVarSizedObjects()) {
     // If we know the exact size of the stack, just increase the SP by that amount
     int bytes = (int) MF.getFrameInfo().getStackSize();
     moveStackPointer(MF, MBB, MBBI, bytes);
@@ -144,7 +142,7 @@ V810FrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
                                           Register &FrameReg) const {
   const TargetRegisterInfo *RI = MF.getSubtarget().getRegisterInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  if (RI->hasStackRealignment(MF) && MFI.isFixedObjectIndex(FI)) {
+  if ((RI->hasStackRealignment(MF) ||  MFI.hasVarSizedObjects()) && MFI.isFixedObjectIndex(FI)) {
     FrameReg = V810::R2;
     int FPOffset = MF.getInfo<V810MachineFunctionInfo>()->getFPOffset();
     return StackOffset::getFixed(MFI.getObjectOffset(FI) - FPOffset);
@@ -164,7 +162,7 @@ bool
 V810FrameLowering::assignCalleeSavedSpillSlots(MachineFunction &MF,
                                                const TargetRegisterInfo *TRI,
                                                std::vector<CalleeSavedInfo> &CSI) const {
-  if (!TRI->shouldRealignStack(MF)) {
+  if (!TRI->shouldRealignStack(MF) && !MF.getFrameInfo().hasVarSizedObjects()) {
     return false;
   }
   int Offset = -4;

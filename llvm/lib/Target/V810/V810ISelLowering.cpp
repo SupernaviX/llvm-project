@@ -129,6 +129,12 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::FSIN, MVT::f32, Expand);
   setOperationAction(ISD::FSQRT, MVT::f32, Expand);
 
+  setOperationAction(ISD::STACKSAVE, MVT::Other, Expand);
+  setOperationAction(ISD::STACKRESTORE, MVT::Other, Expand);
+  setOperationAction(ISD::DYNAMIC_STACKALLOC, MVT::i32, Expand);
+
+  setStackPointerRegisterToSaveRestore(V810::R3);
+
   setMinStackArgumentAlignment(Align(4));
 
   setTargetDAGCombine({ISD::LOAD, ISD::STORE});
