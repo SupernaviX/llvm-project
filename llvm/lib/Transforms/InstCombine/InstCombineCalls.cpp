@@ -89,6 +89,11 @@ static cl::opt<unsigned> GuardWideningWindow(
     cl::desc("How wide an instruction window to bypass looking for "
              "another guard"));
 
+static cl::opt<bool> DisableV810Fix(
+    "instcombine-disable-v810-fix",
+    cl::init(false),
+    cl::desc("Stop applying a fix to improve codegen for 32-bit targets"));
+
 namespace llvm {
 /// enable preservation of attributes in assume like:
 /// call void @llvm.assume(i1 true) [ "nonnull"(i32* %PTR) ]
@@ -163,7 +168,8 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
   assert(Size && "0-sized memory transferring should be removed already.");
 
   // V810 EDIT: Use 4 instead of 8 as the limit since our CPU is 32-bit.
-  if (Size > 4/*8*/ || (Size&(Size-1)))
+  uint64_t TargetSize = DisableV810Fix ? 8 : 4;
+  if (Size > TargetSize || (Size&(Size-1)))
     return nullptr;  // If not 1/2/4/8 bytes, exit.
 
   // If it is an atomic and alignment is less than the size then we will

@@ -23,6 +23,13 @@ public:
 
   bool hasReservedCallFrame(const MachineFunction &MF) const override;
   bool hasFP(const MachineFunction &MF) const override;
+  StackOffset getFrameIndexReference(const MachineFunction &MF, int FI,
+                                     Register &FrameReg) const override;
+  StackOffset getFrameIndexReferencePreferSP(const MachineFunction &MF, int FI,
+                                     Register &FrameReg, bool IgnoreSPUpdates) const override;
+  bool assignCalleeSavedSpillSlots(MachineFunction &MF,
+      const TargetRegisterInfo *TRI, std::vector<CalleeSavedInfo> &CSI)
+      const override;
   void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
                             RegScavenger *RS) const override;
 private:

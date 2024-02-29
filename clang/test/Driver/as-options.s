@@ -44,14 +44,14 @@
 // RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 // RUN: %clang -mincremental-linker-compatible -E -fno-integrated-as \
 // RUN:   -o /dev/null -x c++ %s 2>&1 \
-// RUN:   | FileCheck --check-prefix=WARN --allow-empty %s
+// RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 
 // RUN: %clang -mincremental-linker-compatible -E -fintegrated-as \
 // RUN:   -o /dev/null -x assembler-with-cpp %s 2>&1 \
 // RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 // RUN: %clang -mincremental-linker-compatible -E -fno-integrated-as \
 // RUN:   -o /dev/null -x assembler-with-cpp %s 2>&1 \
-// RUN:   | FileCheck --check-prefix=WARN --allow-empty %s
+// RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 
 // RUN: %clang -mimplicit-it=always -target armv7-linux-gnueabi -E \
 // RUN:   -fintegrated-as -o /dev/null -x c++ %s 2>&1 \
@@ -114,7 +114,7 @@
 // RUN: %clang -mrelax-all -fintegrated-as -x c++ %s -S -o /dev/null 2>&1 \
 // RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 // RUN: %clang -mrelax-all -fno-integrated-as -x c++ %s -S -o /dev/null 2>&1 \
-// RUN:   | FileCheck --check-prefix=WARN --allow-empty %s
+// RUN:   | FileCheck --check-prefix=NOWARN --allow-empty %s
 // WARN: unused
 
 // Test that -g is passed through to GAS.

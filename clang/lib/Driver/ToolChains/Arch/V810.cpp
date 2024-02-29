@@ -31,6 +31,8 @@ std::string v810::getV810TargetCPU(const Driver &D, const ArgList &Args,
 
 void v810::getV810TargetFeatures(const Driver &D, const ArgList &Args,
                                  std::vector<StringRef> &Features) {
+  // Mark these inputs as used to make some tests happy
+  Args.claimAllArgs(options::OPT_fintegrated_as, options::OPT_fno_integrated_as);
   if (Arg *A = Args.getLastArg(options::OPT_mgprel, options::OPT_mno_gprel)) {
     if (A->getOption().matches(options::OPT_mgprel))
       Features.push_back("+gprel");

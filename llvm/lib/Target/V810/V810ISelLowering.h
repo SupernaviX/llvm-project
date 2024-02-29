@@ -75,6 +75,12 @@ namespace llvm {
     EVT getSetCCResultType(const DataLayout &DL, LLVMContext &Context,
                            EVT VT) const override;
 
+    EVT getOptimalMemOpType(const MemOp &Op,
+                            const AttributeList &FuncAttributes) const override;
+
+    LLT getOptimalMemOpLLT(const MemOp &Op,
+                           const AttributeList &FuncAttributes) const override;
+
     MachineBasicBlock *
     EmitInstrWithCustomInserter(MachineInstr &MI,
                                 MachineBasicBlock *MBB) const override;

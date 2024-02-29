@@ -122,10 +122,18 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::UINT_TO_FP, MVT::i32, Expand);
   setOperationAction(ISD::FP_TO_UINT, MVT::i32, Expand);
   setOperationAction(ISD::FABS, MVT::f32, Expand);
+  setOperationAction(ISD::FCOS, MVT::f32, Expand);
   setOperationAction(ISD::FCOPYSIGN, MVT::f32, Expand);
   setOperationAction(ISD::FNEG, MVT::f32, Expand);
   setOperationAction(ISD::FREM, MVT::f32, Expand);
+  setOperationAction(ISD::FSIN, MVT::f32, Expand);
   setOperationAction(ISD::FSQRT, MVT::f32, Expand);
+
+  setOperationAction(ISD::STACKSAVE, MVT::Other, Expand);
+  setOperationAction(ISD::STACKRESTORE, MVT::Other, Expand);
+  setOperationAction(ISD::DYNAMIC_STACKALLOC, MVT::i32, Expand);
+
+  setStackPointerRegisterToSaveRestore(V810::R3);
 
   setMinStackArgumentAlignment(Align(4));
 
@@ -925,6 +933,17 @@ EVT V810TargetLowering::getSetCCResultType(const DataLayout &DL, LLVMContext &Co
   if (!VT.isVector())
     return getPointerTy(DL);
   return VT.changeVectorElementTypeToInteger();
+}
+
+EVT V810TargetLowering::getOptimalMemOpType(const MemOp &Op,
+                                            const AttributeList &FuncAttributes) const {
+  return MVT::i32;
+}
+
+// In case we ever use GISel
+LLT V810TargetLowering::getOptimalMemOpLLT(const MemOp &Op,
+                                           const AttributeList &FuncAttributes) const {
+  return LLT::scalar(32);
 }
 
 MachineBasicBlock *

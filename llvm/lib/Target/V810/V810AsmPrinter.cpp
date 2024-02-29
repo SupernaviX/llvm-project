@@ -1,4 +1,5 @@
 #include "MCTargetDesc/V810InstPrinter.h"
+#include "MCTargetDesc/V810MCExpr.h"
 #include "V810.h"
 #include "V810TargetMachine.h"
 #include "TargetInfo/V810TargetInfo.h"
@@ -23,7 +24,11 @@ namespace {
 
     bool PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
                          const char *ExtraCode, raw_ostream &O) override;
+    bool PrintAsmMemoryOperand(const MachineInstr *MI, unsigned OpNo,
+                               const char *ExtraCode, raw_ostream &O) override;
     void LowerCallIndirect(const MachineInstr *MI);
+  private:
+    void printOperandImpl(const MachineInstr *MI, unsigned OpNo, raw_ostream &O);
   };
 } // end of anonymous namespace
 
@@ -58,10 +63,50 @@ bool V810AsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
     }
   }
 
-  const MachineOperand &MO = MI->getOperand(OpNo);
-  assert(MO.getType() == MachineOperand::MO_Register);
-  O << StringRef(V810InstPrinter::getRegisterName(MO.getReg()));
+  printOperandImpl(MI, OpNo, O);
   return false;
+}
+
+bool V810AsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI, unsigned OpNo,
+                                           const char *ExtraCode,
+                                           raw_ostream &O) {
+  if (ExtraCode && ExtraCode[0])
+    return true; // Unknown modifier
+
+  printOperandImpl(MI, OpNo + 1, O);
+  O << '[';
+  printOperandImpl(MI, OpNo, O);
+  O << ']';
+
+  return false;
+}
+
+void V810AsmPrinter::printOperandImpl(const MachineInstr *MI, unsigned OpNo,
+                         raw_ostream &O) {
+  const MachineOperand &MO = MI->getOperand(OpNo);
+  V810MCExpr::VariantKind TF = (V810MCExpr::VariantKind) MO.getTargetFlags();
+
+  bool Parens = V810MCExpr::printVariantKind(O, TF);
+  if (Parens) O << '(';
+  switch (MO.getType()) {
+  case MachineOperand::MO_Register:
+    O << StringRef(V810InstPrinter::getRegisterName(MO.getReg()));
+    break;
+  case MachineOperand::MO_Immediate:
+    O << MO.getImm();
+    break;
+  case MachineOperand::MO_GlobalAddress:
+    PrintSymbolOperand(MO, O);
+    break;
+  case MachineOperand::MO_ExternalSymbol:
+    O << MO.getSymbolName();
+    break;
+  default:
+    errs() << "Could not print asm operand: ";
+    MO.print(errs());
+    llvm_unreachable("Unhandled ASM operand");
+  }
+  if (Parens) O << ')';
 }
 
 void V810AsmPrinter::LowerCallIndirect(const MachineInstr *MI) {
