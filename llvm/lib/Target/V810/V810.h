@@ -57,7 +57,7 @@ namespace llvm {
     case V810CC::CC_E:  return "e";
     case V810CC::CC_NH: return "nh";
     case V810CC::CC_N:  return "n";
-    case V810CC::CC_BR:  return "r";
+    case V810CC::CC_BR:  return "t";
     case V810CC::CC_LT: return "lt";
     case V810CC::CC_LE: return "le";
     case V810CC::CC_NV: return "nv";
@@ -65,7 +65,7 @@ namespace llvm {
     case V810CC::CC_NE: return "ne";
     case V810CC::CC_H:  return "h";
     case V810CC::CC_P:  return "p";
-    case V810CC::CC_NOP: return "nop";
+    case V810CC::CC_NOP: return "f";
     case V810CC::CC_GE: return "ge";
     case V810CC::CC_GT: return "gt";
     }
