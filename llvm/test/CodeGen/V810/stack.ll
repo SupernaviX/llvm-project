@@ -42,8 +42,8 @@ define void @movesStackReallyFar() {
 ; CHECK-LABEL: movesStackReallyFar:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    movea -32768, r3, r3
-; CHECK-NEXT:    movea 32767, r3, r3
-; CHECK-NEXT:    add 1, r3
+; CHECK-NEXT:    movea 32764, r3, r3
+; CHECK-NEXT:    add 4, r3
 ; CHECK-NEXT:    jmp [r31]
     %unused = alloca [ 8192 x i32 ], align 4
     ret void

@@ -199,9 +199,9 @@ V810FrameLowering::determineCalleeSaves(MachineFunction &MF, BitVector &SavedReg
 void
 V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator MBBI, int bytes) const {
-  while (bytes > 32767) {
-    moveStackPointer(MF, MBB, MBBI, 32767);
-    bytes -= 32767;
+  while (bytes > 32764) {
+    moveStackPointer(MF, MBB, MBBI, 32764);
+    bytes -= 32764;
   }
   while (bytes < -32768) {
     moveStackPointer(MF, MBB, MBBI, -32768);
