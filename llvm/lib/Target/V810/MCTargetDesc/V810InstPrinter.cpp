@@ -61,7 +61,7 @@ void V810InstPrinter::printOperand(const MCInst *MI, int opNum,
 
   if (MO.isImm()) {
     int64_t ImmValue = MO.getImm();
-    if (MI->getOpcode() == V810::MOVHI || MI->getOpcode() == V810::MOVEA) {
+    if (PrintImmHex && (MI->getOpcode() == V810::MOVHI || MI->getOpcode() == V810::MOVEA)) {
       ImmValue &= 0xffff;
     }
     O << formatImm(ImmValue);

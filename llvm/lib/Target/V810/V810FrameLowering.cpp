@@ -199,6 +199,14 @@ V810FrameLowering::determineCalleeSaves(MachineFunction &MF, BitVector &SavedReg
 void
 V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator MBBI, int bytes) const {
+  while (bytes > 32767) {
+    moveStackPointer(MF, MBB, MBBI, 32767);
+    bytes -= 32767;
+  }
+  while (bytes < -32768) {
+    moveStackPointer(MF, MBB, MBBI, -32768);
+    bytes += 32768;
+  }
   if (bytes == 0) {
     return;
   }
@@ -209,32 +217,9 @@ V810FrameLowering::moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
   if (isInt<5>(bytes)) {
     BuildMI(MBB, MBBI, dl, TII.get(V810::ADDri), V810::R3)
       .addReg(V810::R3).addImm(bytes);
-  } else if (isInt<16>(bytes)) {
+  } else {
+    assert(isInt<16>(bytes));
     BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), V810::R3)
       .addReg(V810::R3).addImm(bytes);
-  } else {
-    assert(isInt<32>(bytes));
-
-    uint64_t lo = EvalLo(bytes);
-    uint64_t hi = EvalHi(bytes);
-
-    // We need a temporary register, but can't use virtual registers here.
-    // R1 is reserved, but mainly meant to be used by crt0 for interrupt handling, so we steal that.
-    // Turn off interrupts while we move this pointer, so that surprise interrupts don't break it.
-    Register TempReg = V810::R1;
-    // Force these to get scheduled in the right order with a fake implicit dependency.
-    // That implicit dependency is the existing "sr29" system register because I am lazy.
-    Register DepReg = V810::SR29;
-
-    BuildMI(MBB, MBBI, dl, TII.get(V810::SEI)).addDef(DepReg, RegState::Implicit);
-    BuildMI(MBB, MBBI, dl, TII.get(V810::MOVHI), TempReg)
-      .addReg(V810::R0).addImm(hi).addUse(DepReg, RegState::Implicit);
-    if (lo) {
-      BuildMI(MBB, MBBI, dl, TII.get(V810::MOVEA), TempReg)
-        .addReg(TempReg).addImm(lo);
-    }
-    BuildMI(MBB, MBBI, dl, TII.get(V810::ADDrr), V810::R3)
-        .addReg(V810::R3).addReg(TempReg);
-    BuildMI(MBB, MBBI, dl, TII.get(V810::CLI)).addUse(DepReg, RegState::Implicit);
   }
 }
