@@ -163,6 +163,12 @@ static bool isRISCVBareMetal(const llvm::Triple &Triple) {
   return Triple.getEnvironmentName() == "elf";
 }
 
+static bool isV810BareMetal(const llvm::Triple &Triple) {
+  if (Triple.getArch() != llvm::Triple::v810)
+    return false;
+  return true;
+}
+
 /// Is the triple powerpc[64][le]-*-none-eabi?
 static bool isPPCBareMetal(const llvm::Triple &Triple) {
   return Triple.isPPC() && Triple.getOS() == llvm::Triple::UnknownOS &&
@@ -234,7 +240,7 @@ void BareMetal::findMultilibs(const Driver &D, const llvm::Triple &Triple,
 
 bool BareMetal::handlesTarget(const llvm::Triple &Triple) {
   return isARMBareMetal(Triple) || isAArch64BareMetal(Triple) ||
-         isRISCVBareMetal(Triple) || isPPCBareMetal(Triple);
+         isRISCVBareMetal(Triple) || isV810BareMetal(Triple) || isPPCBareMetal(Triple);
 }
 
 Tool *BareMetal::buildLinker() const {
@@ -459,10 +465,11 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   if (TC.ShouldLinkCXXStdlib(Args))
     TC.AddCXXStdlibLibArgs(Args, CmdArgs);
 
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nolibc, options::OPT_nodefaultlibs)) {
     CmdArgs.push_back("-lc");
     CmdArgs.push_back("-lm");
-
+  }
+  if (!Args.hasArg(options::OPT_nodefaultlibs)) {
     TC.AddLinkRuntimeLib(Args, CmdArgs);
   }
 

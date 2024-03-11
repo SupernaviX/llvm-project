@@ -263,6 +263,7 @@ void ScalarEnumerationTraits<ELFYAML::ELF_EM>::enumeration(
   ECase(EM_FR30);
   ECase(EM_D10V);
   ECase(EM_D30V);
+  ECase(EM_V810);
   ECase(EM_V850);
   ECase(EM_M32R);
   ECase(EM_MN10300);

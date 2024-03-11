@@ -155,6 +155,13 @@ static Defined *addOptionalRegular(StringRef name, SectionBase *sec,
   return cast<Defined>(s);
 }
 
+static Defined *addAbsoluteWithValue(StringRef name, uint64_t value) {
+  Symbol *sym = symtab.addSymbol(Defined{nullptr, name, STB_GLOBAL, STV_HIDDEN,
+                                         STT_NOTYPE, value, 0, nullptr});
+  sym->isUsedInRegularObj = true;
+  return cast<Defined>(sym);
+}
+
 // The linker is expected to define some symbols depending on
 // the linking result. This function defines such symbols.
 void elf::addReservedSymbols() {
@@ -190,6 +197,8 @@ void elf::addReservedSymbols() {
     addOptionalRegular("_SDA_BASE_", nullptr, 0, STV_HIDDEN);
   } else if (config->emachine == EM_PPC64) {
     addPPC64SaveRestore();
+  } else if (config->emachine == EM_V810) {
+    ElfSym::v810Gp = addAbsoluteWithValue("__gp", 0x05008000);
   }
 
   // The Power Architecture 64-bit v2 ABI defines a TableOfContents (TOC) which

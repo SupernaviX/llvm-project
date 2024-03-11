@@ -881,6 +881,9 @@ uint64_t InputSectionBase::getRelocTargetVA(const InputFile *file, RelType type,
     return in.got->getTlsIndexOff() + a;
   case R_TLSLD_PC:
     return in.got->getTlsIndexVA() + a - p;
+  case R_V810_GP:
+    // Relative to the value of __gp
+    return sym.getVA(a) - ElfSym::v810Gp->getVA(0);
   default:
     llvm_unreachable("invalid expression");
   }

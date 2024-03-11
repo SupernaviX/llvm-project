@@ -531,6 +531,9 @@ struct ElfSym {
 
   // _TLS_MODULE_BASE_ on targets that support TLSDESC.
   static Defined *tlsModuleBase;
+
+  // __gp for V810
+  static Defined *v810Gp;
 };
 
 // A buffer class that is large enough to hold any Symbol-derived
