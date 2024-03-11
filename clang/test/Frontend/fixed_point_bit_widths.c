@@ -1,7 +1,7 @@
-// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - %s | FileCheck %s
-// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=x86_64-scei-ps4 %s | FileCheck %s
-// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=ppc64 %s | FileCheck %s
-// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=x86_64-scei-ps4 %s | FileCheck %s
+// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - %s | FileCheck %s  -DLONGALIGN=4
+// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=x86_64-scei-ps4 %s | FileCheck %s  -DLONGALIGN=8
+// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=ppc64 %s | FileCheck %s -DLONGALIGN=8
+// RUN: %clang -x c -ffixed-point -S -emit-llvm -o - --target=x86_64-scei-ps4 %s | FileCheck %s -DLONGALIGN=8
 
 /* Primary signed _Accum */
 
