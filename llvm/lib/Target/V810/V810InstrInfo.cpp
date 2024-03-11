@@ -27,7 +27,7 @@ void V810InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   BuildMI(MBB, I, DL, get(V810::MOVr), DestReg).addReg(SrcReg, getKillRegState(KillSrc));
 }
 
-unsigned V810InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
+Register V810InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                             int &FrameIndex) const {
   if (MI.getOpcode() == V810::LD_W) {
     if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&
@@ -36,10 +36,10 @@ unsigned V810InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
       return MI.getOperand(0).getReg();
     }
   }
-  return 0;
+  return Register();
 }
 
-unsigned V810InstrInfo::isStoreToStackSlot(const MachineInstr &MI,
+Register V810InstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                             int &FrameIndex) const {
   if (MI.getOpcode() == V810::ST_W) {
     if (MI.getOperand(0).isFI() && MI.getOperand(1).isImm() &&
@@ -48,7 +48,7 @@ unsigned V810InstrInfo::isStoreToStackSlot(const MachineInstr &MI,
       return MI.getOperand(2).getReg();
     }
   }
-  return 0;
+  return Register();
 }
 
 void V810InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,

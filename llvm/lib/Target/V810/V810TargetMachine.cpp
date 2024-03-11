@@ -21,7 +21,7 @@ static std::string computeDataLayout(const Triple &T) {
 V810TargetMachine::V810TargetMachine(
     const Target &T, const Triple &TT, StringRef CPU, StringRef FS,
     const TargetOptions &Options, std::optional<Reloc::Model> RM,
-    std::optional<CodeModel::Model> CM, CodeGenOpt::Level OL, bool JIT)
+    std::optional<CodeModel::Model> CM, CodeGenOptLevel OL, bool JIT)
     : LLVMTargetMachine(
         T, computeDataLayout(TT), TT, CPU, FS, Options,
         RM.value_or(Reloc::Static),
@@ -84,7 +84,7 @@ TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 void V810PassConfig::addIRPasses() {
-  addPass(createAtomicExpandPass());
+  addPass(createAtomicExpandLegacyPass());
 
   TargetPassConfig::addIRPasses();
 }

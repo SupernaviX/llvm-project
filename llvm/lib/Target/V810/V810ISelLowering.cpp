@@ -187,7 +187,7 @@ void V810TargetLowering::computeKnownBitsForTargetNode(
   case V810ISD::LO:
     Known = DAG.computeKnownBits(Op.getOperand(0), DemandedElts, Depth + 1);
     Known2 = DAG.computeKnownBits(Op.getOperand(1), DemandedElts, Depth + 1);
-    Known = KnownBits::computeForAddSub(true, false, Known, Known2);
+    Known = KnownBits::computeForAddSub(true, false, false, Known, Known2);
     break;
   case V810ISD::REG_RELATIVE: {
     // The first operand has the exact value that this node should return
@@ -581,7 +581,7 @@ static bool CanBeGPRelative(const GlobalValue *GVal) {
   const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GVal);
   if (!GVar) return false;
   if (GVar->isConstant()) return false;
-  return !GVar->hasSection() || GVar->getSection().startswith(".sdata");
+  return !GVar->hasSection() || GVar->getSection().starts_with(".sdata");
 }
 
 bool V810TargetLowering::IsGPRelative(const GlobalValue *GVal) const {

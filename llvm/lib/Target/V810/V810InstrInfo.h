@@ -39,7 +39,7 @@ class V810InstrInfo : public V810GenInstrInfo {
   /// the destination along with the FrameIndex of the loaded stack slot.  If
   /// not, return 0.  This predicate must return 0 if the instruction has
   /// any side effects other than loading from the stack slot.
-  unsigned isLoadFromStackSlot(const MachineInstr &MI,
+  Register isLoadFromStackSlot(const MachineInstr &MI,
                                int &FrameIndex) const override;
 
   /// isStoreToStackSlot - If the specified machine instruction is a direct
@@ -47,7 +47,7 @@ class V810InstrInfo : public V810GenInstrInfo {
   /// the source reg along with the FrameIndex of the loaded stack slot.  If
   /// not, return 0.  This predicate must return 0 if the instruction has
   /// any side effects other than storing to the stack slot.
-  unsigned isStoreToStackSlot(const MachineInstr &MI,
+  Register isStoreToStackSlot(const MachineInstr &MI,
                               int &FrameIndex) const override;
 
   virtual void copyPhysReg(MachineBasicBlock &MBB,

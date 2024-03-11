@@ -28,7 +28,7 @@ public:
   V810MCCodeEmitter(const MCInstrInfo &MCII, MCContext &ctx)
       : MCII(MCII), Ctx(ctx) {}
 
-  void encodeInstruction(const MCInst &MI, raw_ostream &OS,
+  void encodeInstruction(const MCInst &MI, SmallVectorImpl<char> &CB,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const override;
 
@@ -53,7 +53,7 @@ public:
 
 } // end anonymous namespace
 
-void V810MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
+void V810MCCodeEmitter::encodeInstruction(const MCInst &MI, SmallVectorImpl<char> &CB,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
@@ -64,10 +64,10 @@ void V810MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   switch (Size) {
   default: llvm_unreachable("Instruction is missing size");
   case 2:
-    support::endian::write(OS, (uint16_t) Bits, support::little);
+    support::endian::write(CB, (uint16_t) Bits, endianness::little);
     break;
   case 4:
-    support::endian::write(OS, (uint32_t) Bits, support::little);
+    support::endian::write(CB, (uint32_t) Bits, endianness::little);
     break;
   }
 }

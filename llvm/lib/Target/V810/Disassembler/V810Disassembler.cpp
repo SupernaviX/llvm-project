@@ -3,6 +3,7 @@
 #include "llvm/MC/MCDecoderOps.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/Endian.h"
 
 using namespace llvm;
 

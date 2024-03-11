@@ -57,7 +57,7 @@ namespace {
   private:
     Triple::OSType OSType;
   public:
-    V810AsmBackend(Triple::OSType OSType) : MCAsmBackend(support::little), OSType(OSType) {}
+    V810AsmBackend(Triple::OSType OSType) : MCAsmBackend(endianness::little), OSType(OSType) {}
 
     unsigned getNumFixupKinds() const override {
       return V810::NumTargetFixupKinds;
@@ -146,7 +146,7 @@ namespace {
       uint64_t NumNops = Count / 2;
       for (uint64_t i = 0; i != NumNops; ++i) {
         // all 0s is MOV r0 r0, which takes one cycle and does nothing
-        support::endian::write<uint16_t>(OS, 0x0000, support::little);
+        support::endian::write<uint16_t>(OS, 0x0000, endianness::little);
       }
       return true;
     }
