@@ -14,7 +14,7 @@ on:
         required: false
       os_list:
         required: false
-        default: '["ubuntu-20.04", "windows-2019", "macOS-13"]'
+        default: '["ubuntu-latest", "windows-2019", "macOS-13"]'
       python_version:
         required: false
         type: string
@@ -39,7 +39,7 @@ on:
         type: string
         # Use windows-2019 due to:
         # https://developercommunity.visualstudio.com/t/Prev-Issue---with-__assume-isnan-/1597317
-        default: '["ubuntu-20.04", "windows-2019", "macOS-13"]'
+        default: '["ubuntu-latest", "windows-2019", "macOS-13"]'
 
       python_version:
         required: false
@@ -59,7 +59,7 @@ jobs:
     name: Lit Tests
     runs-on: ${{ matrix.os }}
     container:
-      image: ${{(startsWith(matrix.os, 'ubuntu') && 'ghcr.io/llvm/ci-ubuntu-20.04:latest') || null}}
+      image: ${{(startsWith(matrix.os, 'ubuntu') && 'ghcr.io/llvm/ci-ubuntu-22.04:latest') || null}}
       volumes:
         - /mnt/:/mnt/
     strategy:
