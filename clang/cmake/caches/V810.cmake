@@ -3,7 +3,7 @@
 # Usage for configuring:
 #   cmake -C [path-to-this-file] ...
 
-set(LLVM_TARGETS_TO_BUILD "" CACHE STRING "")
+set(LLVM_TARGETS_TO_BUILD ARM;X86;V810 CACHE STRING "")
 set(LLVM_ENABLE_PROJECTS clang;clang-tools-extra;lld;lldb CACHE STRING "")
 set(LLVM_ENABLE_LIBXML2 "OFF" CACHE STRING "")
 set(LLVM_ENABLE_ZLIB "OFF" CACHE STRING "")
@@ -19,7 +19,7 @@ set(BUILTINS_v810-unknown-vb_COMPILER_RT_BUILD_BUILTINS ON CACHE BOOL "")
 set(BUILTINS_v810-unknown-vb_COMPILER_RT_BUILD_CRT OFF CACHE BOOL "")
 set(BUILTINS_v810-unknown-vb_CMAKE_BUILD_TYPE Release CACHE BOOL "")
 
-set(LLVM_DEFAULT_TARGET_TRIPLE "v810-unknown-vb" CACHE STRING "")
+set(LLVM_DEFAULT_TARGET_TRIPLE v810-unknown-vb CACHE STRING "")
 
 set(CMAKE_BUILD_TYPE Release CACHE STRING "CMake build type")
 
@@ -61,7 +61,7 @@ set(LLVM_DISTRIBUTION_COMPONENTS
   ${LLVM_TOOLCHAIN_TOOLS}
   CACHE STRING "")
 
-# Add clang symlinks prefixed with v810-* to allow distinguishing a llvm-mos
+# Add clang symlinks prefixed with v810-* to allow distinguishing a llvm-v810
 # directory from a system clang directory.
 set(CLANG_LINKS_TO_CREATE
   clang++

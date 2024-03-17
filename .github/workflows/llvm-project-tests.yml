@@ -59,7 +59,7 @@ jobs:
     name: Lit Tests
     runs-on: ${{ matrix.os }}
     container:
-      image: ${{(startsWith(matrix.os, 'ubuntu') && 'ghcr.io/llvm/ci-ubuntu-22.04:latest') || null}}
+      image: ${{(startsWith(matrix.os, 'ubuntu') && 'ghcr.io/llvm/ci-ubuntu-20.04:latest') || null}}
       volumes:
         - /mnt/:/mnt/
     strategy:
@@ -122,6 +122,8 @@ jobs:
           cmake -G Ninja \
                 -B "$builddir" \
                 -S llvm \
+                -DLLVM_DEFAULT_TARGET_TRIPLE="v810-unknown-vb" \
+                -DLLVM_TARGETS_TO_BUILD="ARM;X86;V810" \
                 -DLLVM_ENABLE_PROJECTS="${{ inputs.projects }}" \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DLLVM_ENABLE_ASSERTIONS=ON \
