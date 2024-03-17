@@ -24,9 +24,6 @@ on:
         required: true
         default: false
         type: boolean
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '0 8 1 * *'
 
 permissions:
   contents: read # Default everything to read-only
@@ -34,8 +31,8 @@ permissions:
 jobs:
   prepare:
     name: Prepare to build binaries
-    runs-on: ubuntu-22.04
-    if: github.repository == 'llvm/llvm-project'
+    runs-on: ubuntu-20.04
+    if: github.repository == 'SupernaviX/v810-llvm'
     outputs:
       release-version: ${{ steps.vars.outputs.release-version }}
       flags: ${{ steps.vars.outputs.flags }}
@@ -71,8 +68,8 @@ jobs:
       # | X.Y.Z     | -final
       run: |
         tag="${{ github.ref_name }}"
-        trimmed=$(echo ${{ inputs.tag }} | xargs)
-        [[ "$trimmed" != "" ]] && tag="$trimmed"
+        trimmed=$(echo ${{ inputs.release-version }} | xargs)
+        [[ "$trimmed" != "" ]] && tag="llvmorg-$trimmed"
         if [ "$tag" = "main" ]; then
           # If tag is main, then we've been triggered by a scheduled so pass so
           # use the head commit as the tag.
@@ -91,11 +88,11 @@ jobs:
     name: "Fill Cache ${{ matrix.os }}"
     needs: prepare
     runs-on: ${{ matrix.os }}
-    if: github.repository == 'llvm/llvm-project'
+    if: github.repository == 'SupernaviX/v810-llvm'
     strategy:
       matrix:
         os:
-          - ubuntu-22.04
+          - ubuntu-20.04
     steps:
     - name: Checkout LLVM
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -114,7 +111,7 @@ jobs:
 
     - name: Build Clang
       run: |
-        cmake -G Ninja -C clang/cmake/caches/Release.cmake -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON -S llvm -B build
+        cmake -G Ninja -C clang/cmake/caches/V810.cmake -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON -S llvm -B build
         ninja -v -C build clang
 
 
@@ -126,14 +123,14 @@ jobs:
       - prepare
       - fill-cache
     runs-on: ${{ matrix.target.runs-on }}
-    if: github.repository == 'llvm/llvm-project'
+    if: github.repository == 'SupernaviX/v810-llvm'
     strategy:
       fail-fast: false
       matrix:
         target:
-          - triple: x86_64-linux-gnu-ubuntu-22.04
-            os: ubuntu-22.04
-            runs-on: ubuntu-22.04-16x64
+          - triple: x86_64-linux-gnu-ubuntu-20.04
+            os: ubuntu-20.04
+            runs-on: ubuntu-20.04-16x64
             debian-build-deps: >
               chrpath
               gcc-multilib

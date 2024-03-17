@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   check_lld:
-    if: github.repository_owner == 'llvm'
+    if: github.repository_owner == 'SupernaviX'
     name: Test lld
     uses: ./.github/workflows/llvm-project-tests.yml
     with:
