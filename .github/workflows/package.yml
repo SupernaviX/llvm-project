@@ -78,7 +78,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         uses: softprops/action-gh-release@v1
         with:
-          body: "Internal compiler build for Linux"
+          body: "Compiler build for Linux"
           tag_name: llvm-v810-linux-main
           files: llvm-v810-linux-main.tar.xz
 
@@ -86,7 +86,7 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         uses: softprops/action-gh-release@v1
         with:
-          body: "Internal compiler build for macOS"
+          body: "Compiler build for macOS"
           tag_name: llvm-v810-darwin-main
           files: llvm-v810-darwin-main.tar.xz
 
@@ -94,7 +94,6 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: true
-          body: "Internal compiler build for Windows"
+          body: "Compiler build for Windows"
           tag_name: llvm-v810-windows-main
           files: llvm-v810-windows-main.7z
