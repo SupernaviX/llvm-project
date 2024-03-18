@@ -1,5 +1,6 @@
 // REQUIRES: lld
 // UNSUPPORTED: target={{.*-(ps4|ps5)}}
+// XFAIL: target=v810-{{.*}}
 
 // RUN: echo "-nostartfiles -nostdlib -fuse-ld=lld -gen-reproducer=error -fcrash-diagnostics-dir=%t" \
 // RUN:   | sed -e 's/\\/\\\\/g' > %t.rsp

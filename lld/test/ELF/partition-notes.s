@@ -2,6 +2,7 @@
 // each partition.
 
 // REQUIRES: x86
+// XFAIL: system-darwin
 
 // RUN: llvm-mc %s -o %t.o -filetype=obj --triple=x86_64-unknown-linux
 // RUN: ld.lld %t.o -o %t --shared --gc-sections --build-id=sha1

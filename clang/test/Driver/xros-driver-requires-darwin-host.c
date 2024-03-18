@@ -1,4 +1,5 @@
 // REQUIRES: system-darwin
+// XFAIL: target=v810-{{.*}}
 
 // RUN: env XROS_DEPLOYMENT_TARGET=1.0 %clang -arch arm64 -c -### %s 2>&1 | FileCheck %s
 

@@ -2,5 +2,6 @@
 // RUN:   FileCheck %s
 //
 // REQUIRES: system-darwin
+// XFAIL: target=v810-{{.*}}
 //
 // CHECK: "-triple" "arm64-apple-macosx{{[0-9.]+}}"

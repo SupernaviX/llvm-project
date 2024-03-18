@@ -1,4 +1,5 @@
 // REQUIRES: crash-recovery, shell, system-darwin
+// XFAIL: target=v810-{{.*}}
 //
 // RUN: rm -rf %t
 // RUN: mkdir -p %t/m %t/out

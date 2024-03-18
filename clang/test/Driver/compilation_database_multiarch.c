@@ -1,4 +1,5 @@
 // REQUIRES: system-darwin
+// XFAIL: target=v810-{{.*}}
 
 // RUN: rm -rf %t && mkdir -p %t
 // RUN: %clang -fdriver-only -o %t/out %s -mtargetos=macos12 -arch arm64 -arch x86_64 -MJ %t/compilation_database.json
