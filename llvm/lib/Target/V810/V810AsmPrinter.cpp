@@ -98,6 +98,9 @@ void V810AsmPrinter::printOperandImpl(const MachineInstr *MI, unsigned OpNo,
   case MachineOperand::MO_GlobalAddress:
     PrintSymbolOperand(MO, O);
     break;
+  case MachineOperand::MO_BlockAddress:
+    O << GetBlockAddressSymbol(MO.getBlockAddress())->getName();
+    break;
   case MachineOperand::MO_ExternalSymbol:
     O << MO.getSymbolName();
     break;

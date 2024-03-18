@@ -43,6 +43,7 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   // Handle addresses specially to make constants
   setOperationAction(ISD::GlobalAddress, MVT::i32, Custom);
   setOperationAction(ISD::GlobalTLSAddress, MVT::i32, Custom);
+  setOperationAction(ISD::BlockAddress, MVT::i32, Custom);
   setOperationAction(ISD::ConstantPool, MVT::i32, Custom);
   // Handle branching specially
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
@@ -615,9 +616,22 @@ static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Targe
   return BuildMovhiMoveaPair(DAG, GN->getGlobal(), DL, VT, GN->getOffset());
 }
 
+static SDValue LowerBlockAddress(SDValue Op, SelectionDAG &DAG) {
+  BlockAddressSDNode *BA = cast<BlockAddressSDNode>(Op);
+
+  SDLoc DL(Op);
+  SDValue HiTarget = DAG.getTargetBlockAddress(BA->getBlockAddress(), BA->getValueType(0),
+                                               BA->getOffset(), V810MCExpr::VK_V810_HI);
+  SDValue LoTarget = DAG.getTargetBlockAddress(BA->getBlockAddress(), BA->getValueType(0),
+                                               BA->getOffset(), V810MCExpr::VK_V810_LO);
+
+  EVT VT = Op.getValueType();
+  SDValue Hi = DAG.getNode(V810ISD::HI, DL, VT, HiTarget);
+  return DAG.getNode(V810ISD::LO, DL, VT, Hi, LoTarget);  
+}
+
 static SDValue LowerConstantPool(SDValue Op, SelectionDAG &DAG) {
-  ConstantPoolSDNode *CP = dyn_cast<ConstantPoolSDNode>(Op);
-  assert(CP);
+  ConstantPoolSDNode *CP = cast<ConstantPoolSDNode>(Op);
 
   SDLoc DL(Op);
   SDValue HiTarget = DAG.getTargetConstantPool(CP->getConstVal(), CP->getValueType(0),
@@ -825,6 +839,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
 
   case ISD::GlobalAddress:    return LowerGlobalAddress(Op, DAG, this);
   case ISD::GlobalTLSAddress: return LowerGlobalAddress(Op, DAG, this); // luckily no threads
+  case ISD::BlockAddress:     return LowerBlockAddress(Op, DAG);
   case ISD::ConstantPool:     return LowerConstantPool(Op, DAG);
   case ISD::ConstantFP:       return LowerConstantFP(Op, DAG);
   case ISD::BR_CC:            return LowerBR_CC(Op, DAG);

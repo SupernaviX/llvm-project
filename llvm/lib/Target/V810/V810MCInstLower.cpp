@@ -41,6 +41,13 @@ static MCOperand LowerExternalSymbol(const MachineInstr *MI,
   return LowerSymbolOperand(MO, Symbol, MO.getOffset(), AP);
 }
 
+static MCOperand LowerBlockAddress(const MachineInstr *MI,
+                                   const MachineOperand &MO,
+                                   AsmPrinter &AP) {
+  const MCSymbol *Symbol = AP.GetBlockAddressSymbol(MO.getBlockAddress());
+  return LowerSymbolOperand(MO, Symbol, MO.getOffset(), AP);
+}
+
 static MCOperand LowerConstantPoolIndex(const MachineInstr *MI,
                                           const MachineOperand &MO,
                                           AsmPrinter &AP) {
@@ -48,7 +55,7 @@ static MCOperand LowerConstantPoolIndex(const MachineInstr *MI,
   return LowerSymbolOperand(MO, Symbol, MO.getOffset(), AP);
 }
 
-static MCOperand LowerBlockAddress(const MachineInstr *MI,
+static MCOperand LowerMBBAddress(const MachineInstr *MI,
                                    const MachineOperand &MO,
                                    AsmPrinter &AP) {
   const MCSymbol *Symbol = MO.getMBB()->getSymbol();
@@ -72,10 +79,12 @@ static MCOperand LowerOperand(const MachineInstr *MI,
     return LowerGlobalOperand(MI, MO, AP);
   case MachineOperand::MO_ExternalSymbol:
     return LowerExternalSymbol(MI, MO, AP);
+  case MachineOperand::MO_BlockAddress:
+    return LowerBlockAddress(MI, MO, AP);
   case MachineOperand::MO_ConstantPoolIndex:
     return LowerConstantPoolIndex(MI, MO, AP);
   case MachineOperand::MO_MachineBasicBlock:
-    return LowerBlockAddress(MI, MO, AP);
+    return LowerMBBAddress(MI, MO, AP);
   case MachineOperand::MO_RegisterMask:
     break;
   }
