@@ -73,6 +73,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SRA_PARTS, MVT::i32, Expand);
   setOperationAction(ISD::SRL_PARTS, MVT::i32, Expand);
 
+  // these are compiled to recursive calls for some reason
+  setLibcallName(RTLIB::SHL_I64, nullptr);
+  setLibcallName(RTLIB::SRL_I64, nullptr);
+  setLibcallName(RTLIB::SRA_I64, nullptr);
+
   // all of these expand to our native MUL_LOHI and DIVREM opcodes
   setOperationAction(ISD::SMUL_LOHI, MVT::i32, Custom);
   setOperationAction(ISD::UMUL_LOHI, MVT::i32, Custom);
