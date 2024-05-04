@@ -25,7 +25,6 @@
 #include "clang/Sema/Initialization.h"
 #include "clang/Sema/Overload.h"
 #include "clang/Sema/ScopeInfo.h"
-#include "clang/Sema/Sema.h"
 #include "clang/Sema/SemaInternal.h"
 #include "llvm/ADT/SmallSet.h"
 
@@ -818,13 +817,10 @@ ExprResult Sema::BuildOperatorCoawaitLookupExpr(Scope *S, SourceLocation Loc) {
 
   assert(!Operators.isAmbiguous() && "Operator lookup cannot be ambiguous");
   const auto &Functions = Operators.asUnresolvedSet();
-  bool IsOverloaded =
-      Functions.size() > 1 ||
-      (Functions.size() == 1 && isa<FunctionTemplateDecl>(*Functions.begin()));
   Expr *CoawaitOp = UnresolvedLookupExpr::Create(
       Context, /*NamingClass*/ nullptr, NestedNameSpecifierLoc(),
-      DeclarationNameInfo(OpName, Loc), /*RequiresADL*/ true, IsOverloaded,
-      Functions.begin(), Functions.end());
+      DeclarationNameInfo(OpName, Loc), /*RequiresADL*/ true, Functions.begin(),
+      Functions.end(), /*KnownDependent=*/false);
   assert(CoawaitOp);
   return CoawaitOp;
 }
@@ -1291,21 +1287,8 @@ bool CoroutineStmtBuilder::makeReturnOnAllocFailure() {
 static bool collectPlacementArgs(Sema &S, FunctionDecl &FD, SourceLocation Loc,
                                  SmallVectorImpl<Expr *> &PlacementArgs) {
   if (auto *MD = dyn_cast<CXXMethodDecl>(&FD)) {
-    if (MD->isImplicitObjectMemberFunction()) {
-      ExprResult ThisExpr{};
-
-      if (isLambdaCallOperator(MD) && !MD->isStatic()) {
-        Qualifiers ThisQuals = MD->getMethodQualifiers();
-        CXXRecordDecl *Record = MD->getParent();
-
-        Sema::CXXThisScopeRAII ThisScope(S, Record, ThisQuals,
-                                         Record != nullptr);
-
-        ThisExpr = S.ActOnCXXThis(Loc, /*ThisRefersToClosureObject=*/true);
-      } else {
-        ThisExpr = S.ActOnCXXThis(Loc);
-      }
-
+    if (MD->isImplicitObjectMemberFunction() && !isLambdaCallOperator(MD)) {
+      ExprResult ThisExpr = S.ActOnCXXThis(Loc);
       if (ThisExpr.isInvalid())
         return false;
       ThisExpr = S.CreateBuiltinUnaryOp(Loc, UO_Deref, ThisExpr.get());
