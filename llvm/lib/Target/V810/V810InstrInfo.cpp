@@ -371,16 +371,18 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
     return false;
   }
 
+  const TargetRegisterInfo *TRI = &getRegisterInfo();
+
   // Find the operation which set <reg>. 
   MachineInstr *SrcRegDef = NULL;
   auto From = std::next(MachineBasicBlock::reverse_iterator(MI));
   for (MachineBasicBlock *BB = MI.getParent();;) {
     for (MachineInstr &Inst : make_range(From, BB->rend())) {
-      if (Inst.definesRegister(SrcReg)) {
+      if (Inst.definesRegister(SrcReg, TRI)) {
         SrcRegDef = &Inst;
         break;
       }
-      if (Inst.definesRegister(V810::SR5)) {
+      if (Inst.definesRegister(V810::SR5, TRI)) {
         // Something besides the operation we cared about has messed with PSW.
         // This compare-with-zero is not a no-op after all.
         // TODO: maybe possible to rearrange instructions to MAKE it a no-op
@@ -416,7 +418,7 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
           return false;
         }
       }
-      if (Instr.definesRegister(V810::SR5)) {
+      if (Instr.definesRegister(V810::SR5, TRI)) {
         // PSW got clobbered, so the old value doesn't matter beyond this point.
         FlagsMayLiveOut = false;
         break;
