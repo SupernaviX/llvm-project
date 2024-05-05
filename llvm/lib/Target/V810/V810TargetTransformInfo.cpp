@@ -36,18 +36,18 @@ InstructionCost V810TTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
     return TTI::TCC_Free;
   // Can be loaded in a two-byte MOV
   if (Imm.isSignedIntN(5))
-    return 1;
+    return TTI::TCC_Basic;
   // Can be loaded in a four-byte MOVEA
   if (Imm.isSignedIntN(16))
-    return 2;
+    return TTI::TCC_Basic;
   // Can be loaded in a four-byte ORI
   if (Imm.isIntN(16))
-    return 2;
+    return TTI::TCC_Basic;
   // Can be loaded in a four-byte MOVHI
   if (Imm.isSingleWord() && isShiftedInt<16, 16>(Imm.getSExtValue()))
-    return 2;
+    return TTI::TCC_Basic;
   // gotta be an 8-byte MOVHI/MOVEA pair
-  return 4;
+  return TTI::TCC_Expensive;
 }
 
 InstructionCost V810TTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
