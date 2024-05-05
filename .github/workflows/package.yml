@@ -74,11 +74,16 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: tar -cJvf llvm-v810-darwin-main.tar.xz llvm-v810
 
+      - id: getDate
+        name: Get Current Date
+        run: echo "TODAY=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
       - name: Release Linux
         if: startsWith(matrix.os, 'ubuntu')
         uses: softprops/action-gh-release@v1
         with:
           body: "Compiler build for Linux"
+          name: "Linux ${{ steps.getDate.outputs.TODAY }}"
           tag_name: llvm-v810-linux-main
           files: llvm-v810-linux-main.tar.xz
 
@@ -87,6 +92,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: "Compiler build for macOS"
+          name: "Darwin ${{ steps.getDate.outputs.TODAY }}"
           tag_name: llvm-v810-darwin-main
           files: llvm-v810-darwin-main.tar.xz
 
@@ -95,5 +101,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body: "Compiler build for Windows"
+          name: "Windows ${{ steps.getDate.outputs.TODAY }}"
           tag_name: llvm-v810-windows-main
           files: llvm-v810-windows-main.7z

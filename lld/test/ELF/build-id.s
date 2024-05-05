@@ -1,5 +1,4 @@
 # REQUIRES: x86
-# XFAIL: system-darwin
 
 # RUN: llvm-mc -filetype=obj -triple=x86_64-unknown-linux %s -o %t
 
