@@ -115,6 +115,8 @@ jobs:
             builddir="/mnt/build/"
             mkdir -p $builddir
             extra_cmake_args="-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang"
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            builddir=$(echo "$(pwd)/build" | sed 's#/#\\#g')
           else
             builddir="$(pwd)"/build
           fi
