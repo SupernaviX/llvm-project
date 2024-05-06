@@ -1,4 +1,18 @@
 
+// Below "Itineraries" are only used by the ScoreboardHazardRecognizer
+def MemoryUnit : FuncUnit;
+
+def IIC_Load : InstrItinClass;
+def IIC_Store : InstrItinClass;
+
+def V810Itineraries : ProcessorItineraries<
+  [MemoryUnit],
+  [],
+  [
+    InstrItinData<IIC_Load, [InstrStage<0, [MemoryUnit]>]>,
+    InstrItinData<IIC_Store, [InstrStage<2, [MemoryUnit]>]>,
+  ]>;
+
 // The Schedule Machine Model itself
 
 def V810Model : SchedMachineModel {
@@ -6,6 +20,7 @@ def V810Model : SchedMachineModel {
   let IssueWidth = 1; // One thing happens per cycle
   let PostRAScheduler = 1;
 
+  let Itineraries = V810Itineraries;
 }
 
 // Resources used by scheduler definitions
@@ -30,14 +45,14 @@ def WriteBranch   : SchedWrite; // jump jump
 // Tie it all together
 let SchedModel = V810Model in {
 
-def : WriteRes<WriteI, []> { let Latency = 1; }
-def : WriteRes<WriteALU, []> { let Latency = 1; }
-def : WriteRes<WriteIMul, []> { let Latency = 13; }
-def : WriteRes<WriteIDiv, []> { let Latency = 38; }
-def : WriteRes<WriteFPU, [V810UnitFPU]> { let Latency = 28; } // everything is the same number of cycles because I am lazy
-def : WriteRes<WriteLoad, [V810UnitMemory]> { let Latency = 1; } // TODO: translate timings to scheduler model 
-def : WriteRes<WriteStore, [V810UnitMemory]>  { let Latency = 1; } // TODO: translate timings to scheduler model
-def : WriteRes<WriteBranch, [V810UnitBranch]> { let Latency = 3; } // TODO: how do I say "this flushes the pipeline"
+def : WriteRes<WriteI, []>;
+def : WriteRes<WriteALU, []>;
+def : WriteRes<WriteIMul, []>;
+def : WriteRes<WriteIDiv, []>;
+def : WriteRes<WriteFPU, [V810UnitFPU]>;
+def : WriteRes<WriteLoad, [V810UnitMemory]>; 
+def : WriteRes<WriteStore, [V810UnitMemory]> { let ReleaseAtCycles = [2]; }
+def : WriteRes<WriteBranch, [V810UnitBranch]>; // TODO: how do I say "this flushes the pipeline"
 
 // the COPY pseudo-instr needs scheduling info
 def : InstRW<[WriteI], (instrs COPY)>;

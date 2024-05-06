@@ -66,7 +66,9 @@ namespace {
 class V810PassConfig : public TargetPassConfig {
 public:
   V810PassConfig(V810TargetMachine &TM, PassManagerBase &PM)
-    : TargetPassConfig(TM, PM) {}
+    : TargetPassConfig(TM, PM) {
+      substitutePass(&PostRASchedulerID, &PostMachineSchedulerID);
+    }
 
   V810TargetMachine &getV810TargetMachine() const {
     return getTM<V810TargetMachine>();

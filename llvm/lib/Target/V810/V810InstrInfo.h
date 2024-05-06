@@ -102,14 +102,6 @@ public:
 
   virtual unsigned getInstSizeInBytes(const MachineInstr &MI) const override;
 
-  virtual ScheduleHazardRecognizer *
-  CreateTargetPostRAHazardRecognizer(const MachineFunction &MF) const override;
-  virtual ScheduleHazardRecognizer *
-  CreateTargetPostRAHazardRecognizer(const InstrItineraryData *II,
-                                     const ScheduleDAG *DAG) const override;
-  virtual ScheduleHazardRecognizer *
-  CreateTargetMIHazardRecognizer(const InstrItineraryData *II,
-                                 const ScheduleDAGMI *DAG) const override;
 };
 
 }

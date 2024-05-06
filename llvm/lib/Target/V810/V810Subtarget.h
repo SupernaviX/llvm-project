@@ -24,10 +24,14 @@ private:
   V810TargetLowering TLInfo;
   V810SelectionDAGInfo TSInfo;
   V810FrameLowering FrameLowering;
+  InstrItineraryData InstrItins;
 public:
   V810Subtarget(const Triple &TT, const std::string &CPU,
                 const std::string &FS, const TargetMachine &TM);
 
+  const InstrItineraryData *getInstrItineraryData() const override {
+    return &InstrItins;
+  }
   const V810InstrInfo *getInstrInfo() const override { return &InstrInfo; }
   const V810FrameLowering *getFrameLowering() const override {
     return &FrameLowering;

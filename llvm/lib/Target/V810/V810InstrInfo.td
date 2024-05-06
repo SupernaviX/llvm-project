@@ -153,7 +153,7 @@ def CC_NOP : CC_VAL<13>; // Never (nop)
 def CC_GE  : CC_VAL<14>; // Greater than or equal (signed)
 def CC_GT  : CC_VAL<15>; // Greater than
 
-let mayLoad = 1 in {
+let mayLoad = 1, Itinerary = IIC_Load in {
   def LD_W : FormatVI<0b110011,
     (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr),
     "ld.w $addr, $r2",
@@ -192,7 +192,7 @@ let mayLoad = 1 in {
   >;
 }
 
-let mayStore = 1 in {
+let mayStore = 1, Itinerary = IIC_Store in {
   def ST_W : FormatVI<0b110111,
     (outs), (ins (MEMri $r1, $disp):$addr, GenRegs:$r2),
     "st.w $r2, $addr",
@@ -685,6 +685,7 @@ class BitstringInst<bits<5> subop, string asmstr>
   let imm = subop;
   let Uses = [R26, R27, R28, R29, R30];
   let Defs = [R26, R27, R28, R29, R30];
+  let Itinerary = IIC_Store;
   let mayLoad = 1;
   let mayStore = 1;
 }
@@ -706,6 +707,7 @@ class BitstringSearchInst<bits<5> subop, string asmstr>
   let Uses = [R27, R28, R29, R30];
   let Defs = [R27, R28, R29, R30, SR5];
   let mayLoad = 1;
+  let Itinerary = IIC_Load;
 }
 
 def SCH0BSD : BitstringSearchInst<0b00001, "sch0bsd">;
@@ -717,7 +719,8 @@ def SCH1BSU : BitstringSearchInst<0b00010, "sch1bsu">;
 // $rcmp is always the same as r2, and rswap is always R30.
 // The latter is guaranteed by using custom lowering for ATOMIC_CMP_SWAP.
 let mayLoad = 1, mayStore = 1, Uses = [R30], Defs = [SR5],
-    Constraints = "$r2 = $rcmp", DisableEncoding = "$rcmp,$rswap" in
+    Constraints = "$r2 = $rcmp", DisableEncoding = "$rcmp,$rswap",
+    Itinerary = IIC_Store in
 def CAXI : FormatVI<0b111010,
   (outs GenRegs:$r2), (ins (MEMri $r1, $disp):$addr, GenRegs:$rcmp, GenRegs:$rswap),
   "caxi $addr, $r2",
