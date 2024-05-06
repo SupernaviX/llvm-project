@@ -94,6 +94,17 @@ class V810InstrInfo : public V810GenInstrInfo {
                             Register SrcReg2, int64_t CmpMask, int64_t CmpValue,
                             const MachineRegisterInfo *MRI) const override;
 
+  bool shouldClusterMemOps(ArrayRef<const MachineOperand *> BaseOps1,
+                           int64_t Offset1, bool OffsetIsScalable1,
+                           ArrayRef<const MachineOperand *> BaseOps2,
+                           int64_t Offset2, bool OffsetIsScalable2,
+                           unsigned ClusterSize,
+                           unsigned NumBytes) const override;
+  bool getMemOperandsWithOffsetWidth(
+      const MachineInstr &MI, SmallVectorImpl<const MachineOperand *> &BaseOps,
+      int64_t &Offset, bool &OffsetIsScalable, LocationSize &Width,
+      const TargetRegisterInfo *TRI) const override;
+
   bool isUnpredicatedTerminatorBesidesNop(const MachineInstr &MI) const;
 
 public:

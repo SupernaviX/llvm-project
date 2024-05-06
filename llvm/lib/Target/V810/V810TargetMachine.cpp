@@ -4,6 +4,7 @@
 #include "V810TargetMachine.h"
 #include "V810TargetObjectFile.h"
 #include "V810TargetTransformInfo.h"
+#include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -74,6 +75,9 @@ public:
     return getTM<V810TargetMachine>();
   }
 
+  ScheduleDAGInstrs *createMachineScheduler(MachineSchedContext *C) const override;
+  ScheduleDAGInstrs *createPostMachineScheduler(MachineSchedContext *C) const override;
+
   void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
@@ -83,6 +87,18 @@ public:
 
 TargetPassConfig *V810TargetMachine::createPassConfig(PassManagerBase &PM) {
   return new V810PassConfig(*this, PM);
+}
+
+ScheduleDAGInstrs *V810PassConfig::createMachineScheduler(MachineSchedContext *C) const {
+  ScheduleDAGMILive *DAG = new ScheduleDAGMILive(C, std::make_unique<GenericScheduler>(C));
+  DAG->addMutation(createLoadClusterDAGMutation(DAG->TII, DAG->TRI));
+  return DAG;
+}
+
+ScheduleDAGInstrs *V810PassConfig::createPostMachineScheduler(MachineSchedContext *C) const {
+  ScheduleDAGMI *DAG = new ScheduleDAGMI(C, std::make_unique<PostGenericScheduler>(C), true);
+  DAG->addMutation(createLoadClusterDAGMutation(DAG->TII, DAG->TRI));
+  return DAG;
 }
 
 void V810PassConfig::addIRPasses() {
