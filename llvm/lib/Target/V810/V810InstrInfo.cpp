@@ -1,4 +1,3 @@
-#include "V810HazardRecognizer.h"
 #include "V810InstrInfo.h"
 #include "V810.h"
 #include "V810Subtarget.h"
@@ -442,6 +441,59 @@ bool V810InstrInfo::optimizeCompareInstr(MachineInstr &MI, Register SrcReg,
   return true;
 }
 
+bool V810InstrInfo::shouldClusterMemOps(
+    ArrayRef<const MachineOperand *> BaseOps1,
+    int64_t Offset1, bool OffsetIsScalable1,
+    ArrayRef<const MachineOperand *> BaseOps2,
+    int64_t Offset2, bool OffsetIsScalable2,
+    unsigned ClusterSize,
+    unsigned NumBytes) const {
+  assert(BaseOps1.size() == 1 && BaseOps2.size() == 1);
+  const MachineOperand *BaseOp1 = BaseOps1.front();
+  const MachineOperand *BaseOp2 = BaseOps2.front();
+  
+  // Cluster loads, not stores
+  return BaseOp1->getParent()->mayLoad() && BaseOp2->getParent()->mayLoad();
+}
+
+bool V810InstrInfo::getMemOperandsWithOffsetWidth(
+    const MachineInstr &MI, SmallVectorImpl<const MachineOperand *> &BaseOps,
+    int64_t &Offset, bool &OffsetIsScalable, LocationSize &Width,
+    const TargetRegisterInfo *TRI) const {
+  OffsetIsScalable = false;
+  switch (MI.getOpcode()) {
+  case V810::IN_B:
+  case V810::LD_B:
+  case V810::OUT_B:
+  case V810::ST_B:
+    Width = LocationSize::precise(1);
+    break;
+  case V810::IN_H:
+  case V810::LD_H:
+  case V810::OUT_H:
+  case V810::ST_H:
+    Width = LocationSize::precise(2);
+    break;
+  case V810::CAXI:
+  case V810::IN_W:
+  case V810::LD_W:
+  case V810::OUT_W:
+  case V810::ST_W:
+    Width = LocationSize::precise(4);
+    break;
+  default:
+    return false;
+  }
+  unsigned BasePos = MI.mayLoad() ? 1 : 0;
+  unsigned OffsetPos = BasePos + 1;
+  if (!MI.getOperand(OffsetPos).isImm()) {
+    return false;
+  }
+  BaseOps.push_back(&MI.getOperand(BasePos));
+  Offset = MI.getOperand(OffsetPos).getImm();
+  return true;
+}
+
 unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   if (MI.isInlineAsm()) {
     const MachineFunction *MF = MI.getParent()->getParent();
@@ -451,23 +503,4 @@ unsigned V810InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
 
   unsigned Opcode = MI.getOpcode();
   return get(Opcode).getSize();
-}
-
-ScheduleHazardRecognizer *
-V810InstrInfo::CreateTargetPostRAHazardRecognizer(const InstrItineraryData *II,
-                                                  const ScheduleDAG *DAG) const {
-  return new V810HazardRecognizer();
-}
-
-ScheduleHazardRecognizer *
-V810InstrInfo::CreateTargetPostRAHazardRecognizer(const MachineFunction &MF) const {
-  return new V810HazardRecognizer();
-}
-
-ScheduleHazardRecognizer*
-V810InstrInfo::CreateTargetMIHazardRecognizer(const InstrItineraryData *II,
-                                              const ScheduleDAGMI *DAG) const {
-  if (!DAG->hasVRegLiveness())
-    return new V810HazardRecognizer();
-  return TargetInstrInfo::CreateTargetMIHazardRecognizer(II, DAG);
 }

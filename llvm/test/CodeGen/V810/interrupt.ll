@@ -10,8 +10,8 @@ define void @preservesUsedRegisters() "interrupt" {
 ; CHECK-NEXT:    st.w r6, 4[r3] # 4-byte Folded Spill
 ; CHECK-NEXT:    movhi hi(var), r0, r6
 ; CHECK-NEXT:    st.w r7, 0[r3] # 4-byte Folded Spill
-; CHECK-NEXT:    mov 10, r7
 ; CHECK-NEXT:    movea lo(var), r6, r6
+; CHECK-NEXT:    mov 10, r7
 ; CHECK-NEXT:    st.w r7, 0[r6]
 ; CHECK-NEXT:    ld.w 0[r3], r7 # 4-byte Folded Reload
 ; CHECK-NEXT:    ld.w 4[r3], r6 # 4-byte Folded Reload
