@@ -14,13 +14,13 @@ class PassRegistry;
 class V810TargetMachine;
 
 FunctionPass *createV810BranchSelectionPass();
-FunctionPass *createV810IselDag(V810TargetMachine &TM);
+FunctionPass *createV810ISelDag(V810TargetMachine &TM, CodeGenOptLevel OptLevel);
 
 void LowerV810MachineInstrToMCInst(const MachineInstr *MI, MCInst &OutMI,
                                    AsmPrinter &AP);
 
 void initializeV810BSelPass(PassRegistry &);
-void initializeV810DAGToDAGISelPass(PassRegistry &);
+void initializeV810DAGToDAGISelLegacyPass(PassRegistry &);
 }
 
 namespace llvm {

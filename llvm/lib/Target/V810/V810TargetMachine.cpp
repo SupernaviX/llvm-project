@@ -108,7 +108,7 @@ void V810PassConfig::addIRPasses() {
 }
 
 bool V810PassConfig::addInstSelector() {
-  addPass(createV810IselDag(getV810TargetMachine()));
+  addPass(createV810ISelDag(getV810TargetMachine(), getOptLevel()));
   return false;
 }
 

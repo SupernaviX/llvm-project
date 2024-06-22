@@ -82,6 +82,7 @@
 #include "llvm/CodeGen/ExpandLargeDivRem.h"
 #include "llvm/CodeGen/ExpandLargeFpConvert.h"
 #include "llvm/CodeGen/ExpandMemCmp.h"
+#include "llvm/CodeGen/FinalizeISel.h"
 #include "llvm/CodeGen/GCMetadata.h"
 #include "llvm/CodeGen/GlobalMerge.h"
 #include "llvm/CodeGen/HardwareLoops.h"
@@ -89,12 +90,15 @@
 #include "llvm/CodeGen/InterleavedAccess.h"
 #include "llvm/CodeGen/InterleavedLoadCombine.h"
 #include "llvm/CodeGen/JMCInstrumenter.h"
+#include "llvm/CodeGen/LocalStackSlotAllocation.h"
 #include "llvm/CodeGen/LowerEmuTLS.h"
 #include "llvm/CodeGen/MIRPrinter.h"
+#include "llvm/CodeGen/MachineDominators.h"
 #include "llvm/CodeGen/MachineFunctionAnalysis.h"
 #include "llvm/CodeGen/MachinePassManager.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/PreISelIntrinsicLowering.h"
+#include "llvm/CodeGen/RegAllocFast.h"
 #include "llvm/CodeGen/SafeStack.h"
 #include "llvm/CodeGen/SelectOptimize.h"
 #include "llvm/CodeGen/ShadowStackGCLowering.h"
@@ -137,6 +141,7 @@
 #include "llvm/Transforms/IPO/DeadArgumentElimination.h"
 #include "llvm/Transforms/IPO/ElimAvailExtern.h"
 #include "llvm/Transforms/IPO/EmbedBitcodePass.h"
+#include "llvm/Transforms/IPO/ExpandVariadics.h"
 #include "llvm/Transforms/IPO/ForceFunctionAttrs.h"
 #include "llvm/Transforms/IPO/FunctionAttrs.h"
 #include "llvm/Transforms/IPO/FunctionImport.h"
@@ -177,6 +182,7 @@
 #include "llvm/Transforms/Instrumentation/LowerAllowCheckPass.h"
 #include "llvm/Transforms/Instrumentation/MemProfiler.h"
 #include "llvm/Transforms/Instrumentation/MemorySanitizer.h"
+#include "llvm/Transforms/Instrumentation/PGOCtxProfLowering.h"
 #include "llvm/Transforms/Instrumentation/PGOForceFunctionAttrs.h"
 #include "llvm/Transforms/Instrumentation/PGOInstrumentation.h"
 #include "llvm/Transforms/Instrumentation/PoisonChecking.h"
@@ -294,6 +300,7 @@
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/UnifyLoopExits.h"
 #include "llvm/Transforms/Vectorize/LoadStoreVectorizer.h"
+#include "llvm/Transforms/Vectorize/LoopIdiomVectorize.h"
 #include "llvm/Transforms/Vectorize/LoopVectorize.h"
 #include "llvm/Transforms/Vectorize/SLPVectorizer.h"
 #include "llvm/Transforms/Vectorize/VectorCombine.h"
@@ -380,7 +387,8 @@ public:
 class RequireAllMachineFunctionPropertiesPass
     : public PassInfoMixin<RequireAllMachineFunctionPropertiesPass> {
 public:
-  PreservedAnalyses run(MachineFunction &, MachineFunctionAnalysisManager &) {
+  PreservedAnalyses run(MachineFunction &MF, MachineFunctionAnalysisManager &) {
+    MFPropsModifier _(*this, MF);
     return PreservedAnalyses::none();
   }
 
@@ -498,15 +506,6 @@ void PassBuilder::registerLoopAnalyses(LoopAnalysisManager &LAM) {
 
   for (auto &C : LoopAnalysisRegistrationCallbacks)
     C(LAM);
-}
-
-static std::optional<int> parseRepeatPassName(StringRef Name) {
-  if (!Name.consume_front("repeat<") || !Name.consume_back(">"))
-    return std::nullopt;
-  int Count;
-  if (Name.getAsInteger(0, Count) || Count <= 0)
-    return std::nullopt;
-  return Count;
 }
 
 static std::optional<std::pair<bool, bool>>
@@ -1141,6 +1140,57 @@ Expected<GlobalMergeOptions> parseGlobalMergeOptions(StringRef Params) {
   return Result;
 }
 
+Expected<SmallVector<std::string, 0>> parseInternalizeGVs(StringRef Params) {
+  SmallVector<std::string, 1> PreservedGVs;
+  while (!Params.empty()) {
+    StringRef ParamName;
+    std::tie(ParamName, Params) = Params.split(';');
+
+    if (ParamName.consume_front("preserve-gv=")) {
+      PreservedGVs.push_back(ParamName.str());
+    } else {
+      return make_error<StringError>(
+          formatv("invalid Internalize pass parameter '{0}' ", ParamName).str(),
+          inconvertibleErrorCode());
+    }
+  }
+
+  return Expected<SmallVector<std::string, 0>>(std::move(PreservedGVs));
+}
+
+Expected<RegAllocFastPassOptions>
+parseRegAllocFastPassOptions(PassBuilder &PB, StringRef Params) {
+  RegAllocFastPassOptions Opts;
+  while (!Params.empty()) {
+    StringRef ParamName;
+    std::tie(ParamName, Params) = Params.split(';');
+
+    if (ParamName.consume_front("filter=")) {
+      std::optional<RegClassFilterFunc> Filter =
+          PB.parseRegAllocFilter(ParamName);
+      if (!Filter) {
+        return make_error<StringError>(
+            formatv("invalid regallocfast register filter '{0}' ", ParamName)
+                .str(),
+            inconvertibleErrorCode());
+      }
+      Opts.Filter = *Filter;
+      Opts.FilterName = ParamName;
+      continue;
+    }
+
+    if (ParamName == "no-clear-vregs") {
+      Opts.ClearVRegs = false;
+      continue;
+    }
+
+    return make_error<StringError>(
+        formatv("invalid regallocfast pass parameter '{0}' ", ParamName).str(),
+        inconvertibleErrorCode());
+  }
+  return Opts;
+}
+
 } // namespace
 
 /// Tests whether a pass name starts with a valid prefix for a default pipeline
@@ -1187,10 +1237,6 @@ static bool isModulePassName(StringRef Name, CallbacksT &Callbacks) {
   if (Name == "coro-cond")
     return true;
 
-  // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
-
 #define MODULE_PASS(NAME, CREATE_PASS)                                         \
   if (Name == NAME)                                                            \
     return true;
@@ -1215,8 +1261,6 @@ static bool isCGSCCPassName(StringRef Name, CallbacksT &Callbacks) {
     return true;
 
   // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
   if (parseDevirtPassName(Name))
     return true;
 
@@ -1243,10 +1287,6 @@ static bool isFunctionPassName(StringRef Name, CallbacksT &Callbacks) {
   if (Name == "loop" || Name == "loop-mssa" || Name == "machine-function")
     return true;
 
-  // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
-
 #define FUNCTION_PASS(NAME, CREATE_PASS)                                       \
   if (Name == NAME)                                                            \
     return true;
@@ -1267,13 +1307,14 @@ static bool isMachineFunctionPassName(StringRef Name, CallbacksT &Callbacks) {
   if (Name == "machine-function")
     return true;
 
-  // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
-
 #define MACHINE_FUNCTION_PASS(NAME, CREATE_PASS)                               \
   if (Name == NAME)                                                            \
     return true;
+#define MACHINE_FUNCTION_PASS_WITH_PARAMS(NAME, CLASS, CREATE_PASS, PARSER,    \
+                                          PARAMS)                              \
+  if (PassBuilder::checkParametrizedPassName(Name, NAME))                      \
+    return true;
+
 #define MACHINE_FUNCTION_ANALYSIS(NAME, CREATE_PASS)                           \
   if (Name == "require<" NAME ">" || Name == "invalidate<" NAME ">")           \
     return true;
@@ -1287,10 +1328,6 @@ template <typename CallbacksT>
 static bool isLoopNestPassName(StringRef Name, CallbacksT &Callbacks,
                                bool &UseMemorySSA) {
   UseMemorySSA = false;
-
-  // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
 
   if (PassBuilder::checkParametrizedPassName(Name, "lnicm")) {
     UseMemorySSA = true;
@@ -1309,10 +1346,6 @@ template <typename CallbacksT>
 static bool isLoopPassName(StringRef Name, CallbacksT &Callbacks,
                            bool &UseMemorySSA) {
   UseMemorySSA = false;
-
-  // Explicitly handle custom-parsed pass names.
-  if (parseRepeatPassName(Name))
-    return true;
 
   if (PassBuilder::checkParametrizedPassName(Name, "licm")) {
     UseMemorySSA = true;
@@ -1428,13 +1461,6 @@ Error PassBuilder::parseModulePass(ModulePassManager &MPM,
         return Err;
       MPM.addPass(
           createModuleToFunctionPassAdaptor(std::move(FPM), Params->first));
-      return Error::success();
-    }
-    if (auto Count = parseRepeatPassName(Name)) {
-      ModulePassManager NestedMPM;
-      if (auto Err = parseModulePassPipeline(NestedMPM, InnerPipeline))
-        return Err;
-      MPM.addPass(createRepeatedPass(*Count, std::move(NestedMPM)));
       return Error::success();
     }
 
@@ -1599,13 +1625,6 @@ Error PassBuilder::parseCGSCCPass(CGSCCPassManager &CGPM,
           std::move(FPM), Params->first, Params->second));
       return Error::success();
     }
-    if (auto Count = parseRepeatPassName(Name)) {
-      CGSCCPassManager NestedCGPM;
-      if (auto Err = parseCGSCCPassPipeline(NestedCGPM, InnerPipeline))
-        return Err;
-      CGPM.addPass(createRepeatedPass(*Count, std::move(NestedCGPM)));
-      return Error::success();
-    }
     if (auto MaxRepetitions = parseDevirtPassName(Name)) {
       CGSCCPassManager NestedCGPM;
       if (auto Err = parseCGSCCPassPipeline(NestedCGPM, InnerPipeline))
@@ -1728,13 +1747,6 @@ Error PassBuilder::parseFunctionPass(FunctionPassManager &FPM,
                                                   UseBFI, UseBPI));
       return Error::success();
     }
-    if (auto Count = parseRepeatPassName(Name)) {
-      FunctionPassManager NestedFPM;
-      if (auto Err = parseFunctionPassPipeline(NestedFPM, InnerPipeline))
-        return Err;
-      FPM.addPass(createRepeatedPass(*Count, std::move(NestedFPM)));
-      return Error::success();
-    }
     if (Name == "machine-function") {
       MachineFunctionPassManager MFPM;
       if (auto Err = parseMachinePassPipeline(MFPM, InnerPipeline))
@@ -1827,13 +1839,6 @@ Error PassBuilder::parseLoopPass(LoopPassManager &LPM,
       LPM.addPass(std::move(NestedLPM));
       return Error::success();
     }
-    if (auto Count = parseRepeatPassName(Name)) {
-      LoopPassManager NestedLPM;
-      if (auto Err = parseLoopPassPipeline(NestedLPM, InnerPipeline))
-        return Err;
-      LPM.addPass(createRepeatedPass(*Count, std::move(NestedLPM)));
-      return Error::success();
-    }
 
     for (auto &C : LoopPipelineParsingCallbacks)
       if (C(Name, LPM, InnerPipeline))
@@ -1901,6 +1906,15 @@ Error PassBuilder::parseMachinePass(MachineFunctionPassManager &MFPM,
 #define MACHINE_FUNCTION_PASS(NAME, CREATE_PASS)                               \
   if (Name == NAME) {                                                          \
     MFPM.addPass(CREATE_PASS);                                                 \
+    return Error::success();                                                   \
+  }
+#define MACHINE_FUNCTION_PASS_WITH_PARAMS(NAME, CLASS, CREATE_PASS, PARSER,    \
+                                          PARAMS)                              \
+  if (checkParametrizedPassName(Name, NAME)) {                                 \
+    auto Params = parsePassParameters(PARSER, Name, NAME);                     \
+    if (!Params)                                                               \
+      return Params.takeError();                                               \
+    MFPM.addPass(CREATE_PASS(Params.get()));                                   \
     return Error::success();                                                   \
   }
 #include "llvm/Passes/MachinePassRegistry.def"
@@ -2148,6 +2162,16 @@ Error PassBuilder::parseAAPipeline(AAManager &AA, StringRef PipelineText) {
   }
 
   return Error::success();
+}
+
+std::optional<RegClassFilterFunc>
+PassBuilder::parseRegAllocFilter(StringRef FilterName) {
+  if (FilterName == "all")
+    return nullptr;
+  for (auto &C : RegClassFilterParsingCallbacks)
+    if (auto F = C(FilterName))
+      return F;
+  return std::nullopt;
 }
 
 static void printPassName(StringRef PassName, raw_ostream &OS) {
