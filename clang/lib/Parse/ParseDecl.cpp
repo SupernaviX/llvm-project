@@ -368,6 +368,27 @@ static bool attributeIsTypeArgAttr(const IdentifierInfo &II) {
 #undef CLANG_ATTR_TYPE_ARG_LIST
 }
 
+/// Determine whether the given attribute takes identifier arguments.
+static bool attributeHasStrictIdentifierArgs(const IdentifierInfo &II) {
+#define CLANG_ATTR_STRICT_IDENTIFIER_ARG_AT_INDEX_LIST
+  return (llvm::StringSwitch<uint64_t>(normalizeAttrName(II.getName()))
+#include "clang/Parse/AttrParserStringSwitches.inc"
+              .Default(0)) != 0;
+#undef CLANG_ATTR_STRICT_IDENTIFIER_ARG_AT_INDEX_LIST
+}
+
+/// Determine whether the given attribute takes an identifier argument at a
+/// specific index
+static bool attributeHasStrictIdentifierArgAtIndex(const IdentifierInfo &II,
+                                                   size_t argIndex) {
+#define CLANG_ATTR_STRICT_IDENTIFIER_ARG_AT_INDEX_LIST
+  return (llvm::StringSwitch<uint64_t>(normalizeAttrName(II.getName()))
+#include "clang/Parse/AttrParserStringSwitches.inc"
+              .Default(0)) &
+         (1ull << argIndex);
+#undef CLANG_ATTR_STRICT_IDENTIFIER_ARG_AT_INDEX_LIST
+}
+
 /// Determine whether the given attribute requires parsing its arguments
 /// in an unevaluated context or not.
 static bool attributeParsedArgsUnevaluated(const IdentifierInfo &II) {
@@ -546,7 +567,8 @@ unsigned Parser::ParseAttributeArgsCommon(
       }
       if (T.isUsable())
         TheParsedType = T.get();
-    } else if (AttributeHasVariadicIdentifierArg) {
+    } else if (AttributeHasVariadicIdentifierArg ||
+               attributeHasStrictIdentifierArgs(*AttrName)) {
       // Parse variadic identifier arg. This can either consume identifiers or
       // expressions. Variadic identifier args do not support parameter packs
       // because those are typically used for attributes with enumeration
@@ -557,6 +579,12 @@ unsigned Parser::ParseAttributeArgsCommon(
         if (ChangeKWThisToIdent && Tok.is(tok::kw_this))
           Tok.setKind(tok::identifier);
 
+        if (Tok.is(tok::identifier) && attributeHasStrictIdentifierArgAtIndex(
+                                           *AttrName, ArgExprs.size())) {
+          ArgExprs.push_back(ParseIdentifierLoc());
+          continue;
+        }
+
         ExprResult ArgExpr;
         if (Tok.is(tok::identifier)) {
           ArgExprs.push_back(ParseIdentifierLoc());
@@ -565,7 +593,9 @@ unsigned Parser::ParseAttributeArgsCommon(
           EnterExpressionEvaluationContext Unevaluated(
               Actions,
               Uneval ? Sema::ExpressionEvaluationContext::Unevaluated
-                     : Sema::ExpressionEvaluationContext::ConstantEvaluated);
+                     : Sema::ExpressionEvaluationContext::ConstantEvaluated,
+              nullptr,
+              Sema::ExpressionEvaluationContextRecord::EK_AttrArgument);
 
           ExprResult ArgExpr(
               Actions.CorrectDelayedTyposInExpr(ParseAssignmentExpression()));
@@ -582,9 +612,12 @@ unsigned Parser::ParseAttributeArgsCommon(
       // General case. Parse all available expressions.
       bool Uneval = attributeParsedArgsUnevaluated(*AttrName);
       EnterExpressionEvaluationContext Unevaluated(
-          Actions, Uneval
-                       ? Sema::ExpressionEvaluationContext::Unevaluated
-                       : Sema::ExpressionEvaluationContext::ConstantEvaluated);
+          Actions,
+          Uneval ? Sema::ExpressionEvaluationContext::Unevaluated
+                 : Sema::ExpressionEvaluationContext::ConstantEvaluated,
+          nullptr,
+          Sema::ExpressionEvaluationContextRecord::ExpressionKind::
+              EK_AttrArgument);
 
       ExprVector ParsedExprs;
       ParsedAttributeArgumentsProperties ArgProperties =
@@ -667,7 +700,10 @@ void Parser::ParseGNUAttributeArgs(
     ParseAttributeWithTypeArg(*AttrName, AttrNameLoc, Attrs, ScopeName,
                               ScopeLoc, Form);
     return;
-  } else if (AttrKind == ParsedAttr::AT_CountedBy) {
+  } else if (AttrKind == ParsedAttr::AT_CountedBy ||
+             AttrKind == ParsedAttr::AT_CountedByOrNull ||
+             AttrKind == ParsedAttr::AT_SizedBy ||
+             AttrKind == ParsedAttr::AT_SizedByOrNull) {
     ParseBoundsAttribute(*AttrName, AttrNameLoc, Attrs, ScopeName, ScopeLoc,
                          Form);
     return;
@@ -3355,7 +3391,7 @@ void Parser::ParseBoundsAttribute(IdentifierInfo &AttrName,
       Sema::ExpressionEvaluationContextRecord::ExpressionKind;
   EnterExpressionEvaluationContext EC(
       Actions, Sema::ExpressionEvaluationContext::PotentiallyEvaluated, nullptr,
-      ExpressionKind::EK_BoundsAttrArgument);
+      ExpressionKind::EK_AttrArgument);
 
   ExprResult ArgExpr(
       Actions.CorrectDelayedTyposInExpr(ParseAssignmentExpression()));
@@ -4833,9 +4869,8 @@ static void DiagnoseCountAttributedTypeInUnnamedAnon(ParsingDeclSpec &DS,
 
     for (const auto &DD : CAT->dependent_decls()) {
       if (!RD->containsDecl(DD.getDecl())) {
-        P.Diag(VD->getBeginLoc(),
-               diag::err_flexible_array_count_not_in_same_struct)
-            << DD.getDecl();
+        P.Diag(VD->getBeginLoc(), diag::err_count_attr_param_not_in_same_struct)
+            << DD.getDecl() << CAT->getKind() << CAT->isArrayType();
         P.Diag(DD.getDecl()->getBeginLoc(),
                diag::note_flexible_array_counted_by_attr_field)
             << DD.getDecl();
@@ -6615,48 +6650,66 @@ void Parser::ParseDeclaratorInternal(Declarator &D,
        (Tok.is(tok::identifier) &&
         (NextToken().is(tok::coloncolon) || NextToken().is(tok::less))) ||
        Tok.is(tok::annot_cxxscope))) {
+    TentativeParsingAction TPA(*this, /*Unannotated=*/true);
     bool EnteringContext = D.getContext() == DeclaratorContext::File ||
                            D.getContext() == DeclaratorContext::Member;
     CXXScopeSpec SS;
     SS.setTemplateParamLists(D.getTemplateParameterLists());
-    ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
-                                   /*ObjectHasErrors=*/false, EnteringContext);
 
-    if (SS.isNotEmpty()) {
-      if (Tok.isNot(tok::star)) {
-        // The scope spec really belongs to the direct-declarator.
-        if (D.mayHaveIdentifier())
-          D.getCXXScopeSpec() = SS;
-        else
-          AnnotateScopeToken(SS, true);
+    if (ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
+                                       /*ObjectHasErrors=*/false,
+                                       /*EnteringContext=*/false,
+                                       /*MayBePseudoDestructor=*/nullptr,
+                                       /*IsTypename=*/false, /*LastII=*/nullptr,
+                                       /*OnlyNamespace=*/false,
+                                       /*InUsingDeclaration=*/false,
+                                       /*Disambiguation=*/EnteringContext) ||
 
-        if (DirectDeclParser)
-          (this->*DirectDeclParser)(D);
+        SS.isEmpty() || SS.isInvalid() || !EnteringContext ||
+        Tok.is(tok::star)) {
+      TPA.Commit();
+      if (SS.isNotEmpty() && Tok.is(tok::star)) {
+        if (SS.isValid()) {
+          checkCompoundToken(SS.getEndLoc(), tok::coloncolon,
+                             CompoundToken::MemberPtr);
+        }
+
+        SourceLocation StarLoc = ConsumeToken();
+        D.SetRangeEnd(StarLoc);
+        DeclSpec DS(AttrFactory);
+        ParseTypeQualifierListOpt(DS);
+        D.ExtendWithDeclSpec(DS);
+
+        // Recurse to parse whatever is left.
+        Actions.runWithSufficientStackSpace(D.getBeginLoc(), [&] {
+          ParseDeclaratorInternal(D, DirectDeclParser);
+        });
+
+        // Sema will have to catch (syntactically invalid) pointers into global
+        // scope. It has to catch pointers into namespace scope anyway.
+        D.AddTypeInfo(DeclaratorChunk::getMemberPointer(
+                          SS, DS.getTypeQualifiers(), StarLoc, DS.getEndLoc()),
+                      std::move(DS.getAttributes()),
+                      /*EndLoc=*/SourceLocation());
         return;
       }
+    } else {
+      TPA.Revert();
+      SS.clear();
+      ParseOptionalCXXScopeSpecifier(SS, /*ObjectType=*/nullptr,
+                                     /*ObjectHasErrors=*/false,
+                                     /*EnteringContext=*/true);
+    }
 
-      if (SS.isValid()) {
-        checkCompoundToken(SS.getEndLoc(), tok::coloncolon,
-                           CompoundToken::MemberPtr);
-      }
+    if (SS.isNotEmpty()) {
+      // The scope spec really belongs to the direct-declarator.
+      if (D.mayHaveIdentifier())
+        D.getCXXScopeSpec() = SS;
+      else
+        AnnotateScopeToken(SS, true);
 
-      SourceLocation StarLoc = ConsumeToken();
-      D.SetRangeEnd(StarLoc);
-      DeclSpec DS(AttrFactory);
-      ParseTypeQualifierListOpt(DS);
-      D.ExtendWithDeclSpec(DS);
-
-      // Recurse to parse whatever is left.
-      Actions.runWithSufficientStackSpace(D.getBeginLoc(), [&] {
-        ParseDeclaratorInternal(D, DirectDeclParser);
-      });
-
-      // Sema will have to catch (syntactically invalid) pointers into global
-      // scope. It has to catch pointers into namespace scope anyway.
-      D.AddTypeInfo(DeclaratorChunk::getMemberPointer(
-                        SS, DS.getTypeQualifiers(), StarLoc, DS.getEndLoc()),
-                    std::move(DS.getAttributes()),
-                    /* Don't replace range end. */ SourceLocation());
+      if (DirectDeclParser)
+        (this->*DirectDeclParser)(D);
       return;
     }
   }

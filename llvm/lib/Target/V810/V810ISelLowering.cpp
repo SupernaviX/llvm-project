@@ -10,6 +10,7 @@
 #include "llvm/CodeGen/SelectionDAGNodes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/ValueTypes.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/Support/KnownBits.h"
 
 using namespace llvm;

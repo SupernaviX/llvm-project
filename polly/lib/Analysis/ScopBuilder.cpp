@@ -2768,9 +2768,9 @@ isl::set ScopBuilder::getNonHoistableCtx(MemoryAccess *Access,
   AccessRelation = AccessRelation.intersect_domain(Stmt.getDomain());
   isl::set SafeToLoad;
 
-  auto &DL = scop->getFunction().getParent()->getDataLayout();
+  auto &DL = scop->getFunction().getDataLayout();
   if (isSafeToLoadUnconditionally(LI->getPointerOperand(), LI->getType(),
-                                  LI->getAlign(), DL)) {
+                                  LI->getAlign(), DL, nullptr)) {
     SafeToLoad = isl::set::universe(AccessRelation.get_space().range());
   } else if (BB != LI->getParent()) {
     // Skip accesses in non-affine subregions as they might not be executed
@@ -2814,7 +2814,7 @@ bool ScopBuilder::canAlwaysBeHoisted(MemoryAccess *MA,
                                      bool MAInvalidCtxIsEmpty,
                                      bool NonHoistableCtxIsEmpty) {
   LoadInst *LInst = cast<LoadInst>(MA->getAccessInstruction());
-  const DataLayout &DL = LInst->getParent()->getModule()->getDataLayout();
+  const DataLayout &DL = LInst->getDataLayout();
   if (PollyAllowDereferenceOfAllFunctionParams &&
       isAParameter(LInst->getPointerOperand(), scop->getFunction()))
     return true;

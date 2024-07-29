@@ -98,15 +98,6 @@ namespace {
       return Infos[Kind - FirstTargetFixupKind];
     }
 
-    /// fixupNeedsRelaxation - Target specific predicate for whether a given
-    /// fixup requires the associated instruction to be relaxed.
-    bool fixupNeedsRelaxation(const MCFixup &Fixup,
-                              uint64_t Value,
-                              const MCRelaxableFragment *DF,
-                              const MCAsmLayout &Layout) const override {
-      return false;
-    }
-
     void applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                     const MCValue &Target, MutableArrayRef<char> Data,
                     uint64_t Value, bool IsResolved,
