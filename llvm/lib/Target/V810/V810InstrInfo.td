@@ -496,14 +496,14 @@ let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   def CVT_SW : FormatVII<0b000011,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "cvt.sw $r1, $r2",
-    [(set i32:$r2, (fp_to_sint GenRegs:$r1))],
+    [(set i32:$r2, (fp_to_sint (fround GenRegs:$r1)))],
     [WriteFPU]
   >;
 
   def TRNC_SW : FormatVII<0b001011,
     (outs GenRegs:$r2), (ins GenRegs:$r1),
     "trnc.sw $r1, $r2",
-    [(set i32:$r2, (fp_to_sint (ftrunc GenRegs:$r1)))],
+    [(set i32:$r2, (fp_to_sint GenRegs:$r1))],
     [WriteFPU]
   >;
 }
