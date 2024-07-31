@@ -891,9 +891,9 @@ static SDValue PerformLoadCombine(SDNode *N,
   SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, PtrType, 0);
   SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, PtrType);
   SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, LD->getFlags());
-  return DAG.getLoad(LD->getValueType(0), DL, LD->getChain(), BasePtr,
-    LD->getPointerInfo(), LD->getAlign(),
-    LD->getMemOperand()->getFlags(), LD->getAAInfo());
+  return DAG.getLoad(LD->getAddressingMode(), LD->getExtensionType(),
+    LD->getValueType(0), DL, LD->getChain(), BasePtr, LD->getOffset(),
+    LD->getMemoryVT(), LD->getMemOperand());
 }
 
 // Instead of generating code like:
@@ -929,9 +929,11 @@ static SDValue PerformStoreCombine(SDNode *N,
   SDValue GlobalAddr = BuildMovhiMoveaPair(DAG, GA, DL, PtrType, 0);
   SDValue ConstOffset = DAG.getConstant(APInt(32, Offset, true), DL, PtrType);
   SDValue BasePtr = DAG.getMemBasePlusOffset(GlobalAddr, ConstOffset, DL, ST->getFlags());
-  return DAG.getStore(ST->getChain(), DL, ST->getValue(), BasePtr,
-    ST->getPointerInfo(), ST->getAlign(),
-    ST->getMemOperand()->getFlags(), ST->getAAInfo());
+  SDValue NewST = DAG.getTruncStore(ST->getChain(), DL, ST->getValue(), BasePtr, ST->getMemoryVT(), ST->getMemOperand());
+  if (ST->isIndexed()) {
+    NewST = DAG.getIndexedStore(NewST, DL, BasePtr, ST->getOffset(), ST->getAddressingMode());
+  }
+  return NewST;
 }
 
 SDValue V810TargetLowering::

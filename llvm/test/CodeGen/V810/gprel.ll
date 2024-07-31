@@ -2,7 +2,10 @@
 ; RUN: llc < %s -mtriple=v810 -mattr=+gprel | FileCheck %s -check-prefix=GPREL
 ; RUN: llc < %s -mtriple=v810 -mattr=-gprel | FileCheck %s -check-prefix=NO-GPREL
 
+%SomeStruct = type { i32, i16, i16 }
+
 @mutable_global = external dso_local global [4 x i32], align 4
+@mutable_global_struct = external dso_local global %SomeStruct, align 4
 @immutable_global = external dso_local constant i32, align 4
 
 define i32 @test_gprel_read() {
@@ -39,6 +42,24 @@ entry:
   ret i32 %0
 }
 
+define i32 @test_gprel_read_offset_nonword() {
+; GPREL-LABEL: test_gprel_read_offset_nonword:
+; GPREL:       # %bb.0: # %entry
+; GPREL-NEXT:    ld.h sdaoff(mutable_global_struct+4)[r4], r10
+; GPREL-NEXT:    jmp [r31]
+;
+; NO-GPREL-LABEL: test_gprel_read_offset_nonword:
+; NO-GPREL:       # %bb.0: # %entry
+; NO-GPREL-NEXT:    movhi hi(mutable_global_struct), r0, r6
+; NO-GPREL-NEXT:    movea lo(mutable_global_struct), r6, r6
+; NO-GPREL-NEXT:    ld.h 4[r6], r10
+; NO-GPREL-NEXT:    jmp [r31]
+entry:
+  %0 = load i16, ptr getelementptr inbounds (%SomeStruct, ptr @mutable_global_struct, i32 0, i32 1), align 4
+  %conv = sext i16 %0 to i32
+  ret i32 %conv
+}
+
 define void @test_gprel_write(i32 %value) {
 ; GPREL-LABEL: test_gprel_write:
 ; GPREL:       # %bb.0: # %entry
@@ -70,6 +91,24 @@ define void @test_gprel_write_offset(i32 %value) {
 ; NO-GPREL-NEXT:    jmp [r31]
 entry:
   store i32 %value, ptr getelementptr inbounds ([4 x i32], ptr @mutable_global, i32 0, i32 2), align 4
+  ret void
+}
+
+define void @test_gprel_write_offset_nonword(i32 %value) {
+; GPREL-LABEL: test_gprel_write_offset_nonword:
+; GPREL:       # %bb.0: # %entry
+; GPREL-NEXT:    st.h r6, sdaoff(mutable_global_struct+4)[r4]
+; GPREL-NEXT:    jmp [r31]
+;
+; NO-GPREL-LABEL: test_gprel_write_offset_nonword:
+; NO-GPREL:       # %bb.0: # %entry
+; NO-GPREL-NEXT:    movhi hi(mutable_global_struct), r0, r7
+; NO-GPREL-NEXT:    movea lo(mutable_global_struct), r7, r7
+; NO-GPREL-NEXT:    st.h r6, 4[r7]
+; NO-GPREL-NEXT:    jmp [r31]
+entry:
+  %0 = trunc i32 %value to i16
+  store i16 %0, ptr getelementptr inbounds (i8, ptr @mutable_global_struct, i32 4), align 4
   ret void
 }
 
