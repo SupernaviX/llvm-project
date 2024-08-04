@@ -131,6 +131,11 @@ V810TargetLowering::V810TargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::FSIN, MVT::f32, Expand);
   setOperationAction(ISD::FSQRT, MVT::f32, Expand);
 
+  setLoadExtAction(ISD::EXTLOAD, MVT::f32, MVT::f16, Expand);
+  setTruncStoreAction(MVT::f32, MVT::f16, Expand);
+  setOperationAction(ISD::FP16_TO_FP, MVT::f32, Expand);
+  setOperationAction(ISD::FP_TO_FP16, MVT::f32, Expand);
+
   setOperationAction(ISD::STACKSAVE, MVT::Other, Expand);
   setOperationAction(ISD::STACKRESTORE, MVT::Other, Expand);
   setOperationAction(ISD::DYNAMIC_STACKALLOC, MVT::i32, Expand);
