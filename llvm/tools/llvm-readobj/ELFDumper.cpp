@@ -1357,6 +1357,10 @@ const EnumEntry<unsigned> ElfMipsSectionFlags[] = {
   ENUM_ENT(SHF_MIPS_STRING,  "")
 };
 
+const EnumEntry<unsigned> ElfV810SectionFlags[] = {
+  ENUM_ENT(SHF_V810_GPREL, "")
+};
+
 const EnumEntry<unsigned> ElfX86_64SectionFlags[] = {
   ENUM_ENT(SHF_X86_64_LARGE, "l")
 };
@@ -1387,6 +1391,10 @@ getSectionFlagsForTarget(unsigned EOSAbi, unsigned EMachine) {
   case EM_MIPS:
     Ret.insert(Ret.end(), std::begin(ElfMipsSectionFlags),
                std::end(ElfMipsSectionFlags));
+    break;
+  case EM_V810:
+    Ret.insert(Ret.end(), std::begin(ElfV810SectionFlags),
+               std::end(ElfV810SectionFlags));
     break;
   case EM_X86_64:
     Ret.insert(Ret.end(), std::begin(ElfX86_64SectionFlags),

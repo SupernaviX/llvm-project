@@ -19,6 +19,7 @@ public:
                     bool JIT);
   ~V810TargetMachine() override;
 
+  const V810Subtarget *getSubtargetImpl() const;
   const V810Subtarget *getSubtargetImpl(const Function &F) const override;
 
   TargetPassConfig *createPassConfig(PassManagerBase &PM) override;

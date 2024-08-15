@@ -1237,6 +1237,9 @@ enum : unsigned {
   // for faster accesses
   SHF_HEX_GPREL = 0x10000000,
 
+  // Section must be addressible relative to GP.
+  SHF_V810_GPREL = 0x10000000,
+
   // Section contains text/data which may be replicated in other sections.
   // Linker must retain only one copy.
   SHF_MIPS_NODUPES = 0x01000000,

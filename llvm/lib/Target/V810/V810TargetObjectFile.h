@@ -2,6 +2,7 @@
 #define LLVM_LIB_TARGET_V810_V810TARGETOBJECTFILE_H
 
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
+#include "llvm/MC/MCSectionELF.h"
 
 namespace llvm {
 
@@ -10,7 +11,21 @@ class TargetMachine;
 
 class V810TargetObjectFile : public TargetLoweringObjectFileELF {
 public:
-  V810TargetObjectFile() = default;
+  void Initialize(MCContext &Ctx, const TargetMachine &TM) override;
+
+  MCSection *SelectSectionForGlobal(const GlobalObject *GO, SectionKind Kind,
+                                    const TargetMachine &MT) const override;
+
+  MCSection *getExplicitSectionGlobal(const GlobalObject *GO,
+                                      SectionKind Kind,
+                                      const TargetMachine &TM) const override;
+private:
+  MCSectionELF *SmallDataSection;
+  MCSectionELF *SmallBSSSection;
+
+  MCSection *selectSmallSectionForGlobal(const GlobalObject *GO,
+                                         SectionKind Kind,
+                                         const TargetMachine &TM) const;
 };
 
 } // end namespace llvm

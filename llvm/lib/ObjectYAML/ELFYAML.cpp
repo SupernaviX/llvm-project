@@ -799,6 +799,9 @@ void ScalarBitSetTraits<ELFYAML::ELF_SHF>::bitset(IO &IO,
     BCase(SHF_MIPS_ADDR);
     BCase(SHF_MIPS_STRING);
     break;
+  case ELF::EM_V810:
+    BCase(SHF_V810_GPREL);
+    break;
   case ELF::EM_X86_64:
     BCase(SHF_X86_64_LARGE);
     break;
