@@ -27,7 +27,7 @@ static bool isSmallDataSection(StringRef Sec) {
   return Sec.starts_with(".sdata") || Sec.starts_with(".sbss");
 }
 
-static bool isGlobalInSmallSection(const GlobalObject *GO, const TargetMachine &TM) {
+bool V810TargetObjectFile::isGlobalInSmallSection(const GlobalObject *GO, const TargetMachine &TM) const {
   const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GO);
   if (!GVar) return false;
   if (GVar->isConstant()) return false;

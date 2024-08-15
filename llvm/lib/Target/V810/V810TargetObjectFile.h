@@ -19,6 +19,8 @@ public:
   MCSection *getExplicitSectionGlobal(const GlobalObject *GO,
                                       SectionKind Kind,
                                       const TargetMachine &TM) const override;
+
+  bool isGlobalInSmallSection(const GlobalObject *GO, const TargetMachine &TM) const;
 private:
   MCSectionELF *SmallDataSection;
   MCSectionELF *SmallBSSSection;

@@ -6,7 +6,7 @@
 
 @mutable_global = external dso_local global [4 x i32], align 4
 @mutable_global_struct = external dso_local global %SomeStruct, align 4
-@immutable_global = external dso_local constant i32, align 4
+@immutable_global = external dso_local constant [4 x i32], align 4
 
 define i32 @test_gprel_read() {
 ; GPREL-LABEL: test_gprel_read:
@@ -127,6 +127,6 @@ define i32 @test_const_read() {
 ; NO-GPREL-NEXT:    ld.w 0[r6], r10
 ; NO-GPREL-NEXT:    jmp [r31]
 entry:
-  %0 = load i32, ptr @immutable_global, align 4
+  %0 = load i32, ptr getelementptr inbounds ([4 x i32], ptr @immutable_global, i32 0, i32 0), align 4
   ret i32 %0
 }
