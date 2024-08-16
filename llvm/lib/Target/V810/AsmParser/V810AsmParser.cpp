@@ -3,7 +3,10 @@
 #include "MCTargetDesc/V810MCTargetDesc.h"
 #include "TargetInfo/V810TargetInfo.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/BinaryFormat/ELF.h"
+#include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInstrInfo.h"
+#include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
 #include "llvm/MC/MCParser/MCAsmLexer.h"
@@ -36,6 +39,7 @@ class V810AsmParser : public MCTargetAsmParser {
   bool ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override;
   bool ParseDirective(AsmToken DirectiveID) override;
+  bool parseSSectionDirective(StringRef Section, unsigned Type);
 
   ParseStatus parseMEMOperand(OperandVector &Operands);
   ParseStatus parseBranchTargetOperand(OperandVector &Operands);
@@ -353,10 +357,32 @@ bool V810AsmParser::ParseInstruction(ParseInstructionInfo &Info,
 }
 
 bool V810AsmParser::ParseDirective(AsmToken DirectiveID) {
-  // Let the MC layer handle everything
+  StringRef IDVal = DirectiveID.getString();
+  if (IDVal == ".sbss") {
+    parseSSectionDirective(IDVal, ELF::SHT_NOBITS);
+    return false;
+  }
+  if (IDVal == ".sdata") {
+    parseSSectionDirective(IDVal, ELF::SHT_PROGBITS);
+    return false;
+  }
+  // Let the MC layer handle everything else
   return true;
 }
 
+bool V810AsmParser::parseSSectionDirective(StringRef Section, unsigned Type) {
+  if (getLexer().isNot(AsmToken::EndOfStatement)) {
+    Error(getLexer().getLoc(), "unexpected token, expected end of statement");
+    return false;
+  }
+
+  MCSection *ELFSection = getContext().getELFSection(
+      Section, Type, ELF::SHF_WRITE | ELF::SHF_ALLOC | ELF::SHF_V810_GPREL);
+  getParser().getStreamer().switchSection(ELFSection);
+
+  getParser().Lex(); // Eat EndOfStatement token.
+  return false;
+}
 
 // offset[reg]
 // offset is an (optional) expression, reg is a register

@@ -4,11 +4,11 @@
 #include "MCTargetDesc/V810MCExpr.h"
 #include "V810RegisterInfo.h"
 #include "V810Subtarget.h"
+#include "V810TargetObjectFile.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/SelectionDAG.h"
 #include "llvm/CodeGen/SelectionDAGNodes.h"
-#include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/ValueTypes.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/Support/KnownBits.h"
@@ -584,15 +584,14 @@ static V810CC::CondCodes FloatCondCodeToCC(ISD::CondCode CC) {
   }
 }
 
-static bool CanBeGPRelative(const GlobalValue *GVal) {
-  const GlobalVariable *GVar = dyn_cast<GlobalVariable>(GVal);
-  if (!GVar) return false;
-  if (GVar->isConstant()) return false;
-  return !GVar->hasSection() || GVar->getSection().starts_with(".sdata");
-}
-
 bool V810TargetLowering::IsGPRelative(const GlobalValue *GVal) const {
-  return CanBeGPRelative(GVal) && Subtarget->enableGPRelativeRAM();
+  if (!Subtarget->enableGPRelativeRAM()) {
+    return false;
+  }
+  const V810TargetObjectFile *TLOF =
+      static_cast<const V810TargetObjectFile *>(
+          getTargetMachine().getObjFileLowering());
+  return TLOF->isGlobalInSmallSection(GVal->getAliaseeObject(), getTargetMachine());
 }
 
 static SDValue BuildMovhiMoveaPair(SelectionDAG &DAG, const GlobalValue *GV, SDLoc DL, EVT VT, int64_t Offset) {
@@ -611,7 +610,7 @@ static SDValue LowerGlobalAddress(SDValue Op, SelectionDAG &DAG, const V810Targe
 
   const GlobalValue *GV = GN->getGlobal();
   if (TLI->IsGPRelative(GV)) {
-    // Every mutable global variable is stored in RAM, and every address in RAM
+    // The address of every global variable in the "small data" area 
     // can be expressed by a 16-bit signed offset from the GP register (R4).
     SDValue RelTarget = DAG.getTargetGlobalAddress(GV, DL, GN->getValueType(0), GN->getOffset(), V810MCExpr::VK_V810_SDAOFF);
     SDValue Reg = DAG.getRegister(V810::R4, GN->getValueType(0));
