@@ -493,9 +493,11 @@ void baremetal::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Arch == llvm::Triple::aarch64_be ? "-EB" : "-EL");
   }
 
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles,
-                   options::OPT_r)) {
-    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crt0.o")));
+  if (Arch != llvm::Triple::v810) {
+    if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles,
+                    options::OPT_r)) {
+      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crt0.o")));
+    }
   }
 
   Args.addAllArgs(CmdArgs, {options::OPT_L, options::OPT_T_Group,
