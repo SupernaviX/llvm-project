@@ -205,6 +205,9 @@ static const CoreDefinition g_core_definitions[] = {
     {eByteOrderLittle, 8, 4, 4, llvm::Triple::sparcv9,
      ArchSpec::eCore_sparc9_generic, "sparcv9"},
 
+    {eByteOrderLittle, 4, 2, 4, llvm::Triple::v810,
+     ArchSpec::eCore_v810_generic, "v810"},
+
     {eByteOrderLittle, 4, 1, 15, llvm::Triple::x86, ArchSpec::eCore_x86_32_i386,
      "i386"},
     {eByteOrderLittle, 4, 1, 15, llvm::Triple::x86, ArchSpec::eCore_x86_32_i486,
@@ -367,6 +370,8 @@ static const ArchDefinition g_macho_arch_def = {eArchTypeMachO,
 static const ArchDefinitionEntry g_elf_arch_entries[] = {
     {ArchSpec::eCore_sparc_generic, llvm::ELF::EM_SPARC, LLDB_INVALID_CPUTYPE,
      0xFFFFFFFFu, 0xFFFFFFFFu}, // Sparc
+    {ArchSpec::eCore_v810_generic, llvm::ELF::EM_V810, LLDB_INVALID_CPUTYPE,
+     0xFFFFFFFFu, 0xFFFFFFFFu}, // V810
     {ArchSpec::eCore_x86_32_i386, llvm::ELF::EM_386, LLDB_INVALID_CPUTYPE,
      0xFFFFFFFFu, 0xFFFFFFFFu}, // Intel 80386
     {ArchSpec::eCore_x86_32_i486, llvm::ELF::EM_IAMCU, LLDB_INVALID_CPUTYPE,
