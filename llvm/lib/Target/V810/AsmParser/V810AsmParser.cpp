@@ -28,7 +28,7 @@ class V810AsmParser : public MCTargetAsmParser {
 #include "V810GenAsmMatcher.inc"
 
   // public interface of the MCTargetAsmParser.
-  bool MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
+  bool matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                OperandVector &Operands, MCStreamer &Out,
                                uint64_t &ErrorInfo,
                                bool MatchingInlineAsm) override;
@@ -36,7 +36,7 @@ class V810AsmParser : public MCTargetAsmParser {
                      SMLoc &EndLoc) override;
   ParseStatus tryParseRegister(MCRegister &RegNo, SMLoc &StartLoc,
                                         SMLoc &EndLoc) override;
-  bool ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
+  bool parseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override;
   bool ParseDirective(AsmToken DirectiveID) override;
   bool parseSSectionDirective(StringRef Section, unsigned Type);
@@ -268,7 +268,7 @@ public:
 static MCRegister MatchRegisterName(StringRef Name);
 static MCRegister MatchRegisterAltName(StringRef Alias);
 
-bool V810AsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
+bool V810AsmParser::matchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                             OperandVector &Operands,
                                             MCStreamer &Out,
                                             uint64_t &ErrorInfo,
@@ -329,7 +329,7 @@ ParseStatus V810AsmParser::tryParseRegister(MCRegister &RegNo,
   return ParseStatus::NoMatch;
 }
 
-bool V810AsmParser::ParseInstruction(ParseInstructionInfo &Info,
+bool V810AsmParser::parseInstruction(ParseInstructionInfo &Info,
                                      StringRef Name, SMLoc NameLoc,
                                      OperandVector &Operands) {
   Operands.push_back(V810Operand::CreateToken(Name, NameLoc));

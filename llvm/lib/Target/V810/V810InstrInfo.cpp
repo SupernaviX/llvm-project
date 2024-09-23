@@ -18,12 +18,13 @@ V810InstrInfo::V810InstrInfo()
 void V810InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I, const DebugLoc &DL,
                                 MCRegister DestReg, MCRegister SrcReg,
-                                bool KillSrc) const {
+                                bool KillSrc, bool RenamableDest, bool RenamableSrc) const {
   assert(V810::GenRegsRegClass.contains(DestReg, SrcReg));
   if (DestReg == SrcReg) {
     return;
   }
-  BuildMI(MBB, I, DL, get(V810::MOVr), DestReg).addReg(SrcReg, getKillRegState(KillSrc));
+  BuildMI(MBB, I, DL, get(V810::MOVr), DestReg)
+    .addReg(SrcReg, getKillRegState(KillSrc) | getRenamableRegState(RenamableSrc));
 }
 
 Register V810InstrInfo::isLoadFromStackSlot(const MachineInstr &MI,

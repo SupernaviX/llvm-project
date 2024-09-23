@@ -256,7 +256,6 @@ void MIRPrinter::print(const MachineFunction &MF) {
         .print(MBB);
     IsNewlineNeeded = true;
   }
-  StrOS.flush();
   // Convert machine metadata collected during the print of the machine
   // function.
   convertMachineMetadataNodes(YamlMF, MF, MST);
@@ -329,7 +328,7 @@ void MIRPrinter::convert(yaml::MachineFunction &MF,
   }
 
   // Print the live ins.
-  for (std::pair<unsigned, unsigned> LI : RegInfo.liveins()) {
+  for (std::pair<MCRegister, Register> LI : RegInfo.liveins()) {
     yaml::MachineFunctionLiveIn LiveIn;
     printRegMIR(LI.first, LiveIn.Register, TRI);
     if (LI.second)
