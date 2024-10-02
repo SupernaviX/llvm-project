@@ -43,6 +43,19 @@ enum dwarf_regnums {
   dwarf_r29,
   dwarf_r30,
   dwarf_r31,
+  dwarf_sr0,
+  dwarf_sr1,
+  dwarf_sr2,
+  dwarf_sr3,
+  dwarf_sr4,
+  dwarf_sr5,
+  dwarf_sr6,
+  dwarf_sr7,
+  dwarf_sr24,
+  dwarf_sr25,
+  dwarf_sr29,
+  dwarf_sr30,
+  dwarf_sr31,
   dwarf_pc
 };
 
@@ -78,8 +91,21 @@ static const RegisterInfo g_register_infos[] = {
   {"r28", nullptr, 4, 112, eEncodingUint, eFormatHex, {dwarf_r28, dwarf_r28, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
   {"r29", nullptr, 4, 116, eEncodingUint, eFormatHex, {dwarf_r29, dwarf_r29, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
   {"r30", nullptr, 4, 120, eEncodingUint, eFormatHex, {dwarf_r30, dwarf_r30, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
-  {"r31", nullptr, 4, 124, eEncodingUint, eFormatHex, {dwarf_r31, dwarf_r31, LLDB_REGNUM_GENERIC_RA, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
-  {"pc", nullptr, 4, 128, eEncodingUint, eFormatHex, {dwarf_pc, dwarf_pc, LLDB_REGNUM_GENERIC_PC, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"lp", "r31", 4, 124, eEncodingUint, eFormatHex, {dwarf_r31, dwarf_r31, LLDB_REGNUM_GENERIC_RA, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"eipc", "sr0", 4, 128, eEncodingUint, eFormatHex, {dwarf_sr0, dwarf_sr0, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"eipsw", "sr1", 4, 132, eEncodingUint, eFormatHex, {dwarf_sr1, dwarf_sr1, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"fepc", "sr2", 4, 136, eEncodingUint, eFormatHex, {dwarf_sr2, dwarf_sr2, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"fepsw", "sr3", 4, 140, eEncodingUint, eFormatHex, {dwarf_sr3, dwarf_sr3, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"ecr", "sr4", 4, 144, eEncodingUint, eFormatHex, {dwarf_sr4, dwarf_sr4, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"psw", "sr5", 4, 148, eEncodingUint, eFormatHex, {dwarf_sr5, dwarf_sr5, LLDB_REGNUM_GENERIC_FLAGS, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"pir", "sr6", 4, 152, eEncodingUint, eFormatHex, {dwarf_sr6, dwarf_sr6, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"tkcw", "sr7", 4, 156, eEncodingUint, eFormatHex, {dwarf_sr7, dwarf_sr7, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"chcw", "sr24", 4, 160, eEncodingUint, eFormatHex, {dwarf_sr24, dwarf_sr24, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"adtre", "sr25", 4, 164, eEncodingUint, eFormatHex, {dwarf_sr25, dwarf_sr25, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"sr29", nullptr, 4, 168, eEncodingUint, eFormatHex, {dwarf_sr29, dwarf_sr29, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"sr30", nullptr, 4, 172, eEncodingUint, eFormatHex, {dwarf_sr30, dwarf_sr30, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"sr31", nullptr, 4, 176, eEncodingUint, eFormatHex, {dwarf_sr31, dwarf_sr31, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
+  {"pc", nullptr, 4, 180, eEncodingUint, eFormatHex, {dwarf_pc, dwarf_pc, LLDB_REGNUM_GENERIC_PC, LLDB_INVALID_REGNUM}, nullptr, nullptr, nullptr},
 };
 
 static const uint32_t k_num_register_infos = std::size(g_register_infos);
