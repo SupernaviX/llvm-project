@@ -481,7 +481,7 @@ let Defs = [SR5], V810_ZFlag = 1, V810_SFlag = 1 in {
   let Constraints = "$r2 = $r2_" in
   def DIVF_S : FormatVII<0b000111,
     (outs GenRegs:$r2), (ins GenRegs:$r2_, GenRegs:$r1),
-    "subf.s $r1, $r2",
+    "divf.s $r1, $r2",
     [(set f32:$r2, (fdiv GenRegs:$r2_, GenRegs:$r1))],
     [WriteFPU]
   >;
