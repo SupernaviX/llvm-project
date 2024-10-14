@@ -13,7 +13,7 @@ using namespace lld::elf;
 namespace {
 class V810 final : public TargetInfo {
 public:
-  V810();
+  V810(Ctx &);
   RelExpr getRelExpr(RelType type, const Symbol &s,
                      const uint8_t *loc) const override;
   void relocate(uint8_t *loc, const Relocation &rel,
@@ -21,7 +21,7 @@ public:
 };
 } // namespace
 
-V810::V810() {
+V810::V810(Ctx &ctx) : TargetInfo(ctx) {
   symbolicRel = R_V810_16;
 }
 
@@ -46,7 +46,7 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   case R_V810_26_PCREL:
     return R_PC;
   default:
-    error(getErrorLocation(loc) + "unknown relocation (" + Twine(type) +
+    error(getErrorLoc(ctx, loc) + "unknown relocation (" + Twine(type) +
           ") against symbol " + toString(s));
     return R_NONE;
   }
@@ -67,44 +67,44 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
   switch(rel.type) {
   case R_V810_32:
   case R_V810_DISP32:
-    checkInt(loc, val, 32, rel);
+    checkInt(ctx, loc, val, 32, rel);
     write32le(loc, val & 0xffffffff);
     break;
   case R_V810_16:
   case R_V810_DISP16:
-    checkInt(loc, val, 16, rel);
+    checkInt(ctx, loc, val, 16, rel);
     write16le(loc, val & 0x0000ffff);
     break;
   case R_V810_8:
   case R_V810_DISP8:
-    checkInt(loc, val, 8, rel);
+    checkInt(ctx, loc, val, 8, rel);
     *loc = val & 0x000000ff;
     break;
   case R_V810_LO:
-    checkInt(loc, val, 32, rel);
+    checkInt(ctx, loc, val, 32, rel);
     write16le(loc + 2, val & 0x0000ffff);
     break;
   case R_V810_HI:
-    checkInt(loc, val, 32, rel);
+    checkInt(ctx, loc, val, 32, rel);
     write16le(loc + 2, (val >> 16) & 0x0000ffff);
     break;
   case R_V810_HI_S:
-    checkInt(loc, val, 32, rel);
+    checkInt(ctx, loc, val, 32, rel);
     // add one to HI if LO would be negative
     write16le(loc + 2, ((val >> 16) & 0x0000ffff) + ((val & 0x8000) != 0));
     break;
   case R_V810_SDAOFF:
   case R_V810_ZDAOFF:
   case R_V810_TDAOFF:
-    checkInt(loc, val, 16, rel);
+    checkInt(ctx, loc, val, 16, rel);
     write16le(loc + 2, val);
     break;
   case R_V810_9_PCREL:
-    checkInt(loc, val, 9, rel);
+    checkInt(ctx, loc, val, 9, rel);
     write16le(loc, (read16le(loc) & ~0x01ff) | (val & 0x01ff));
     break;
   case R_V810_26_PCREL:
-    checkInt(loc, val, 26, rel);
+    checkInt(ctx, loc, val, 26, rel);
     write32vb(loc, (read32vb(loc) & ~0x03ffffff) | (val & 0x03ffffff));
     break;
   default:
@@ -112,7 +112,4 @@ void V810::relocate(uint8_t *loc, const Relocation &rel,
   }
 }
 
-TargetInfo *elf::getV810TargetInfo() {
-  static V810 target;
-  return &target;
-}
+void elf::setV810TargetInfo(Ctx &ctx) { ctx.target.reset(new V810(ctx)); }

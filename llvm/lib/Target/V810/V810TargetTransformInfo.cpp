@@ -15,6 +15,8 @@ InstructionCost V810TTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
                                                  Type *CondTy,
                                                  CmpInst::Predicate VecPred,
                                                  TTI::TargetCostKind CostKind,
+                                                 TTI::OperandValueInfo Op1Info,
+                                                 TTI::OperandValueInfo Op2Info,
                                                  const Instruction *I) {
   switch (Opcode) {
   case Instruction::ICmp:
