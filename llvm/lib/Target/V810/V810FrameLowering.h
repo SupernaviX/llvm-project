@@ -22,7 +22,6 @@ public:
                                 MachineBasicBlock::iterator I) const override;
 
   bool hasReservedCallFrame(const MachineFunction &MF) const override;
-  bool hasFP(const MachineFunction &MF) const override;
   StackOffset getFrameIndexReference(const MachineFunction &MF, int FI,
                                      Register &FrameReg) const override;
   StackOffset getFrameIndexReferencePreferSP(const MachineFunction &MF, int FI,
@@ -32,6 +31,8 @@ public:
       const override;
   void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
                             RegScavenger *RS) const override;
+protected:
+  bool hasFPImpl(const MachineFunction &FM) const override;
 private:
   void moveStackPointer(MachineFunction &MF, MachineBasicBlock &MBB,
                         MachineBasicBlock::iterator MBBI, int bytes) const;

@@ -129,7 +129,7 @@ V810FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 }
 
 bool
-V810FrameLowering::hasFP(const MachineFunction &MF) const {
+V810FrameLowering::hasFPImpl(const MachineFunction &MF) const {
   const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) ||

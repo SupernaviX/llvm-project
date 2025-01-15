@@ -80,7 +80,7 @@ struct ThreeRegisters {
 };
 
 // CHECK-LABEL: define dso_local void @f_returninsret
-// CHECK-SAME: (ptr dead_on_unwind noalias nocapture writable writeonly sret([[STRUCT_THREEREGISTERS:%.*]]) align 4 [[AGG_RESULT:%.*]]) local_unnamed_addr #[[ATTR2:[0-9]+]] {
+// CHECK-SAME: (ptr dead_on_unwind noalias nocapture writable writeonly sret([[STRUCT_THREEREGISTERS:%.*]]) align 4 initializes((0, 12)) [[AGG_RESULT:%.*]]) local_unnamed_addr #[[ATTR2:[0-9]+]] {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    tail call void @llvm.memset.p0.i32(ptr noundef nonnull align 4 dereferenceable(12) [[AGG_RESULT]], i8 0, i32 12, i1 false)
 // CHECK-NEXT:    ret void

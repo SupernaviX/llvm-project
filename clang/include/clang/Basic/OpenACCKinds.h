@@ -152,6 +152,20 @@ inline bool isOpenACCComputeDirectiveKind(OpenACCDirectiveKind K) {
          K == OpenACCDirectiveKind::Kernels;
 }
 
+inline bool isOpenACCCombinedDirectiveKind(OpenACCDirectiveKind K) {
+  return K == OpenACCDirectiveKind::ParallelLoop ||
+         K == OpenACCDirectiveKind::SerialLoop ||
+         K == OpenACCDirectiveKind::KernelsLoop;
+}
+
+// Tests 'K' to see if it is 'data', 'host_data', 'enter data', or 'exit data'.
+inline bool isOpenACCDataDirectiveKind(OpenACCDirectiveKind K) {
+  return K == OpenACCDirectiveKind::Data ||
+         K == OpenACCDirectiveKind::EnterData ||
+         K == OpenACCDirectiveKind::ExitData ||
+         K == OpenACCDirectiveKind::HostData;
+}
+
 enum class OpenACCAtomicKind : uint8_t {
   Read,
   Write,
@@ -570,6 +584,7 @@ inline StreamTy &printOpenACCGangKind(StreamTy &Out, OpenACCGangKind GK) {
   case OpenACCGangKind::Static:
     return Out << "static";
   }
+  llvm_unreachable("unknown gang kind");
 }
 inline const StreamingDiagnostic &operator<<(const StreamingDiagnostic &Out,
                                              OpenACCGangKind Op) {

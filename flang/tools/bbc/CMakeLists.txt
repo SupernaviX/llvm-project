@@ -20,11 +20,13 @@ target_link_libraries(bbc PRIVATE
   CUFDialect
   FIRDialect
   FIRDialectSupport
+  FIROpenACCSupport
   FIRSupport
   FIRTransforms
   FIRBuilder
   HLFIRDialect
   HLFIRTransforms
+  flangFrontend
   flangPasses
   FlangOpenMPTransforms
   ${dialect_libs}

@@ -2,12 +2,13 @@
 #define LLVM_LIB_TARGET_V810_V810TARGETMACHINE_H
 
 #include "V810Subtarget.h"
+#include "llvm/CodeGen/CodeGenTargetMachineImpl.h"
 #include "llvm/Target/TargetMachine.h"
 #include <optional>
 
 namespace llvm {
 
-class V810TargetMachine : public LLVMTargetMachine {
+class V810TargetMachine : public CodeGenTargetMachineImpl {
 private:
   std::unique_ptr<TargetLoweringObjectFile> TLOF;
   mutable StringMap<std::unique_ptr<V810Subtarget>> SubtargetMap;

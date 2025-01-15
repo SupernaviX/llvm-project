@@ -38,7 +38,7 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   case R_V810_HI_S:
     return R_ABS;
   case R_V810_SDAOFF:
-    return R_V810_GP;
+    return RE_V810_GP;
   case R_V810_DISP8:
   case R_V810_DISP16:
   case R_V810_DISP32:
@@ -46,8 +46,8 @@ RelExpr V810::getRelExpr(RelType type, const Symbol &s,
   case R_V810_26_PCREL:
     return R_PC;
   default:
-    error(getErrorLoc(ctx, loc) + "unknown relocation (" + Twine(type) +
-          ") against symbol " + toString(s));
+    Err(ctx) << getErrorLoc(ctx, loc) << "unknown relocation (" << type.v
+             << ") against symbol " << &s;
     return R_NONE;
   }
 }

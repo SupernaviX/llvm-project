@@ -80,7 +80,7 @@ bool V810DAGToDAGISel::SelectADDRri(SDValue Addr,
         Base = Addr.getOperand(0);
       }
       Offset =
-          CurDAG->getTargetConstant(CN->getSExtValue(), SDLoc(Addr), MVT::i32);
+          CurDAG->getTargetConstant(CN->getAPIntValue(), SDLoc(Addr), MVT::i32);
       return true;
     }
   }

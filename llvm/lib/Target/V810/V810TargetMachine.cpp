@@ -23,7 +23,7 @@ V810TargetMachine::V810TargetMachine(
     const Target &T, const Triple &TT, StringRef CPU, StringRef FS,
     const TargetOptions &Options, std::optional<Reloc::Model> RM,
     std::optional<CodeModel::Model> CM, CodeGenOptLevel OL, bool JIT)
-    : LLVMTargetMachine(
+    : CodeGenTargetMachineImpl(
         T, computeDataLayout(TT), TT, CPU, FS, Options,
         RM.value_or(Reloc::Static),
         CM.value_or(CodeModel::Small),
