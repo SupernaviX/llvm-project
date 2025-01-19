@@ -49,6 +49,11 @@ set(LLVM_DISTRIBUTION_COMPONENTS
   builtins
   clang
   lld
+  lldb
+  liblldb
+  lldb-argdumper
+  lldb-dap
+  lldb-server
   clang-apply-replacements
   clang-format
   clang-resource-headers
